@@ -3,7 +3,7 @@
 A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaScript.
 
 ![Metra Market](https://img.shields.io/badge/Metra-Market-8B0000?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.2.0-crimson?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.3.0-crimson?style=for-the-badge)
 ![Last Updated](https://img.shields.io/badge/last%20updated-March%202026-brown?style=for-the-badge)
 
 ## ✨ Features
@@ -17,6 +17,7 @@ A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaS
 - 📱 **Responsive** - Works perfectly on all devices (mobile, tablet, desktop)
 - ⚡ **Fast & Lightweight** - No frameworks, pure HTML/CSS/JS
 - 🎯 **User Friendly** - Intuitive navigation and checkout process
+- 🔧 **Admin CMS** - Complete admin dashboard for managing all aspects
 
 ## 🚀 Quick Start
 
@@ -28,10 +29,13 @@ A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaS
 
 ```
 metra-market/
-├── index.html      # Main HTML file
-├── styles.css      # All styling
-├── script.js       # Cart, auth & UI functionality
-└── README.md       # This file
+├── index.html          # Main store HTML file
+├── admin.html          # Admin dashboard (hidden)
+├── styles.css          # Store styling
+├── admin-styles.css    # Admin dashboard styling
+├── script.js           # Store functionality
+├── admin-script.js     # Admin dashboard functionality
+└── README.md           # This file
 ```
 
 ## 🎨 Customization
@@ -72,11 +76,72 @@ metra-market/
 - User authentication system
 - Order tracking
 
+## 🔧 Admin Panel
+
+Access the admin dashboard at: `admin.html`
+
+**⚠️ Admin Credentials:**
+- **Username:** `ThandoHlomuka`
+- **Password:** `Nozibusiso89`
+
+### Admin Features
+
+#### Dashboard Overview
+- Real-time statistics (products, orders, users, revenue)
+- Recent orders summary
+- Order status breakdown
+- Top-selling products
+- Recent reviews
+
+#### Products Management
+- ✅ Add new products with full details
+- ✅ Edit existing products
+- ✅ Delete products
+- ✅ Manage SKU, price, description, specs, tags
+
+#### Orders Management
+- ✅ View all orders with filtering
+- ✅ Update order status (Processing → Shipped → Delivered)
+- ✅ View order details (items, totals, customer)
+- ✅ Track shipping status
+
+#### Users Management
+- ✅ View all registered users
+- ✅ See user order history
+- ✅ Delete user accounts
+
+#### Reviews Management
+- ✅ View all customer reviews
+- ✅ Delete inappropriate reviews
+- ✅ See review ratings
+
+#### Settings
+- ✅ Configure store settings
+- ✅ Update shipping prices
+- ✅ Change admin password
+- ✅ Clear data (orders, users)
+- ✅ Reset products to default
+
 ---
 
 ## 📬 Changelog / Updates
 
-### v1.2.0 - March 23, 2026 *(Latest)*
+### v1.3.0 - March 23, 2026 *(Latest)*
+**🔧 Admin CMS Dashboard**
+- ✅ Created separate admin dashboard (admin.html)
+- ✅ Secure admin login with credentials
+- ✅ Dashboard with real-time statistics
+- ✅ Product management (Add, Edit, Delete)
+- ✅ Order management with status updates
+- ✅ Shipping order tracking
+- ✅ User management
+- ✅ Reviews moderation
+- ✅ Settings configuration
+- ✅ Admin password change
+- ✅ Data management tools
+- ✅ Hidden admin link in footer
+
+### v1.2.0 - March 23, 2026
 **🔐 Profile System & Authentication**
 - ✅ Added user registration form with validation
 - ✅ Added login form with password verification
