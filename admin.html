@@ -64,6 +64,10 @@
                     <i class="fas fa-star"></i>
                     <span>Reviews</span>
                 </a>
+                <a href="#" class="nav-item" onclick="showSection('invoices', this)">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Invoices</span>
+                </a>
                 <a href="#" class="nav-item" onclick="showSection('settings', this)">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
@@ -274,6 +278,35 @@
                 </div>
                 <div class="reviews-grid" id="reviewsGrid">
                     <!-- Loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Invoices Section -->
+            <section class="content-section" id="invoicesSection">
+                <div class="section-header">
+                    <h3>Invoice Management</h3>
+                    <div class="filter-group">
+                        <button class="btn-primary btn-sm" onclick="exportAllInvoices()">
+                            <i class="fas fa-download"></i> Export All
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTable">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
 

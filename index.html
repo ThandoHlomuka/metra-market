@@ -269,16 +269,17 @@
                 <div class="social-login">
                     <p>Or continue with</p>
                     <div class="social-buttons">
-                        <button type="button" class="social-btn google">
+                        <button type="button" class="social-btn google" onclick="googleLogin()" title="Login with Google">
                             <i class="fab fa-google"></i>
                         </button>
-                        <button type="button" class="social-btn facebook">
+                        <button type="button" class="social-btn whatsapp" onclick="whatsappLogin()" title="Login with WhatsApp">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                        <button type="button" class="social-btn facebook" onclick="facebookLogin()" title="Login with Facebook">
                             <i class="fab fa-facebook-f"></i>
                         </button>
-                        <button type="button" class="social-btn twitter">
-                            <i class="fab fa-twitter"></i>
-                        </button>
                     </div>
+                    <p class="social-note">Quick login via WhatsApp or Google</p>
                 </div>
             </form>
             

@@ -230,6 +230,7 @@ function showSection(section, element) {
         orders: 'Orders Management',
         users: 'Users Management',
         reviews: 'Reviews Management',
+        invoices: 'Invoices Management',
         settings: 'Settings'
     };
     document.getElementById('pageTitle').textContent = titles[section];
@@ -239,6 +240,7 @@ function showSection(section, element) {
     if (section === 'orders') renderOrders();
     if (section === 'users') renderUsersTable();
     if (section === 'reviews') renderReviews();
+    if (section === 'invoices') renderInvoices();
 }
 
 // Toggle Sidebar (mobile)
@@ -631,6 +633,168 @@ function showNotification(message) {
         notification.style.animation = 'slideOut 0.3s ease-out forwards';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+// Invoice Management
+function renderInvoices() {
+    const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+    const tbody = document.getElementById('invoicesTable');
+
+    if (invoices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No invoices generated yet</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = invoices.map(invoice => `
+        <tr>
+            <td><strong>${invoice.invoiceNumber}</strong></td>
+            <td>${invoice.orderId}</td>
+            <td>
+                ${invoice.customer.name}<br>
+                <small style="color: var(--gray);">${invoice.customer.email}</small>
+            </td>
+            <td>${invoice.date}</td>
+            <td><strong>R${invoice.total.toFixed(2)}</strong></td>
+            <td>
+                <div class="action-btns">
+                    <button class="action-btn view" onclick="viewInvoice('${invoice.orderId}')" title="View">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn edit" onclick="downloadInvoice('${invoice.orderId}')" title="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn edit" onclick="emailInvoice('${invoice.orderId}')" title="Email">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function viewInvoice(orderId) {
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+        showNotification('Invoice not found!');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Invoice ${order.invoiceNumber}</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h2 style="color: var(--primary);">INVOICE</h2>
+                    <p style="color: var(--gray);">${order.date}</p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <p style="color: var(--gray); font-size: 0.85rem;">Bill To:</p>
+                        <p><strong>${order.customerName}</strong></p>
+                        <p>${order.customerEmail}</p>
+                        <p>${order.customerPhone || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--gray); font-size: 0.85rem;">Order Details:</p>
+                        <p>Order ID: ${order.id}</p>
+                        <p>Status: <span class="status-badge ${order.status}">${order.status}</span></p>
+                    </div>
+                </div>
+                <table class="data-table" style="margin-bottom: 1rem;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>${item.icon} ${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>R${item.price.toFixed(2)}</td>
+                                <td>R${(item.price * item.quantity).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div style="border-top: 2px solid var(--primary); padding-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Subtotal:</span>
+                        <span>R${order.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Shipping:</span>
+                        <span>R${order.shipping.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; color: var(--primary);">
+                        <span>Total:</span>
+                        <span>R${order.total.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+                <button class="btn-primary" onclick="downloadInvoice('${order.id}'); this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function emailInvoice(orderId) {
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const subject = `Invoice ${order.invoiceNumber} - Metra Market`;
+    const body = `Dear ${order.customerName},%0D%0A%0D%0AThank you for your order!%0D%0A%0D%0AInvoice: ${order.invoiceNumber}%0D%0AOrder Total: R${order.total.toFixed(2)}%0D%0A%0D%0AView your invoice at: Metra Market%0D%0A%0D%0AThank you for your business!%0D%0AMetra Market Team`;
+
+    window.open(`mailto:${order.customerEmail}?subject=${subject}&body=${body}`);
+    showNotification('Opening email client...');
+}
+
+function exportAllInvoices() {
+    const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+    if (invoices.length === 0) {
+        showNotification('No invoices to export!');
+        return;
+    }
+
+    let content = 'METRA MARKET - ALL INVOICES\n========================\n\n';
+    invoices.forEach((inv, i) => {
+        content += `INVOICE ${i + 1}\n`;
+        content += `Invoice: ${inv.invoiceNumber}\n`;
+        content += `Order: ${inv.orderId}\n`;
+        content += `Date: ${inv.date}\n`;
+        content += `Customer: ${inv.customer.name}\n`;
+        content += `Email: ${inv.customer.email}\n`;
+        content += `Total: R${inv.total.toFixed(2)}\n`;
+        content += `Status: ${inv.status}\n`;
+        content += '------------------------\n\n';
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `All-Invoices-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('Invoices exported! 📄');
 }
 
 // Add animation styles if not exists

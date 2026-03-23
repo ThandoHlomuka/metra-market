@@ -1367,9 +1367,21 @@ body {
     border-color: #4267B2;
 }
 
-.social-btn.twitter:hover {
-    background: #1DA1F2;
-    border-color: #1DA1F2;
+.social-btn.whatsapp {
+    color: #25D366;
+}
+
+.social-btn.whatsapp:hover {
+    background: #25D366;
+    border-color: #25D366;
+    color: white;
+}
+
+.social-note {
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-top: 1rem;
+    text-align: center;
 }
 
 /* Profile Modal Styles */
@@ -1953,5 +1965,203 @@ body {
 
     .order-details {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Invoice Modal Styles */
+.invoice-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 10, 10, 0.95);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.invoice-modal {
+    background: var(--light);
+    color: var(--dark);
+    border-radius: 15px;
+    width: 100%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--gradient);
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.invoice-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.invoice-logo i {
+    font-size: 2rem;
+}
+
+.invoice-body {
+    padding: 2rem;
+}
+
+.invoice-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.invoice-number {
+    text-align: center;
+    color: var(--gray);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.invoice-date {
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+}
+
+.invoice-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(139, 0, 0, 0.05);
+    border-radius: 10px;
+    border-left: 3px solid var(--primary);
+}
+
+.invoice-section h4 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.invoice-section p {
+    margin: 0.3rem 0;
+    font-size: 0.95rem;
+}
+
+.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+.invoice-table th {
+    background: var(--primary);
+    color: white;
+    padding: 0.8rem;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.invoice-table td {
+    padding: 0.8rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 0.95rem;
+}
+
+.invoice-table tbody tr:nth-child(even) {
+    background: rgba(139, 0, 0, 0.03);
+}
+
+.invoice-totals {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(139, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+.invoice-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+}
+
+.invoice-row.invoice-total {
+    border-top: 2px solid var(--primary);
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.invoice-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.invoice-footer p {
+    margin: 0.3rem 0;
+}
+
+.invoice-actions {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.invoice-actions .btn-secondary,
+.invoice-actions .btn-primary {
+    flex: 1;
+    min-width: 150px;
+    justify-content: center;
+}
+
+/* Print Styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .invoice-modal,
+    .invoice-modal * {
+        visibility: visible;
+    }
+    
+    .invoice-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: none;
+        box-shadow: none;
+    }
+    
+    .invoice-actions,
+    .modal-close {
+        display: none !important;
+    }
+    
+    .invoice-modal-overlay {
+        position: absolute;
+        background: white;
     }
 }

@@ -269,14 +269,24 @@ function checkout() {
     }
 
     // Create order
+    const orderId = 'ORD-' + Date.now();
+    const invoiceNumber = 'INV-' + Date.now();
+    const orderDate = new Date();
+    
     const order = {
-        id: 'ORD-' + Date.now(),
+        id: orderId,
+        invoiceNumber: invoiceNumber,
         userId: currentUser.id,
+        customerName: currentUser.name,
+        customerEmail: currentUser.email,
+        customerPhone: currentUser.phone,
         items: [...cart],
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + shippingCost,
+        subtotal: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         shipping: shippingCost,
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + shippingCost,
         status: 'processing',
-        date: new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+        date: orderDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
+        timestamp: orderDate.toISOString()
     };
 
     // Save order
@@ -285,15 +295,231 @@ function checkout() {
     savedOrders.push(order);
     localStorage.setItem('metraOrders', JSON.stringify(savedOrders));
 
+    // Generate and send invoice
+    generateInvoice(order);
+    sendInvoiceEmail(order);
+
     // Update user review count placeholder
     if (!currentUser.reviews) currentUser.reviews = 0;
 
-    showNotification('Order placed successfully! 🎉');
+    showNotification('Order placed successfully! Invoice sent to ' + currentUser.email + ' 🎉');
     cart = [];
     shippingCost = 0;
     updateCart();
     saveCart();
     toggleCart();
+}
+
+// Generate Invoice
+function generateInvoice(order) {
+    const invoice = {
+        invoiceNumber: order.invoiceNumber,
+        orderId: order.id,
+        date: order.date,
+        timestamp: order.timestamp,
+        customer: {
+            name: order.customerName,
+            email: order.customerEmail,
+            phone: order.customerPhone
+        },
+        items: order.items,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        total: order.total,
+        status: order.status
+    };
+
+    // Save invoice
+    const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+    invoices.push(invoice);
+    localStorage.setItem('metraInvoices', JSON.stringify(invoices));
+
+    return invoice;
+}
+
+// Send Invoice Email (Simulated - uses mailto for demo)
+function sendInvoiceEmail(order) {
+    const invoiceNumber = order.invoiceNumber;
+    const customerEmail = order.customerEmail;
+    const subject = `Invoice ${invoiceNumber} - Metra Market`;
+    
+    // Create email body
+    const itemsList = order.items.map(item => 
+        `- ${item.name} x ${item.quantity}: R${(item.price * item.quantity).toFixed(2)}`
+    ).join('\n');
+
+    const emailBody = `
+Thank you for shopping at Metra Market!
+
+INVOICE: ${invoiceNumber}
+Order ID: ${order.id}
+Date: ${order.date}
+
+BILLING TO:
+${order.customerName}
+${order.customerEmail}
+${order.customerPhone}
+
+ITEMS:
+${itemsList}
+
+SUBTOTAL: R${order.subtotal.toFixed(2)}
+SHIPPING: R${order.shipping.toFixed(2)}
+TOTAL: R${order.total.toFixed(2)}
+
+STATUS: ${order.status}
+
+Thank you for your business!
+Metra Market Team
+https://github.com/ThandoHlomuka/metra-market
+    `.trim();
+
+    // Create invoice PDF data (stored for download)
+    const invoiceData = {
+        invoiceNumber: invoiceNumber,
+        order: order
+    };
+    localStorage.setItem('metraLastInvoice', JSON.stringify(invoiceData));
+
+    // For demo purposes, we'll show the invoice in a modal
+    showInvoiceModal(order);
+
+    // In production, this would use a backend email service
+    // For now, we simulate by showing success message
+    console.log(`Invoice email would be sent to: ${customerEmail}`);
+}
+
+// Show Invoice Modal
+function showInvoiceModal(order) {
+    const modal = document.createElement('div');
+    modal.className = 'invoice-modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="invoice-modal">
+            <div class="invoice-header">
+                <div class="invoice-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Metra Market</span>
+                </div>
+                <button class="modal-close" onclick="this.closest('.invoice-modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="invoice-body">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-number">Invoice: ${order.invoiceNumber}</div>
+                <div class="invoice-date">Date: ${order.date}</div>
+                
+                <div class="invoice-section">
+                    <h4>Bill To:</h4>
+                    <p>${order.customerName}</p>
+                    <p>${order.customerEmail}</p>
+                    <p>${order.customerPhone || 'N/A'}</p>
+                </div>
+                
+                <div class="invoice-section">
+                    <h4>Order Details:</h4>
+                    <p>Order ID: ${order.id}</p>
+                    <p>Status: <span class="status-badge ${order.status}">${order.status}</span></p>
+                </div>
+                
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>${item.icon} ${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>R${item.price.toFixed(2)}</td>
+                                <td>R${(item.price * item.quantity).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div class="invoice-totals">
+                    <div class="invoice-row">
+                        <span>Subtotal:</span>
+                        <span>R${order.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div class="invoice-row">
+                        <span>Shipping:</span>
+                        <span>R${order.shipping.toFixed(2)}</span>
+                    </div>
+                    <div class="invoice-row invoice-total">
+                        <span>Total:</span>
+                        <span>R${order.total.toFixed(2)}</span>
+                    </div>
+                </div>
+                
+                <div class="invoice-footer">
+                    <p>Thank you for your business!</p>
+                    <p>Metra Market | https://github.com/ThandoHlomuka/metra-market</p>
+                </div>
+            </div>
+            <div class="invoice-actions">
+                <button class="btn-secondary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Invoice
+                </button>
+                <button class="btn-secondary" onclick="downloadInvoice('${order.id}')">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+                <button class="btn-primary" onclick="this.closest('.invoice-modal-overlay').remove()">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Download Invoice
+function downloadInvoice(orderId) {
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const content = `
+INVOICE - Metra Market
+========================
+
+Invoice Number: ${order.invoiceNumber}
+Order ID: ${order.id}
+Date: ${order.date}
+
+BILLING TO:
+${order.customerName}
+${order.customerEmail}
+${order.customerPhone || ''}
+
+ITEMS:
+------------------------
+${order.items.map(item => `${item.name} x ${item.quantity} - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+
+SUBTOTAL: R${order.subtotal.toFixed(2)}
+SHIPPING: R${order.shipping.toFixed(2)}
+TOTAL: R${order.total.toFixed(2)}
+
+Thank you for your business!
+Metra Market
+    `.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice-${order.invoiceNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('Invoice downloaded! 📄');
 }
 
 // Contact Form Handler
@@ -605,6 +831,119 @@ function updateAuthUI() {
         userIcon.classList.remove('logged-in');
         userIcon.innerHTML = '<i class="fas fa-user"></i>';
     }
+}
+
+// Social Login Functions
+function googleLogin() {
+    // Google OAuth simulation
+    // In production, integrate with Google OAuth 2.0
+    const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + 
+        'client_id=YOUR_GOOGLE_CLIENT_ID&' +
+        'redirect_uri=' + encodeURIComponent(window.location.href) + '&' +
+        'response_type=token&' +
+        'scope=openid%20profile%20email';
+    
+    // For demo, simulate successful login
+    const mockGoogleUser = {
+        id: Date.now(),
+        name: 'Google User',
+        email: 'user@gmail.com',
+        phone: '',
+        createdAt: new Date().toISOString(),
+        avatar: null,
+        provider: 'google',
+        reviews: 0
+    };
+    
+    // Check if user exists
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    let user = users.find(u => u.email === mockGoogleUser.email);
+    
+    if (!user) {
+        users.push(mockGoogleUser);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        user = mockGoogleUser;
+    }
+    
+    currentUser = user;
+    localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+    closeAuthModal();
+    updateAuthUI();
+    showNotification('Logged in with Google! 🎉');
+}
+
+function whatsappLogin() {
+    // WhatsApp login simulation
+    // In production, use WhatsApp Business API
+    const phoneNumber = prompt('Enter your WhatsApp number (e.g., +27123456789):');
+    
+    if (!phoneNumber) return;
+    
+    // Simulate OTP verification
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    alert(`Your verification code is: ${otp}\n(In production, this would be sent via WhatsApp)`);
+    
+    const enteredOtp = prompt('Enter the verification code:');
+    
+    if (enteredOtp == otp) {
+        const mockWhatsappUser = {
+            id: Date.now(),
+            name: 'WhatsApp User',
+            email: `user${phoneNumber}@whatsapp.local`,
+            phone: phoneNumber,
+            createdAt: new Date().toISOString(),
+            avatar: null,
+            provider: 'whatsapp',
+            reviews: 0
+        };
+        
+        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        let user = users.find(u => u.phone === phoneNumber);
+        
+        if (!user) {
+            users.push(mockWhatsappUser);
+            localStorage.setItem('metraUsers', JSON.stringify(users));
+            user = mockWhatsappUser;
+        }
+        
+        currentUser = user;
+        localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+        closeAuthModal();
+        updateAuthUI();
+        showNotification('Logged in with WhatsApp! 🎉');
+    } else {
+        showNotification('Invalid verification code ❌');
+    }
+}
+
+function facebookLogin() {
+    // Facebook OAuth simulation
+    // In production, integrate with Facebook Login
+    const mockFacebookUser = {
+        id: Date.now(),
+        name: 'Facebook User',
+        email: 'user@facebook.local',
+        phone: '',
+        createdAt: new Date().toISOString(),
+        avatar: null,
+        provider: 'facebook',
+        reviews: 0
+    };
+    
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    let user = users.find(u => u.email === mockFacebookUser.email);
+    
+    if (!user) {
+        users.push(mockFacebookUser);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        user = mockFacebookUser;
+    }
+    
+    currentUser = user;
+    localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+    closeAuthModal();
+    updateAuthUI();
+    showNotification('Logged in with Facebook! 🎉');
 }
 
 function logout() {
