@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -200,7 +200,7 @@
                     <span class="shipping-price">R199.00</span>
                 </label>
             </div>
-            <div class="invoice-delivery">
+            <div class="payment-methods"><h4>Payment Method</h4><label class="payment-option"><input type="radio" name="payment" value="card" checked onchange="setPaymentMethod('card')"><span><i class="fas fa-credit-card"></i> Card / EFT</span></label><label class="payment-option"><input type="radio" name="payment" value="payfast" onchange="setPaymentMethod('payfast')"><span><i class="fas fa-lock"></i> PayFast (Secure)</span></label><label class="payment-option"><input type="radio" name="payment" value="bank_transfer" onchange="setPaymentMethod('bank_transfer')"><span><i class="fas fa-university"></i> Bank Transfer</span></label><div class="bank-details" id="bankDetails" style="display: none;"><p><strong>Bank:</strong> FNB</p><p><strong>Account Name:</strong> Metra Market</p><p><strong>Account Number:</strong> 62000000000</p><p><strong>Branch Code:</strong> 250655</p><p><strong>Reference:</strong> Your Order ID (provided at checkout)</p><p class="bank-note">Please send proof of payment to orders@metramarket.co.za</p></div></div><div class="invoice-delivery">
                 <h4>Invoice Delivery</h4>
                 <label class="delivery-option">
                     <input type="radio" name="invoiceDelivery" value="email" checked onchange="setInvoiceDelivery('email')">
@@ -384,6 +384,33 @@
     <div class="profile-overlay" id="profileOverlay" onclick="closeProfileModal()"></div>
 
     <script src="script.js"></script>
+<div class="sales-notification" id="salesNotification"><div class="sales-notification-content"><div class="sales-notification-icon"><i class="fas fa-shopping-bag"></i></div><div class="sales-notification-text"><p class="sales-notification-message" id="salesNotificationMessage">Someone just purchased a product!</p><p class="sales-notification-time">Just now</p></div></div></div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <a href="#home" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#products" class="nav-item">
+            <i class="fas fa-store"></i>
+            <span>Products</span>
+        </a>
+        <a href="#" class="nav-item" onclick="toggleCart(); return false;">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="nav-cart-count" id="navCartCount">0</span>
+            <span>Cart</span>
+        </a>
+        <a href="#" class="nav-item" onclick="openWishlistModal(); return false;">
+            <i class="fas fa-heart"></i>
+            <span class="nav-wishlist-count" id="navWishlistCount">0</span>
+            <span>Wishlist</span>
+        </a>
+        <a href="#" class="nav-item" onclick="openAuthModal(); return false;">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
 </body>
 </html>
 
