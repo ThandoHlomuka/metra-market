@@ -1015,6 +1015,20 @@ function handleLogin(event) {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    // Check for admin credentials
+    const storedAdminPassword = localStorage.getItem('metraAdminPassword') || 'Nozibusiso89';
+    
+    if (email === 'ThandoHlomuka' && password === storedAdminPassword) {
+        // Admin login - redirect to admin dashboard
+        localStorage.setItem('metraAdminLoggedIn', 'true');
+        localStorage.setItem('metraAdminName', 'ThandoHlomuka');
+        showNotification('Admin login successful! Redirecting... 🔐');
+        setTimeout(() => {
+            window.location.href = 'admin.html';
+        }, 1500);
+        return;
+    }
+
     // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
     const user = users.find(u => u.email === email && u.password === password);
