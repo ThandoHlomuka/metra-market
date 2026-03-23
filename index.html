@@ -23,6 +23,9 @@
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <div class="nav-icons">
+                <div class="user-icon" onclick="openAuthModal()" id="userIcon">
+                    <i class="fas fa-user"></i>
+                </div>
                 <div class="cart-icon" onclick="toggleCart()">
                     <i class="fas fa-shopping-cart"></i>
                     <span class="cart-count" id="cartCount">0</span>
@@ -223,6 +226,145 @@
         </div>
     </div>
     <div class="modal-overlay" id="modalOverlay" onclick="closeProductModal()"></div>
+
+    <!-- Auth Modal (Login/Register) -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-container">
+            <button class="modal-close" onclick="closeAuthModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')" id="loginTab">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')" id="registerTab">Register</button>
+            </div>
+            
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Login to your Metra Market account</p>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                
+                <button type="submit" class="auth-btn">
+                    Login <i class="fas fa-arrow-right"></i>
+                </button>
+                
+                <div class="social-login">
+                    <p>Or continue with</p>
+                    <div class="social-buttons">
+                        <button type="button" class="social-btn google">
+                            <i class="fab fa-google"></i>
+                        </button>
+                        <button type="button" class="social-btn facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button type="button" class="social-btn twitter">
+                            <i class="fab fa-twitter"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm" style="display: none;" onsubmit="handleRegister(event)">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Join Metra Market today</p>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Full Name</label>
+                    <input type="text" id="registerName" placeholder="John Doe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Phone Number</label>
+                    <input type="tel" id="registerPhone" placeholder="+27 12 345 6789" required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="registerPassword" placeholder="Create a strong password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" placeholder="Confirm your password" required>
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <span>I agree to the <a href="#">Terms & Conditions</a></span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="auth-btn">
+                    Create Account <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="auth-overlay" id="authOverlay" onclick="closeAuthModal()"></div>
+
+    <!-- Profile Modal -->
+    <div class="profile-modal" id="profileModal">
+        <div class="profile-container">
+            <button class="modal-close" onclick="closeProfileModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h2 id="profileName">User Name</h2>
+                    <p id="profileEmail">user@email.com</p>
+                    <div class="profile-member-since">Member since <span id="memberSince">Jan 2026</span></div>
+                </div>
+            </div>
+            
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="switchProfileTab('overview')" id="overviewTab">
+                    <i class="fas fa-home"></i> Overview
+                </button>
+                <button class="profile-tab" onclick="switchProfileTab('orders')" id="ordersTab">
+                    <i class="fas fa-box"></i> Orders
+                </button>
+                <button class="profile-tab" onclick="switchProfileTab('wishlist')" id="profileWishlistTab">
+                    <i class="fas fa-heart"></i> Wishlist
+                </button>
+                <button class="profile-tab" onclick="switchProfileTab('settings')" id="settingsTab">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+            
+            <div class="profile-content" id="profileContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    <div class="profile-overlay" id="profileOverlay" onclick="closeProfileModal()"></div>
 
     <script src="script.js"></script>
 </body>

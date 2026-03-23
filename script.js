@@ -130,12 +130,17 @@ const products = [
 let cart = [];
 let shippingCost = 0;
 let wishlist = [];
+let currentUser = null;
+let orders = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     renderProducts();
     loadCart();
     loadWishlist();
+    loadUser();
+    loadOrders();
+    updateAuthUI();
 });
 
 // Render Products
@@ -253,8 +258,37 @@ function checkout() {
         showNotification('Your cart is empty!');
         return;
     }
-    showNotification('Thank you for your order! 🎉');
+
+    if (!currentUser) {
+        showNotification('Please login to complete your order! 🔐');
+        toggleCart();
+        openAuthModal();
+        return;
+    }
+
+    // Create order
+    const order = {
+        id: 'ORD-' + Date.now(),
+        userId: currentUser.id,
+        items: [...cart],
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + shippingCost,
+        shipping: shippingCost,
+        status: 'processing',
+        date: new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    // Save order
+    orders.push(order);
+    const savedOrders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    savedOrders.push(order);
+    localStorage.setItem('metraOrders', JSON.stringify(savedOrders));
+
+    // Update user review count placeholder
+    if (!currentUser.reviews) currentUser.reviews = 0;
+
+    showNotification('Order placed successfully! 🎉');
     cart = [];
+    shippingCost = 0;
     updateCart();
     saveCart();
     toggleCart();
@@ -441,6 +475,375 @@ function loadWishlist() {
 
 function saveWishlist() {
     localStorage.setItem('metraWishlist', JSON.stringify(wishlist));
+}
+
+// Authentication Functions
+function openAuthModal() {
+    if (currentUser) {
+        openProfileModal();
+    } else {
+        document.getElementById('authModal').classList.add('active');
+        document.getElementById('authOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeAuthModal() {
+    document.getElementById('authModal').classList.remove('active');
+    document.getElementById('authOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function switchAuthTab(tab) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+
+    if (tab === 'login') {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        loginTab.classList.add('active');
+        registerTab.classList.remove('active');
+    } else {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        loginTab.classList.remove('active');
+        registerTab.classList.add('active');
+    }
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    // Get users from localStorage
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (user) {
+        currentUser = user;
+        localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+        closeAuthModal();
+        updateAuthUI();
+        showNotification(`Welcome back, ${user.name}! 🎉`);
+        document.getElementById('loginForm').reset();
+    } else {
+        showNotification('Invalid email or password ❌');
+    }
+}
+
+function handleRegister(event) {
+    event.preventDefault();
+    const name = document.getElementById('registerName').value;
+    const email = document.getElementById('registerEmail').value;
+    const phone = document.getElementById('registerPhone').value;
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match! ❌');
+        return;
+    }
+
+    // Get existing users
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+
+    // Check if email already exists
+    if (users.find(u => u.email === email)) {
+        showNotification('Email already registered! ❌');
+        return;
+    }
+
+    // Create new user
+    const newUser = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        phone: phone,
+        password: password,
+        createdAt: new Date().toISOString(),
+        avatar: null
+    };
+
+    users.push(newUser);
+    localStorage.setItem('metraUsers', JSON.stringify(users));
+
+    // Auto login
+    currentUser = newUser;
+    localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
+
+    closeAuthModal();
+    updateAuthUI();
+    showNotification('Account created successfully! 🎉');
+    document.getElementById('registerForm').reset();
+}
+
+function loadUser() {
+    const saved = localStorage.getItem('metraCurrentUser');
+    if (saved) {
+        currentUser = JSON.parse(saved);
+    }
+}
+
+function loadOrders() {
+    const saved = localStorage.getItem('metraOrders');
+    if (saved) {
+        orders = JSON.parse(saved);
+    }
+}
+
+function updateAuthUI() {
+    const userIcon = document.getElementById('userIcon');
+    if (currentUser) {
+        userIcon.classList.add('logged-in');
+        userIcon.innerHTML = '<i class="fas fa-user-check"></i>';
+    } else {
+        userIcon.classList.remove('logged-in');
+        userIcon.innerHTML = '<i class="fas fa-user"></i>';
+    }
+}
+
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('metraCurrentUser');
+    closeProfileModal();
+    updateAuthUI();
+    showNotification('Logged out successfully 👋');
+}
+
+// Profile Functions
+function openProfileModal() {
+    if (!currentUser) {
+        openAuthModal();
+        return;
+    }
+
+    updateProfileHeader();
+    switchProfileTab('overview');
+
+    document.getElementById('profileModal').classList.add('active');
+    document.getElementById('profileOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').classList.remove('active');
+    document.getElementById('profileOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function updateProfileHeader() {
+    document.getElementById('profileName').textContent = currentUser.name;
+    document.getElementById('profileEmail').textContent = currentUser.email;
+
+    const memberDate = new Date(currentUser.createdAt);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    document.getElementById('memberSince').textContent = `${months[memberDate.getMonth()]} ${memberDate.getFullYear()}`;
+}
+
+function switchProfileTab(tab) {
+    // Update tab active states
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`${tab}Tab`).classList.add('active');
+
+    // Update content
+    const content = document.getElementById('profileContent');
+
+    switch (tab) {
+        case 'overview':
+            content.innerHTML = renderOverviewSection();
+            break;
+        case 'orders':
+            content.innerHTML = renderOrdersSection();
+            break;
+        case 'wishlist':
+            content.innerHTML = renderProfileWishlistSection();
+            break;
+        case 'settings':
+            content.innerHTML = renderSettingsSection();
+            break;
+    }
+}
+
+function renderOverviewSection() {
+    const totalOrders = orders.filter(o => o.userId === currentUser.id).length;
+    const totalSpent = orders.filter(o => o.userId === currentUser.id)
+        .reduce((sum, o) => sum + o.total, 0);
+
+    return `
+        <div class="profile-section active">
+            <h3>Account Overview</h3>
+            <div class="overview-stats">
+                <div class="stat-card">
+                    <i class="fas fa-box"></i>
+                    <div class="stat-number">${totalOrders}</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-heart"></i>
+                    <div class="stat-number">${wishlist.length}</div>
+                    <div class="stat-label">Wishlist Items</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-wallet"></i>
+                    <div class="stat-number">R${totalSpent.toFixed(2)}</div>
+                    <div class="stat-label">Total Spent</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-star"></i>
+                    <div class="stat-number">${currentUser.reviews || 0}</div>
+                    <div class="stat-label">Reviews Given</div>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <h3>Recent Activity</h3>
+                <div class="empty-state">
+                    <i class="fas fa-clock"></i>
+                    <p>No recent activity to display</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderOrdersSection() {
+    const userOrders = orders.filter(o => o.userId === currentUser.id);
+
+    if (userOrders.length === 0) {
+        return `
+            <div class="profile-section active">
+                <h3>Order History</h3>
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <p>You haven't placed any orders yet</p>
+                    <button class="cta-btn" onclick="closeProfileModal(); document.getElementById('products').scrollIntoView()" style="margin-top: 1rem;">
+                        Start Shopping <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="profile-section active">
+            <h3>Order History</h3>
+            <div class="orders-list">
+                ${userOrders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-id">Order #${order.id}</span>
+                            <span class="order-status ${order.status}">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                        </div>
+                        <div class="order-details">
+                            <div class="order-detail">Date <span>${order.date}</span></div>
+                            <div class="order-detail">Items <span>${order.items.length}</span></div>
+                            <div class="order-detail">Total <span>R${order.total.toFixed(2)}</span></div>
+                        </div>
+                        <div class="order-items">
+                            ${order.items.map(item => `
+                                <div class="order-item">${item.icon} ${item.name}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderProfileWishlistSection() {
+    if (wishlist.length === 0) {
+        return `
+            <div class="profile-section active">
+                <h3>My Wishlist</h3>
+                <div class="empty-state">
+                    <i class="fas fa-heart-broken"></i>
+                    <p>Your wishlist is empty</p>
+                    <button class="cta-btn" onclick="closeProfileModal(); document.getElementById('products').scrollIntoView()" style="margin-top: 1rem;">
+                        Browse Products <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    const wishlistProducts = products.filter(p => wishlist.includes(p.id));
+
+    return `
+        <div class="profile-section active">
+            <h3>My Wishlist (${wishlist.length})</h3>
+            <div class="profile-wishlist-grid">
+                ${wishlistProducts.map(product => `
+                    <div class="profile-wishlist-item" onclick="closeProfileModal(); openProductModal(${product.id})">
+                        <div class="icon">${product.icon}</div>
+                        <div class="info">
+                            <div class="name">${product.name}</div>
+                            <div class="price">R${product.price.toFixed(2)}</div>
+                        </div>
+                        <button class="remove" onclick="event.stopPropagation(); toggleWishlist(${product.id}); switchProfileTab('wishlist');">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderSettingsSection() {
+    return `
+        <div class="profile-section active">
+            <h3>Account Settings</h3>
+            <form class="settings-form" onsubmit="updateProfile(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Full Name</label>
+                    <input type="text" id="profileNameInput" value="${currentUser.name}" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="profileEmailInput" value="${currentUser.email}" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Phone Number</label>
+                    <input type="tel" id="profilePhoneInput" value="${currentUser.phone || ''}">
+                </div>
+                <button type="submit" class="btn-save-profile">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </form>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    `;
+}
+
+function updateProfile(event) {
+    event.preventDefault();
+    const name = document.getElementById('profileNameInput').value;
+    const email = document.getElementById('profileEmailInput').value;
+    const phone = document.getElementById('profilePhoneInput').value;
+
+    currentUser.name = name;
+    currentUser.email = email;
+    currentUser.phone = phone;
+
+    // Update in users array
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const index = users.findIndex(u => u.id === currentUser.id);
+    if (index > -1) {
+        users[index] = currentUser;
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+    }
+
+    // Update current user in localStorage
+    localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
+
+    updateProfileHeader();
+    showNotification('Profile updated successfully! ✨');
 }
 
 // Add animation styles
