@@ -1,4 +1,4 @@
-// Product Data
+﻿// Product Data
 const products = [
     {
         id: 1,
@@ -1012,13 +1012,13 @@ function switchAuthTab(tab) {
 
 function handleLogin(event) {
     event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
+    const loginInput = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
 
     // Check for admin credentials
     const storedAdminPassword = localStorage.getItem('metraAdminPassword') || 'Nozibusiso89';
     
-    if (email === 'ThandoHlomuka' && password === storedAdminPassword) {
+    if ((loginInput === 'ThandoHlomuka' || loginInput === 'admin') && password === storedAdminPassword) {
         // Admin login - redirect to admin dashboard
         localStorage.setItem('metraAdminLoggedIn', 'true');
         localStorage.setItem('metraAdminName', 'ThandoHlomuka');
@@ -1031,7 +1031,7 @@ function handleLogin(event) {
 
     // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find(u => (u.email.toLowerCase() === loginInput.toLowerCase() || u.name.toLowerCase() === loginInput.toLowerCase()) && u.password === password);
 
     if (user) {
         currentUser = user;
@@ -1041,7 +1041,7 @@ function handleLogin(event) {
         showNotification(`Welcome back, ${user.name}! 🎉`);
         document.getElementById('loginForm').reset();
     } else {
-        showNotification('Invalid email or password ❌');
+        showNotification('Invalid username/email or password ❌');
     }
 }
 
@@ -1398,18 +1398,36 @@ function renderProfileWishlistSection() {
 
     return `
         <div class="profile-section active">
-            <h3>My Wishlist (${wishlist.length})</h3>
+            <div class="wishlist-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>My Wishlist (${wishlist.length})</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-primary btn-sm" onclick="addAllWishlistToCart()">
+                        <i class="fas fa-cart-plus"></i> Add All to Cart
+                    </button>
+                    <button class="btn-danger btn-sm" onclick="clearWishlist(); switchProfileTab('wishlist');">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
             <div class="profile-wishlist-grid">
                 ${wishlistProducts.map(product => `
-                    <div class="profile-wishlist-item" onclick="closeProfileModal(); openProductModal(${product.id})">
-                        <div class="icon">${product.icon}</div>
-                        <div class="info">
+                    <div class="profile-wishlist-item">
+                        <div class="icon" onclick="openProductModal(${product.id})">${product.icon}</div>
+                        <div class="info" onclick="openProductModal(${product.id})" style="cursor: pointer;">
                             <div class="name">${product.name}</div>
                             <div class="price">R${product.price.toFixed(2)}</div>
                         </div>
-                        <button class="remove" onclick="event.stopPropagation(); toggleWishlist(${product.id}); switchProfileTab('wishlist');">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <div style="display: flex; gap: 0.3rem;">
+                            <button class="action-btn edit" onclick="addToCart(${product.id}); showNotification('Added to cart!');" title="Add to Cart">
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                            <button class="action-btn view" onclick="openProductModal(${product.id})" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="toggleWishlist(${product.id}); switchProfileTab('wishlist');" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 `).join('')}
             </div>
