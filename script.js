@@ -132,6 +132,7 @@ let shippingCost = 0;
 let wishlist = [];
 let currentUser = null;
 let orders = [];
+let invoiceDeliveryMethod = 'email';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUser();
     loadOrders();
     updateAuthUI();
+    updateWishlistCount();
 });
 
 // Render Products
@@ -272,7 +274,7 @@ function checkout() {
     const orderId = 'ORD-' + Date.now();
     const invoiceNumber = 'INV-' + Date.now();
     const orderDate = new Date();
-    
+
     const order = {
         id: orderId,
         invoiceNumber: invoiceNumber,
@@ -286,7 +288,8 @@ function checkout() {
         total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + shippingCost,
         status: 'processing',
         date: orderDate.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
-        timestamp: orderDate.toISOString()
+        timestamp: orderDate.toISOString(),
+        invoiceDeliveryMethod: invoiceDeliveryMethod
     };
 
     // Save order
@@ -297,12 +300,19 @@ function checkout() {
 
     // Generate and send invoice
     generateInvoice(order);
-    sendInvoiceEmail(order);
+    
+    // Send invoice via preferred method
+    if (invoiceDeliveryMethod === 'whatsapp') {
+        sendInvoiceWhatsApp(order);
+    } else {
+        sendInvoiceEmail(order);
+    }
 
     // Update user review count placeholder
     if (!currentUser.reviews) currentUser.reviews = 0;
 
-    showNotification('Order placed successfully! Invoice sent to ' + currentUser.email + ' 🎉');
+    const deliveryText = invoiceDeliveryMethod === 'whatsapp' ? 'WhatsApp' : 'email';
+    showNotification('Order placed successfully! Invoice sent via ' + deliveryText + ' 🎉');
     cart = [];
     shippingCost = 0;
     updateCart();
@@ -344,7 +354,7 @@ function sendInvoiceEmail(order) {
     const subject = `Invoice ${invoiceNumber} - Metra Market`;
     
     // Create email body
-    const itemsList = order.items.map(item => 
+    const itemsList = order.items.map(item =>
         `- ${item.name} x ${item.quantity}: R${(item.price * item.quantity).toFixed(2)}`
     ).join('\n');
 
@@ -387,6 +397,148 @@ https://github.com/ThandoHlomuka/metra-market
     // In production, this would use a backend email service
     // For now, we simulate by showing success message
     console.log(`Invoice email would be sent to: ${customerEmail}`);
+}
+
+// Set Invoice Delivery Method
+function setInvoiceDelivery(method) {
+    invoiceDeliveryMethod = method;
+    localStorage.setItem('metraInvoiceDeliveryPreference', method);
+}
+
+// Send Invoice via WhatsApp
+function sendInvoiceWhatsApp(order) {
+    const invoiceNumber = order.invoiceNumber;
+    const customerPhone = currentUser.phone;
+    
+    if (!customerPhone) {
+        showNotification('Please add your phone number in profile settings!');
+        openProfileModal();
+        return;
+    }
+
+    // Create invoice PDF content
+    const itemsList = order.items.map(item => 
+        `${item.name} x ${item.quantity} - R${(item.price * item.quantity).toFixed(2)}`
+    ).join('%0A');
+
+    const invoiceContent = `
+*METRA MARKET - INVOICE*
+========================
+
+*Invoice Number:* ${invoiceNumber}
+*Order ID:* ${order.id}
+*Date:* ${order.date}
+
+*BILLING TO:*
+${order.customerName}
+${order.customerEmail}
+${order.customerPhone || 'N/A'}
+
+*ITEMS:*
+${itemsList}
+
+*SUBTOTAL:* R${order.subtotal.toFixed(2)}
+*SHIPPING:* R${order.shipping.toFixed(2)}
+*TOTAL:* R${order.total.toFixed(2)}
+
+*STATUS:* ${order.status}
+
+Thank you for your business!
+Metra Market Team
+https://github.com/ThandoHlomuka/metra-market
+    `.trim();
+
+    // Store invoice for download
+    const invoiceData = {
+        invoiceNumber: invoiceNumber,
+        order: order,
+        content: invoiceContent
+    };
+    localStorage.setItem('metraLastInvoice', JSON.stringify(invoiceData));
+
+    // Create download link
+    const downloadUrl = window.location.origin + window.location.pathname + '#download-invoice=' + invoiceNumber;
+    
+    // WhatsApp message with download link
+    const whatsappMessage = `
+*🧾 Invoice from Metra Market*
+
+Hi ${order.customerName}!
+
+Your invoice *${invoiceNumber}* is ready.
+
+*Order Total:* R${order.total.toFixed(2)}
+
+*Download Invoice:* ${downloadUrl}
+
+You can also save this message to keep your invoice.
+
+Thank you for shopping with us! 🛍️
+    `.trim();
+
+    // Show invoice modal with WhatsApp options
+    showInvoiceModal(order);
+    
+    // Open WhatsApp after a short delay
+    setTimeout(() => {
+        const encodedMessage = encodeURIComponent(whatsappMessage);
+        const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+        showNotification('Opening WhatsApp to send invoice... 📱');
+    }, 1500);
+}
+
+// Save Invoice via WhatsApp
+function saveInvoiceWhatsApp(orderId) {
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const invoiceContent = `
+METRA MARKET - INVOICE
+========================
+
+Invoice Number: ${order.invoiceNumber}
+Order ID: ${order.id}
+Date: ${order.date}
+
+BILLING TO:
+${order.customerName}
+${order.customerEmail}
+${order.customerPhone || ''}
+
+ITEMS:
+------------------------
+${order.items.map(item => `${item.name} x ${item.quantity} - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+
+SUBTOTAL: R${order.subtotal.toFixed(2)}
+SHIPPING: R${order.shipping.toFixed(2)}
+TOTAL: R${order.total.toFixed(2)}
+
+Thank you for your business!
+Metra Market
+    `.trim();
+
+    // Create PDF-like text file
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice-${order.invoiceNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Also share via WhatsApp
+    const encodedContent = encodeURIComponent(invoiceContent);
+    const cleanPhone = (order.customerPhone || '').replace(/[^0-9]/g, '');
+    
+    if (cleanPhone) {
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedContent}`;
+        window.open(whatsappUrl, '_blank');
+    }
+    
+    showNotification('Invoice downloaded and ready to share on WhatsApp! 📱');
 }
 
 // Show Invoice Modal
@@ -466,10 +618,13 @@ function showInvoiceModal(order) {
             </div>
             <div class="invoice-actions">
                 <button class="btn-secondary" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print Invoice
+                    <i class="fas fa-print"></i> Print
                 </button>
                 <button class="btn-secondary" onclick="downloadInvoice('${order.id}')">
-                    <i class="fas fa-download"></i> Download PDF
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn-whatsapp" onclick="saveInvoiceWhatsApp('${order.id}'); this.closest('.invoice-modal-overlay').remove();" style="background: #25D366; color: white; border: none;">
+                    <i class="fab fa-whatsapp"></i> Save via WhatsApp
                 </button>
                 <button class="btn-primary" onclick="this.closest('.invoice-modal-overlay').remove()">
                     <i class="fas fa-check"></i> Done
@@ -687,10 +842,16 @@ function toggleWishlist(productId) {
         wishlist.push(productId);
         showNotification('Added to wishlist! ❤️');
     }
+    saveWishlist();
     // Re-render modal if open
     const modal = document.getElementById('productModal');
     if (modal.classList.contains('active')) {
         openProductModal(productId);
+    }
+    // Update profile wishlist if open
+    const profileModal = document.getElementById('profileModal');
+    if (profileModal.classList.contains('active')) {
+        switchProfileTab('wishlist');
     }
 }
 
@@ -703,6 +864,114 @@ function loadWishlist() {
 
 function saveWishlist() {
     localStorage.setItem('metraWishlist', JSON.stringify(wishlist));
+}
+
+// Get Wishlist Count
+function getWishlistCount() {
+    return wishlist.length;
+}
+
+// Check if product is in wishlist
+function isInWishlist(productId) {
+    return wishlist.includes(productId);
+}
+
+// Update Wishlist Count in Navbar
+function updateWishlistCount() {
+    const countEl = document.getElementById('wishlistCount');
+    if (countEl) {
+        countEl.textContent = wishlist.length;
+    }
+}
+
+// Open Wishlist Modal
+function openWishlistModal() {
+    const modal = document.createElement('div');
+    modal.className = 'invoice-modal-overlay';
+    modal.style.display = 'flex';
+    
+    const wishlistProducts = products.filter(p => wishlist.includes(p.id));
+    
+    modal.innerHTML = `
+        <div class="invoice-modal" style="max-width: 700px;">
+            <div class="invoice-header" style="background: linear-gradient(135deg, #DC143C, #8B0000);">
+                <div class="invoice-logo">
+                    <i class="fas fa-heart"></i>
+                    <span>My Wishlist</span>
+                </div>
+                <button class="modal-close" onclick="this.closest('.invoice-modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="invoice-body">
+                ${wishlistProducts.length > 0 ? `
+                    <div class="wishlist-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr); gap: 1rem;">
+                        ${wishlistProducts.map(product => `
+                            <div class="wishlist-item" style="background: rgba(139, 0, 0, 0.1); border: 1px solid rgba(139, 0, 0, 0.2); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                                <div style="font-size: 3rem; margin-bottom: 0.5rem;">${product.icon}</div>
+                                <h4 style="margin: 0.5rem 0; color: var(--light);">${product.name}</h4>
+                                <p style="color: var(--secondary); font-weight: 700; font-size: 1.1rem;">R${product.price.toFixed(2)}</p>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; width: 100%;">
+                                    <button class="btn-primary" style="flex: 1; padding: 0.5rem;" onclick="addToCart(${product.id}); showNotification('Added to cart!');">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                    </button>
+                                    <button class="btn-secondary" style="flex: 1; padding: 0.5rem;" onclick="closeProductModal(); openProductModal(${product.id}); this.closest('.invoice-modal-overlay').remove();">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button class="btn-danger" style="padding: 0.5rem;" onclick="toggleWishlist(${product.id}); this.closest('.invoice-modal-overlay').remove();">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="empty-state" style="padding: 3rem;">
+                        <i class="fas fa-heart-broken" style="font-size: 4rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--gray);">Your wishlist is empty</p>
+                        <button class="btn-primary" onclick="this.closest('.invoice-modal-overlay').remove(); document.getElementById('products').scrollIntoView();" style="margin-top: 1rem;">
+                            <i class="fas fa-shopping-bag"></i> Browse Products
+                        </button>
+                    </div>
+                `}
+            </div>
+            <div class="invoice-actions">
+                ${wishlistProducts.length > 0 ? `
+                    <button class="btn-primary" onclick="addAllWishlistToCart(); this.closest('.invoice-modal-overlay').remove();">
+                        <i class="fas fa-cart-plus"></i> Add All to Cart
+                    </button>
+                    <button class="btn-danger" onclick="clearWishlist(); this.closest('.invoice-modal-overlay').remove();">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                ` : ''}
+                <button class="btn-secondary" onclick="this.closest('.invoice-modal-overlay').remove();">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Add All Wishlist Items to Cart
+function addAllWishlistToCart() {
+    wishlist.forEach(productId => {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            addToCart(productId);
+        }
+    });
+    showNotification('All wishlist items added to cart! 🛒');
+}
+
+// Clear Wishlist
+function clearWishlist() {
+    if (confirm('Clear all items from wishlist?')) {
+        wishlist = [];
+        saveWishlist();
+        updateWishlistCount();
+        showNotification('Wishlist cleared!');
+    }
 }
 
 // Authentication Functions

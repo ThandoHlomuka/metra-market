@@ -23,6 +23,10 @@
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <div class="nav-icons">
+                <div class="wishlist-icon" onclick="openWishlistModal()" id="wishlistIcon">
+                    <i class="fas fa-heart"></i>
+                    <span class="wishlist-count" id="wishlistCount">0</span>
+                </div>
                 <div class="user-icon" onclick="openAuthModal()" id="userIcon">
                     <i class="fas fa-user"></i>
                 </div>
@@ -194,6 +198,17 @@
                     <input type="radio" name="shipping" value="199" onchange="updateShipping(199)">
                     <span>Same Day Delivery</span>
                     <span class="shipping-price">R199.00</span>
+                </label>
+            </div>
+            <div class="invoice-delivery">
+                <h4>Invoice Delivery</h4>
+                <label class="delivery-option">
+                    <input type="radio" name="invoiceDelivery" value="email" checked onchange="setInvoiceDelivery('email')">
+                    <span><i class="fas fa-envelope"></i> Email</span>
+                </label>
+                <label class="delivery-option">
+                    <input type="radio" name="invoiceDelivery" value="whatsapp" onchange="setInvoiceDelivery('whatsapp')">
+                    <span><i class="fab fa-whatsapp"></i> WhatsApp</span>
                 </label>
             </div>
             <div class="cart-total">
