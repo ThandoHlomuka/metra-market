@@ -3,7 +3,7 @@
 A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaScript.
 
 ![Metra Market](https://img.shields.io/badge/Metra-Market-8B0000?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.3.0-crimson?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.4.0-crimson?style=for-the-badge)
 ![Last Updated](https://img.shields.io/badge/last%20updated-March%202026-brown?style=for-the-badge)
 
 ## ✨ Features
@@ -126,7 +126,27 @@ Access the admin dashboard at: `admin.html`
 
 ## 📬 Changelog / Updates
 
-### v1.3.0 - March 23, 2026 *(Latest)*
+### v1.4.0 - March 23, 2026 *(Latest)*
+**📧 Invoicing System**
+- ✅ Auto-generated invoices after successful checkout
+- ✅ Professional invoice modal with print option
+- ✅ Invoice email sending to customer
+- ✅ Download invoice as text file
+- ✅ Invoice stored in localStorage
+- ✅ Admin invoice management panel
+- ✅ View, download, email invoices from admin
+- ✅ Export all invoices feature
+- ✅ Invoice tracking with unique numbers
+
+**🔐 Social Authentication**
+- ✅ Google OAuth login (simulated)
+- ✅ WhatsApp login with OTP verification
+- ✅ Facebook login (simulated)
+- ✅ Auto-registration for social login users
+- ✅ Social login buttons on login form
+- ✅ Quick login via WhatsApp or Google
+
+### v1.3.0 - March 23, 2026
 **🔧 Admin CMS Dashboard**
 - ✅ Created separate admin dashboard (admin.html)
 - ✅ Secure admin login with credentials
