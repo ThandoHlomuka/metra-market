@@ -209,26 +209,28 @@ function updateCart() {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal + shippingCost;
 
-    cartCount.textContent = totalItems;
-    cartSubtotal.textContent = `R${subtotal.toFixed(2)}`;
-    cartShipping.textContent = `R${shippingCost.toFixed(2)}`;
-    cartTotal.textContent = `R${total.toFixed(2)}`;
+    if (cartCount) cartCount.textContent = totalItems;
+    if (cartSubtotal) cartSubtotal.textContent = `R${subtotal.toFixed(2)}`;
+    if (cartShipping) cartShipping.textContent = `R${shippingCost.toFixed(2)}`;
+    if (cartTotal) cartTotal.textContent = `R${total.toFixed(2)}`;
 
-    if (cart.length === 0) {
-        cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
-    } else {
-        cartItems.innerHTML = cart.map(item => `
-            <div class="cart-item">
-                <div class="cart-item-image">${item.icon}</div>
-                <div class="cart-item-info">
-                    <p class="cart-item-name">${item.name}</p>
-                    <p class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</p>
+    if (cartItems) {
+        if (cart.length === 0) {
+            cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
+        } else {
+            cartItems.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-image">${item.icon}</div>
+                    <div class="cart-item-info">
+                        <p class="cart-item-name">${item.name}</p>
+                        <p class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</p>
+                    </div>
+                    <button class="cart-item-remove" onclick="removeFromCart(${item.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
-                <button class="cart-item-remove" onclick="removeFromCart(${item.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 }
 
