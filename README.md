@@ -3,7 +3,7 @@
 A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaScript.
 
 ![Metra Market](https://img.shields.io/badge/Metra-Market-8B0000?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.4.0-crimson?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.5.0-crimson?style=for-the-badge)
 ![Last Updated](https://img.shields.io/badge/last%20updated-March%202026-brown?style=for-the-badge)
 
 ## ✨ Features
@@ -126,7 +126,27 @@ Access the admin dashboard at: `admin.html`
 
 ## 📬 Changelog / Updates
 
-### v1.4.0 - March 23, 2026 *(Latest)*
+### v1.5.0 - March 23, 2026 *(Latest)*
+**📧 Invoice Delivery Preferences**
+- ✅ Customer chooses invoice delivery: Email or WhatsApp
+- ✅ Invoice sent via WhatsApp with formatted message
+- ✅ WhatsApp invoice includes download link
+- ✅ Save invoice via WhatsApp feature
+- ✅ Invoice modal with WhatsApp save button
+- ✅ PDF-style invoice text for WhatsApp
+
+**❤️ Enhanced Wishlist System**
+- ✅ Wishlist icon in navbar with count badge
+- ✅ Dedicated wishlist modal popup
+- ✅ View all wishlist items in one place
+- ✅ Add all wishlist items to cart
+- ✅ Clear entire wishlist
+- ✅ Remove individual items
+- ✅ Quick view product from wishlist
+- ✅ Integrated with profile system
+- ✅ Wishlist persists across sessions
+
+### v1.4.0 - March 23, 2026
 **📧 Invoicing System**
 - ✅ Auto-generated invoices after successful checkout
 - ✅ Professional invoice modal with print option
