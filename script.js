@@ -3,56 +3,56 @@ const products = [
     {
         id: 1,
         name: "Wireless Headphones",
-        price: 79.99,
+        price: 1199.99,
         desc: "Premium noise-canceling wireless headphones",
         icon: "🎧"
     },
     {
         id: 2,
         name: "Smart Watch",
-        price: 199.99,
+        price: 2999.99,
         desc: "Feature-rich smartwatch with health tracking",
         icon: "⌚"
     },
     {
         id: 3,
         name: "Laptop Stand",
-        price: 49.99,
+        price: 749.99,
         desc: "Ergonomic aluminum laptop stand",
         icon: "💻"
     },
     {
         id: 4,
         name: "Mechanical Keyboard",
-        price: 129.99,
+        price: 1949.99,
         desc: "RGB mechanical gaming keyboard",
         icon: "⌨️"
     },
     {
         id: 5,
         name: "Wireless Mouse",
-        price: 59.99,
+        price: 899.99,
         desc: "Precision wireless gaming mouse",
         icon: "🖱️"
     },
     {
         id: 6,
         name: "USB-C Hub",
-        price: 39.99,
+        price: 599.99,
         desc: "7-in-1 USB-C hub with HDMI output",
         icon: "🔌"
     },
     {
         id: 7,
         name: "Portable Speaker",
-        price: 89.99,
+        price: 1349.99,
         desc: "Waterproof Bluetooth portable speaker",
         icon: "🔊"
     },
     {
         id: 8,
         name: "Phone Case",
-        price: 24.99,
+        price: 374.99,
         desc: "Premium leather phone case",
         icon: "📱"
     }
@@ -77,7 +77,7 @@ function renderProducts() {
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-desc">${product.desc}</p>
                 <div class="product-footer">
-                    <span class="product-price">$${product.price.toFixed(2)}</span>
+                    <span class="product-price">R${product.price.toFixed(2)}</span>
                     <button class="add-to-cart" onclick="addToCart(${product.id})">
                         <i class="fas fa-cart-plus"></i> Add
                     </button>
@@ -131,7 +131,7 @@ function updateCart() {
     const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     cartCount.textContent = totalItems;
-    cartTotal.textContent = `$${totalPrice.toFixed(2)}`;
+    cartTotal.textContent = `R${totalPrice.toFixed(2)}`;
 
     if (cart.length === 0) {
         cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
@@ -141,7 +141,7 @@ function updateCart() {
                 <div class="cart-item-image">${item.icon}</div>
                 <div class="cart-item-info">
                     <p class="cart-item-name">${item.name}</p>
-                    <p class="cart-item-price">$${item.price.toFixed(2)} x ${item.quantity}</p>
+                    <p class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</p>
                 </div>
                 <button class="cart-item-remove" onclick="removeFromCart(${item.id})">
                     <i class="fas fa-trash"></i>
