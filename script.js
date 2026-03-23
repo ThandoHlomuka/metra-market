@@ -60,6 +60,7 @@ const products = [
 
 // Cart State
 let cart = [];
+let shippingCost = 0;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -125,13 +126,18 @@ function removeFromCart(productId) {
 function updateCart() {
     const cartItems = document.getElementById('cartItems');
     const cartCount = document.getElementById('cartCount');
+    const cartSubtotal = document.getElementById('cartSubtotal');
+    const cartShipping = document.getElementById('cartShipping');
     const cartTotal = document.getElementById('cartTotal');
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = subtotal + shippingCost;
 
     cartCount.textContent = totalItems;
-    cartTotal.textContent = `R${totalPrice.toFixed(2)}`;
+    cartSubtotal.textContent = `R${subtotal.toFixed(2)}`;
+    cartShipping.textContent = `R${shippingCost.toFixed(2)}`;
+    cartTotal.textContent = `R${total.toFixed(2)}`;
 
     if (cart.length === 0) {
         cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
@@ -149,6 +155,12 @@ function updateCart() {
             </div>
         `).join('');
     }
+}
+
+// Update Shipping
+function updateShipping(cost) {
+    shippingCost = cost;
+    updateCart();
 }
 
 // Save Cart to LocalStorage

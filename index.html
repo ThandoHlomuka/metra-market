@@ -174,9 +174,35 @@
             <p class="empty-cart">Your cart is empty</p>
         </div>
         <div class="cart-footer">
+            <div class="shipping-options">
+                <h4>Shipping</h4>
+                <label class="shipping-option">
+                    <input type="radio" name="shipping" value="0" checked onchange="updateShipping(0)">
+                    <span>Standard Delivery (Free)</span>
+                    <span class="shipping-price">R0.00</span>
+                </label>
+                <label class="shipping-option">
+                    <input type="radio" name="shipping" value="99" onchange="updateShipping(99)">
+                    <span>Express Delivery (1-2 days)</span>
+                    <span class="shipping-price">R99.00</span>
+                </label>
+                <label class="shipping-option">
+                    <input type="radio" name="shipping" value="199" onchange="updateShipping(199)">
+                    <span>Same Day Delivery</span>
+                    <span class="shipping-price">R199.00</span>
+                </label>
+            </div>
             <div class="cart-total">
+                <span>Subtotal:</span>
+                <span id="cartSubtotal">R0.00</span>
+            </div>
+            <div class="cart-total">
+                <span>Shipping:</span>
+                <span id="cartShipping">R0.00</span>
+            </div>
+            <div class="cart-total cart-total-final">
                 <span>Total:</span>
-                <span id="cartTotal">$0.00</span>
+                <span id="cartTotal">R0.00</span>
             </div>
             <button class="checkout-btn" onclick="checkout()">
                 Checkout <i class="fas fa-arrow-right"></i>
