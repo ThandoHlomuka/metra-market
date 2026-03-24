@@ -353,14 +353,18 @@ function processPayFastPayment(order) {
 
     const payFastUrl = PAYFAST_CONFIG.sandbox ? 'https://sandbox.payfast.co.za/eng/process' : 'https://www.payfast.co.za/eng/process';
 
+    // Save order ID for success/cancel pages
+    localStorage.setItem('lastOrderId', order.id);
+    localStorage.setItem('lastOrderTotal', order.total.toString());
+
     const formData = {
         merchant_id: PAYFAST_CONFIG.merchantId,
         merchant_key: PAYFAST_CONFIG.merchantKey,
         amount: order.total.toFixed(2),
         item_name: 'Order ' + order.id,
         item_description: 'Purchase from Metra Market',
-        return_url: window.location.origin + '/success.html',
-        cancel_url: window.location.origin + '/cancel.html',
+        return_url: window.location.origin + '/success.html?order_id=' + encodeURIComponent(order.id),
+        cancel_url: window.location.origin + '/cancel.html?order_id=' + encodeURIComponent(order.id),
         notify_url: window.location.origin + '/ipn.php',
         email_confirmation: order.customerEmail,
         confirmation_first: 'buyer'
