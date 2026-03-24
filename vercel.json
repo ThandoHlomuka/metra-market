@@ -29,7 +29,9 @@
         }
     ],
     "env": {
-        "SUPABASE_URL": "@SUPABASE_URL",
-        "SUPABASE_KEY": "@SUPABASE_KEY"
+        "NEON_DATABASE_URL": "@NEON_DATABASE_URL",
+        "EMAIL_SERVICE_API_KEY": "@EMAIL_SERVICE_API_KEY",
+        "EMAIL_FROM": "@EMAIL_FROM",
+        "ADMIN_EMAIL": "@ADMIN_EMAIL"
     }
 }

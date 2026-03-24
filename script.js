@@ -134,7 +134,9 @@ let invoiceDeliveryMethod = 'email';
 
 // Database Configuration
 const DB_CONFIG = {
-    useDatabase: false, // Set to true when Supabase is configured
+    useDatabase: false, // Set to true when Neon database is configured
+    type: 'neon', // 'neon' or 'supabase'
+    neonUrl: process.env.NEON_DATABASE_URL || '',
     supabaseUrl: 'https://your-project.supabase.co',
     supabaseKey: 'your-anon-key'
 };
@@ -467,7 +469,8 @@ function processPayFastPayment(order) {
         return_url: window.location.origin + '/success.html?order_id=' + encodeURIComponent(order.id),
         cancel_url: window.location.origin + '/cancel.html?order_id=' + encodeURIComponent(order.id),
         notify_url: window.location.origin + '/ipn.php',
-        email_confirmation: order.customerEmail,
+        email_address: order.customerEmail,
+        email_confirmation: 'true',
         confirmation_first: 'buyer'
     };
 
@@ -711,45 +714,83 @@ function handleLogin(event) {
 
 function handleRegister(event) {
     event.preventDefault();
-    const name = document.getElementById('registerName').value;
-    const email = document.getElementById('registerEmail').value;
-    const phone = document.getElementById('registerPhone').value;
+    const name = document.getElementById('registerName').value.trim();
+    const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('registerPhone').value.trim();
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
-    
+
+    // Validation
+    if (!name || !email || !password) {
+        showNotification('Please fill in all required fields');
+        return;
+    }
+
+    if (password.length < 6) {
+        showNotification('Password must be at least 6 characters');
+        return;
+    }
+
     if (password !== confirmPassword) {
         showNotification('Passwords do not match');
         return;
     }
-    
-    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
-    
-    if (users.find(u => u.email === email)) {
-        showNotification('Email already registered');
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address');
         return;
     }
-    
+
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+        showNotification('Email already registered. Please login instead.');
+        return;
+    }
+
     const newUser = {
         id: Date.now(),
         name: name,
         email: email,
         username: email,
         phone: phone,
-        password: password,
+        password: password, // In production, this should be hashed
         orders: [],
-        createdAt: new Date().toISOString()
+        wishlist: [],
+        createdAt: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+        provider: 'email'
     };
-    
-    users.push(newUser);
-    localStorage.setItem('metraUsers', JSON.stringify(users));
-    
-    currentUser = newUser;
-    localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
-    localStorage.setItem('metraUserLoggedIn', 'true');
-    
-    closeAuthModal();
-    updateProfileIcon();
-    showNotification('Account created successfully!');
+
+    try {
+        users.push(newUser);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        
+        // Verify save was successful
+        const savedUsers = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        const savedUser = savedUsers.find(u => u.id === newUser.id);
+        
+        if (!savedUser) {
+            throw new Error('Failed to save user');
+        }
+
+        // Login the user
+        currentUser = newUser;
+        localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
+        localStorage.setItem('metraUserLoggedIn', 'true');
+
+        // Track registration
+        trackEvent('user_registered', { userId: newUser.id, email: newUser.email });
+
+        closeAuthModal();
+        updateProfileIcon();
+        showNotification('Account created successfully! Welcome, ' + name + '!');
+    } catch (error) {
+        console.error('Registration error:', error);
+        showNotification('Failed to create account. Please try again.');
+    }
 }
 
 function checkUserSession() {
