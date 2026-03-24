@@ -1,9 +1,9 @@
-// PayFast Configuration (Sandbox Mode for Testing)
+// PayFast Configuration (Production Mode)
 const PAYFAST_CONFIG = {
-    sandbox: true, // Set to false for production
-    merchantId: '10000100', // Sandbox merchant ID
-    merchantKey: '46f0cd694581a', // Sandbox merchant key
-    passphrase: '87654321' // Sandbox passphrase
+    sandbox: false, // Production mode
+    merchantId: '13343379',
+    merchantKey: '8jgcm78j7sqph',
+    passphrase: 'ThandoHlomuka93'
 };
 
 // Product Data
