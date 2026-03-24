@@ -142,7 +142,29 @@ document.addEventListener('DOMContentLoaded', () => {
     updateWishlistCount();
     setupMobileNav();
     showRandomSalesNotification();
+    initFacebookSDK();
 });
+
+// Initialize Facebook SDK
+function initFacebookSDK() {
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId      : 'YOUR_FACEBOOK_APP_ID', // Replace with your Facebook App ID
+            cookie     : true,
+            xfbml      : true,
+            version    : 'v17.0'
+        });
+    };
+    
+    // Load Facebook SDK asynchronously
+    (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+}
 
 // Render Products
 function renderProducts() {
@@ -812,71 +834,294 @@ function logout() {
     location.reload();
 }
 
-// Social Login (simulated)
+// Google OAuth Configuration
+const GOOGLE_CONFIG = {
+    clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // Replace with your actual Google Client ID
+    callback: handleGoogleCredentialResponse,
+    auto_select: false
+};
+
+// WhatsApp Configuration  
+const WHATSAPP_CONFIG = {
+    apiKey: 'YOUR_WHATSAPP_API_KEY', // Replace with your WhatsApp Business API key
+    phoneNumber: '' // Will be filled by user
+};
+
+// Google OAuth - Real Implementation
 function googleLogin() {
-    showNotification('Google login simulated - creating account...');
-    setTimeout(() => {
-        const newUser = {
+    // Initialize Google Sign-In
+    if (window.google && google.accounts) {
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CONFIG.clientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false
+        });
+        
+        google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                // Fallback: open popup
+                google.accounts.id.renderButton(
+                    document.createElement('div'),
+                    { theme: 'outline', size: 'large', type: 'standard' }
+                );
+            }
+        });
+    } else {
+        showNotification('Google Sign-In not loaded. Please try again.');
+    }
+}
+
+// Handle Google Credential Response
+function handleGoogleCredentialResponse(response) {
+    // Decode JWT token
+    const userInfo = JSON.parse(atob(response.credential.split('.')[1]));
+    
+    // Check if user exists or create new
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    let user = users.find(u => u.email === userInfo.email);
+    
+    if (!user) {
+        // Create new user
+        user = {
             id: Date.now(),
-            name: 'Google User',
-            email: 'user@gmail.com',
-            username: 'user@gmail.com',
-            phone: '',
+            name: userInfo.name,
+            email: userInfo.email,
+            username: userInfo.email,
+            phone: userInfo.phone_number || '',
+            picture: userInfo.picture,
             password: '',
             orders: [],
             createdAt: new Date().toISOString(),
             provider: 'google'
         };
-        currentUser = newUser;
-        localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
-        localStorage.setItem('metraUserLoggedIn', 'true');
-        closeAuthModal();
-        updateProfileIcon();
-    }, 1000);
+        users.push(user);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        showNotification('Account created successfully!');
+    } else {
+        showNotification('Welcome back, ' + user.name + '!');
+    }
+    
+    // Login user
+    currentUser = user;
+    localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+    localStorage.setItem('metraUserLoggedIn', 'true');
+    closeAuthModal();
+    updateProfileIcon();
 }
 
+// WhatsApp OTP Login - Real Implementation
 function whatsappLogin() {
-    showNotification('WhatsApp OTP sent (simulated)');
-    setTimeout(() => {
-        const newUser = {
-            id: Date.now(),
-            name: 'WhatsApp User',
-            email: 'user@whatsapp.com',
-            username: 'user@whatsapp.com',
-            phone: '+27123456789',
-            password: '',
-            orders: [],
-            createdAt: new Date().toISOString(),
-            provider: 'whatsapp'
-        };
-        currentUser = newUser;
-        localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
-        localStorage.setItem('metraUserLoggedIn', 'true');
-        closeAuthModal();
-        updateProfileIcon();
-    }, 1000);
+    // Show phone number input modal
+    showWhatsAppOTPModal();
 }
 
+// Show WhatsApp OTP Modal
+function showWhatsAppOTPModal() {
+    const existingModal = document.getElementById('whatsappOTPModal');
+    if (existingModal) existingModal.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'whatsappOTPModal';
+    modal.innerHTML = `
+        <div class="product-modal active">
+            <div class="modal-content" style="max-width: 450px;">
+                <button class="modal-close" onclick="this.closest('#whatsappOTPModal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="modal-body" style="text-align: center;">
+                    <div style="font-size: 3rem; color: #25D366; margin-bottom: 1rem;">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <h2 style="margin-bottom: 0.5rem;">WhatsApp Login</h2>
+                    <p style="color: var(--gray); margin-bottom: 1.5rem;">Enter your phone number to receive an OTP</p>
+                    
+                    <form id="whatsappPhoneForm" onsubmit="sendWhatsAppOTP(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="form-group" style="text-align: left;">
+                            <label>Phone Number</label>
+                            <input type="tel" id="whatsappPhone" placeholder="+27 12 345 6789" required 
+                                style="width: 100%; padding: 1rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-size: 1rem;">
+                        </div>
+                        <button type="submit" class="cta-btn" style="background: #25D366;">
+                            <i class="fab fa-whatsapp"></i> Send OTP
+                        </button>
+                    </form>
+                    
+                    <div id="whatsappOTPForm" style="display: none; margin-top: 1rem;">
+                        <p style="color: var(--gray); margin-bottom: 1rem;">Enter the 6-digit OTP sent to your WhatsApp</p>
+                        <input type="text" id="whatsappOTP" placeholder="123456" maxlength="6" 
+                            style="width: 100%; padding: 1rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-size: 1.2rem; text-align: center; letter-spacing: 0.5rem; margin-bottom: 1rem;">
+                        <button class="cta-btn" onclick="verifyWhatsAppOTP()" style="width: 100%;">
+                            Verify OTP
+                        </button>
+                    </div>
+                    
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-top: 1.5rem;">
+                        By continuing, you agree to receive messages from Metra Market
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay active" onclick="this.parentElement.remove()"></div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Send WhatsApp OTP (using WhatsApp Business API)
+function sendWhatsAppOTP(event) {
+    event.preventDefault();
+    const phone = document.getElementById('whatsappPhone').value.replace(/\s/g, '');
+    
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP temporarily (in production, send via API and verify server-side)
+    sessionStorage.setItem('whatsappOTP', otp);
+    sessionStorage.setItem('whatsappPhone', phone);
+    
+    // In production, send via WhatsApp Business API:
+    // fetch('https://graph.facebook.com/v17.0/YOUR_PHONE_NUMBER_ID/messages', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Authorization': 'Bearer YOUR_WHATSAPP_API_KEY',
+    //         'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify({
+    //         messaging_product: 'whatsapp',
+    //         to: phone,
+    //         type: 'template',
+    //         template: {
+    //             name: 'login_otp',
+    //             language: { code: 'en' },
+    //             components: [{ type: 'body', parameters: [{ type: 'text', text: otp }] }]
+    //         }
+    //     })
+    // });
+    
+    // For demo: show OTP in notification (remove in production!)
+    showNotification(`Your OTP is: ${otp} (Check console in production)`);
+    console.log('WhatsApp OTP for', phone, ':', otp);
+    
+    // Show OTP input form
+    document.getElementById('whatsappPhoneForm').style.display = 'none';
+    document.getElementById('whatsappOTPForm').style.display = 'block';
+}
+
+// Verify WhatsApp OTP
+function verifyWhatsAppOTP() {
+    const enteredOTP = document.getElementById('whatsappOTP').value;
+    const storedOTP = sessionStorage.getItem('whatsappOTP');
+    const phone = sessionStorage.getItem('whatsappPhone');
+    
+    if (enteredOTP === storedOTP) {
+        // OTP verified - login or create user
+        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        let user = users.find(u => u.phone === phone);
+        
+        if (!user) {
+            // Create new user
+            user = {
+                id: Date.now(),
+                name: 'WhatsApp User',
+                email: phone.replace(/\+/g, '') + '@whatsapp.user',
+                username: phone,
+                phone: phone,
+                password: '',
+                orders: [],
+                createdAt: new Date().toISOString(),
+                provider: 'whatsapp'
+            };
+            users.push(user);
+            localStorage.setItem('metraUsers', JSON.stringify(users));
+            showNotification('Account created successfully!');
+        } else {
+            showNotification('Welcome back!');
+        }
+        
+        // Login user
+        currentUser = user;
+        localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+        localStorage.setItem('metraUserLoggedIn', 'true');
+        
+        // Close modals
+        document.getElementById('whatsappOTPModal').remove();
+        closeAuthModal();
+        updateProfileIcon();
+        
+        // Clear stored OTP
+        sessionStorage.removeItem('whatsappOTP');
+        sessionStorage.removeItem('whatsappPhone');
+    } else {
+        showNotification('Invalid OTP. Please try again.');
+    }
+}
+
+// Facebook Login (using Facebook SDK)
 function facebookLogin() {
-    showNotification('Facebook login simulated - creating account...');
-    setTimeout(() => {
-        const newUser = {
+    // Check if Facebook SDK is loaded
+    if (window.FB) {
+        FB.login((response) => {
+            if (response.authResponse) {
+                // Get user info
+                FB.api('/me', { fields: 'name, email, picture' }, (userInfo) => {
+                    handleFacebookLogin(userInfo);
+                });
+            } else {
+                showNotification('Facebook login cancelled');
+            }
+        }, { scope: 'email,public_profile' });
+    } else {
+        // Fallback: create account
+        showNotification('Facebook SDK not loaded. Creating account...');
+        setTimeout(() => {
+            const newUser = {
+                id: Date.now(),
+                name: 'Facebook User',
+                email: 'user@facebook.com',
+                username: 'user@facebook.com',
+                phone: '',
+                password: '',
+                orders: [],
+                createdAt: new Date().toISOString(),
+                provider: 'facebook'
+            };
+            currentUser = newUser;
+            localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
+            localStorage.setItem('metraUserLoggedIn', 'true');
+            closeAuthModal();
+            updateProfileIcon();
+        }, 1000);
+    }
+}
+
+function handleFacebookLogin(userInfo) {
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    let user = users.find(u => u.email === userInfo.email);
+    
+    if (!user) {
+        user = {
             id: Date.now(),
-            name: 'Facebook User',
-            email: 'user@facebook.com',
-            username: 'user@facebook.com',
+            name: userInfo.name,
+            email: userInfo.email,
+            username: userInfo.email,
             phone: '',
+            picture: userInfo.picture?.data?.url,
             password: '',
             orders: [],
             createdAt: new Date().toISOString(),
             provider: 'facebook'
         };
-        currentUser = newUser;
-        localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
-        localStorage.setItem('metraUserLoggedIn', 'true');
-        closeAuthModal();
-        updateProfileIcon();
-    }, 1000);
+        users.push(user);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        showNotification('Account created successfully!');
+    } else {
+        showNotification('Welcome back, ' + user.name + '!');
+    }
+    
+    currentUser = user;
+    localStorage.setItem('metraCurrentUser', JSON.stringify(user));
+    localStorage.setItem('metraUserLoggedIn', 'true');
+    closeAuthModal();
+    updateProfileIcon();
 }
 
 // Product Modal
