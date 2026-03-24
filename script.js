@@ -132,14 +132,233 @@ let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
 
-// Database Configuration
+// Database Configuration - Neon (Vercel Postgres)
 const DB_CONFIG = {
-    useDatabase: false, // Set to true when Neon database is configured
-    type: 'neon', // 'neon' or 'supabase'
-    neonUrl: process.env.NEON_DATABASE_URL || '',
-    supabaseUrl: 'https://your-project.supabase.co',
-    supabaseKey: 'your-anon-key'
+    useDatabase: false, // Set to true when Neon database is configured in Vercel
+    type: 'neon'
 };
+
+// Email Configuration - Managed via Admin Dashboard
+const EMAIL_CONFIG = {
+    enabled: false,
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUser: '',
+    smtpPassword: '',
+    fromEmail: 'noreply@metramarket.co.za',
+    adminEmail: 'admin@metramarket.co.za'
+};
+
+// Load email config from localStorage
+function loadEmailConfig() {
+    const saved = localStorage.getItem('metraEmailConfig');
+    if (saved) {
+        const config = JSON.parse(saved);
+        Object.assign(EMAIL_CONFIG, config);
+    }
+}
+
+// Email Templates
+const EMAIL_TEMPLATES = {
+    order_confirmation: {
+        id: 'order_confirmation',
+        name: 'Order Confirmation',
+        subject: 'Order Confirmation - {{invoiceNumber}}',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #8B0000, #DC143C); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Metra Market</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <h2 style="color: #8B0000;">Thank you for your order!</h2>
+                    <p>Dear {{customerName}},</p>
+                    <p>Your order has been received and is being processed.</p>
+                    <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <p><strong>Order ID:</strong> {{orderNumber}}</p>
+                        <p><strong>Invoice:</strong> {{invoiceNumber}}</p>
+                        <p><strong>Date:</strong> {{date}}</p>
+                        <p><strong>Total:</strong> R{{total}}</p>
+                    </div>
+                    <h3>Items:</h3>
+                    <ul>{{itemsList}}</ul>
+                    <p>We will notify you when your order ships.</p>
+                    <p style="text-align: center; margin-top: 30px;">
+                        <strong>Thank you for shopping with Metra Market!</strong>
+                    </p>
+                </div>
+                <div style="background: #8B0000; color: white; text-align: center; padding: 15px; font-size: 12px;">
+                    <p>&copy; 2026 Metra Market. All rights reserved.</p>
+                </div>
+            </div>
+        `
+    },
+    invoice: {
+        id: 'invoice',
+        name: 'Invoice',
+        subject: 'Invoice {{invoiceNumber}} - Metra Market',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #8B0000, #DC143C); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">INVOICE</h1>
+                </div>
+                <div style="padding: 30px; background: white;">
+                    <p><strong>Invoice Number:</strong> {{invoiceNumber}}</p>
+                    <p><strong>Date:</strong> {{date}}</p>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #8B0000;">Bill To:</h3>
+                        <p>{{customerName}}<br>{{customerEmail}}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <thead>
+                            <tr style="background: #8B0000; color: white;">
+                                <th style="padding: 12px; text-align: left;">Item</th>
+                                <th style="padding: 12px;">Qty</th>
+                                <th style="padding: 12px;">Price</th>
+                                <th style="padding: 12px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>{{itemsRows}}</tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Subtotal:</strong></td>
+                                <td style="padding: 10px; text-align: right;">R{{subtotal}}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding: 10px; text-align: right;"><strong>Shipping:</strong></td>
+                                <td style="padding: 10px; text-align: right;">R{{shipping}}</td>
+                            </tr>
+                            <tr style="font-size: 1.3em; font-weight: bold; background: #f0f0f0;">
+                                <td colspan="3" style="padding: 15px 10px; text-align: right;">Total:</td>
+                                <td style="padding: 15px 10px; text-align: right; color: #8B0000;">R{{total}}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <p style="text-align: center; margin-top: 30px; color: #8B0000;">
+                        <strong>Thank you for your business!</strong>
+                    </p>
+                </div>
+            </div>
+        `
+    },
+    admin_new_order: {
+        id: 'admin_new_order',
+        name: 'Admin - New Order Alert',
+        subject: 'New Order Received - {{orderNumber}}',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #228B22, #32CD32); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">🛒 New Order Alert</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p>You have received a new order!</p>
+                    <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #228B22;">
+                        <p><strong>Order ID:</strong> {{orderNumber}}</p>
+                        <p><strong>Customer:</strong> {{customerName}}</p>
+                        <p><strong>Email:</strong> {{customerEmail}}</p>
+                        <p><strong>Total:</strong> R{{total}}</p>
+                        <p><strong>Items:</strong> {{itemCount}}</p>
+                        <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+                    </div>
+                    <p style="text-align: center;">
+                        <a href="{{adminUrl}}" style="display: inline-block; padding: 12px 30px; background: #228B22; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            View in Admin Dashboard
+                        </a>
+                    </p>
+                </div>
+            </div>
+        `
+    },
+    password_reset: {
+        id: 'password_reset',
+        name: 'Password Reset',
+        subject: 'Password Reset Request - Metra Market',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #8B0000, #DC143C); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Password Reset</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p>Hi {{customerName}},</p>
+                    <p>You requested a password reset. Click the button below to reset your password:</p>
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="{{resetUrl}}" style="display: inline-block; padding: 15px 40px; background: #8B0000; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </p>
+                    <p style="color: #666; font-size: 14px;">This link expires in 1 hour.</p>
+                    <p style="color: #666; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+                </div>
+            </div>
+        `
+    }
+};
+
+// Load email templates from localStorage (allows admin customization)
+function loadEmailTemplates() {
+    const saved = localStorage.getItem('metraEmailTemplates');
+    if (saved) {
+        const customTemplates = JSON.parse(saved);
+        customTemplates.forEach(t => {
+            if (EMAIL_TEMPLATES[t.id]) {
+                Object.assign(EMAIL_TEMPLATES[t.id], t);
+            }
+        });
+    }
+}
+
+// Send Email Function
+function sendEmail(to, templateId, data) {
+    const template = EMAIL_TEMPLATES[templateId];
+    if (!template) {
+        console.error('Email template not found:', templateId);
+        return false;
+    }
+
+    if (!EMAIL_CONFIG.enabled) {
+        // Email not enabled, just log
+        console.log('Email not enabled. Would send to:', to);
+        console.log('Template:', template.name);
+        return false;
+    }
+
+    // Replace placeholders
+    let subject = template.subject;
+    let html = template.html;
+    
+    Object.keys(data).forEach(key => {
+        const regex = new RegExp('{{' + key + '}}', 'g');
+        subject = subject.replace(regex, data[key]);
+        html = html.replace(regex, data[key]);
+    });
+
+    // Store email in queue (for later processing when backend is connected)
+    const emailQueue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
+    emailQueue.push({
+        to,
+        subject,
+        html,
+        templateId,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+    });
+    localStorage.setItem('metraEmailQueue', JSON.stringify(emailQueue));
+
+    console.log('Email queued:', { to, subject, template: template.name });
+    return true;
+}
+
+// Process Email Queue (call this periodically)
+function processEmailQueue() {
+    const queue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
+    if (queue.length === 0) return;
+
+    console.log(`Processing ${queue.length} emails in queue...`);
+    
+    // In production, this would send via SMTP/API
+    // For now, just mark as sent
+    queue.forEach(email => email.status = 'sent');
+    localStorage.setItem('metraEmailQueue', JSON.stringify(queue));
+}
 
 // Analytics Tracking
 function trackEvent(eventType, metadata = {}) {
@@ -198,6 +417,8 @@ function updateUserActivity() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    loadEmailConfig();
+    loadEmailTemplates();
     loadCart();
     loadWishlist();
     checkUserSession();
@@ -213,6 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update user activity every minute
     setInterval(updateUserActivity, 60000);
+    
+    // Process email queue every 30 seconds
+    setInterval(processEmailQueue, 30000);
 });
 
 // Initialize Facebook SDK
@@ -430,6 +654,31 @@ function saveOrder(order) {
 
     generateInvoice(order);
 
+    // Send order confirmation email to customer
+    const itemsList = order.items.map(item => 
+        `<li>${item.name} x ${item.quantity} - R${(item.price * item.quantity).toFixed(2)}</li>`
+    ).join('');
+    
+    sendEmail(order.customerEmail, 'order_confirmation', {
+        customerName: order.customerName,
+        orderNumber: order.id,
+        invoiceNumber: order.invoiceNumber,
+        date: order.date,
+        total: order.total.toFixed(2),
+        itemsList: itemsList
+    });
+
+    // Send admin notification
+    sendEmail(EMAIL_CONFIG.adminEmail, 'admin_new_order', {
+        orderNumber: order.id,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        total: order.total.toFixed(2),
+        itemCount: order.items.length,
+        paymentMethod: order.paymentMethod,
+        adminUrl: window.location.origin + '/admin.html'
+    });
+
     const deliveryText = invoiceDeliveryMethod === 'whatsapp' ? 'WhatsApp' : 'email';
     showNotification('Order placed successfully! Invoice sent via ' + deliveryText);
     
@@ -515,11 +764,32 @@ function generateInvoice(order) {
         total: order.total,
         date: order.date
     };
-    
+
     const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
     invoices.push(invoice);
     localStorage.setItem('metraInvoices', JSON.stringify(invoices));
-    
+
+    // Send invoice email
+    const itemsRows = invoice.items.map(item => `
+        <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px;">${item.icon} ${item.name}</td>
+            <td style="padding: 10px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px; text-align: right;">R${item.price.toFixed(2)}</td>
+            <td style="padding: 10px; text-align: right;">R${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    sendEmail(invoice.customerEmail, 'invoice', {
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.date,
+        customerName: invoice.customerName,
+        customerEmail: invoice.customerEmail,
+        itemsRows: itemsRows,
+        subtotal: invoice.subtotal.toFixed(2),
+        shipping: invoice.shipping.toFixed(2),
+        total: invoice.total.toFixed(2)
+    });
+
     if (order.invoiceDelivery === 'whatsapp') {
         sendInvoiceViaWhatsApp(invoice);
     }

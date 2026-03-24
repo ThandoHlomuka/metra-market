@@ -233,7 +233,8 @@ function showSection(section, element) {
         invoices: 'Invoices Management',
         settings: 'Settings',
         sessions: 'Sessions & Data Management',
-        analytics: 'Analytics Dashboard'
+        analytics: 'Analytics Dashboard',
+        email: 'Email Settings'
     };
     document.getElementById('pageTitle').textContent = titles[section];
 
@@ -245,6 +246,7 @@ function showSection(section, element) {
     if (section === 'invoices') renderInvoices();
     if (section === 'sessions') loadSessionsData();
     if (section === 'analytics') loadAnalytics();
+    if (section === 'email') loadEmailSettings();
 }
 
 // Toggle Sidebar (mobile)
@@ -1378,4 +1380,160 @@ function generateTopProductsTable(products, orders) {
             </tr>
         `;
     }).join('');
+}
+
+// ==================== EMAIL MANAGEMENT ====================
+
+let currentEditingTemplate = null;
+
+// Load Email Settings
+function loadEmailSettings() {
+    // Load email config
+    const config = JSON.parse(localStorage.getItem('metraEmailConfig') || '{}');
+    
+    document.getElementById('emailEnabled').checked = config.enabled || false;
+    document.getElementById('smtpHost').value = config.smtpHost || '';
+    document.getElementById('smtpPort').value = config.smtpPort || 587;
+    document.getElementById('smtpUser').value = config.smtpUser || '';
+    document.getElementById('smtpPassword').value = config.smtpPassword || '';
+    document.getElementById('fromEmail').value = config.fromEmail || 'noreply@metramarket.co.za';
+    document.getElementById('adminEmail').value = config.adminEmail || 'admin@metramarket.co.za';
+
+    // Load email queue
+    loadEmailQueue();
+}
+
+// Save Email Config
+function saveEmailConfig(event) {
+    event.preventDefault();
+    
+    const config = {
+        enabled: document.getElementById('emailEnabled').checked,
+        smtpHost: document.getElementById('smtpHost').value,
+        smtpPort: parseInt(document.getElementById('smtpPort').value),
+        smtpUser: document.getElementById('smtpUser').value,
+        smtpPassword: document.getElementById('smtpPassword').value,
+        fromEmail: document.getElementById('fromEmail').value,
+        adminEmail: document.getElementById('adminEmail').value
+    };
+
+    localStorage.setItem('metraEmailConfig', JSON.stringify(config));
+    showNotification('Email settings saved successfully!');
+}
+
+// Test Email Connection
+function testEmailConnection() {
+    const config = JSON.parse(localStorage.getItem('metraEmailConfig') || '{}');
+    
+    if (!config.enabled) {
+        showNotification('Please enable email notifications first');
+        return;
+    }
+
+    if (!config.smtpHost || !config.smtpUser || !config.smtpPassword) {
+        showNotification('Please fill in all SMTP settings');
+        return;
+    }
+
+    showNotification('Testing connection...');
+    setTimeout(() => {
+        showNotification('Connection test successful! (Simulation)');
+    }, 1500);
+}
+
+// Edit Template
+function editTemplate(templateId) {
+    currentEditingTemplate = templateId;
+    
+    const savedTemplates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
+    const savedTemplate = savedTemplates.find(t => t.id === templateId);
+    
+    const templateNames = {
+        order_confirmation: 'Order Confirmation',
+        invoice: 'Invoice',
+        admin_new_order: 'Admin - New Order Alert',
+        password_reset: 'Password Reset'
+    };
+
+    document.getElementById('templateName').value = templateNames[templateId] || templateId;
+    document.getElementById('templateSubject').value = savedTemplate?.subject || '';
+    document.getElementById('templateHtml').value = savedTemplate?.html || '';
+    document.getElementById('templateEditor').style.display = 'block';
+}
+
+// Save Template
+function saveTemplate() {
+    if (!currentEditingTemplate) return;
+
+    const subject = document.getElementById('templateSubject').value;
+    const html = document.getElementById('templateHtml').value;
+
+    const templates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
+    const index = templates.findIndex(t => t.id === currentEditingTemplate);
+    
+    if (index > -1) {
+        templates[index].subject = subject;
+        templates[index].html = html;
+    } else {
+        templates.push({
+            id: currentEditingTemplate,
+            subject: subject,
+            html: html
+        });
+    }
+
+    localStorage.setItem('metraEmailTemplates', JSON.stringify(templates));
+    showNotification('Template saved successfully!');
+    document.getElementById('templateEditor').style.display = 'none';
+}
+
+// Reset Template
+function resetTemplate() {
+    if (!currentEditingTemplate) return;
+
+    if (confirm('Reset this template to default? Your customizations will be lost.')) {
+        const templates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
+        const filtered = templates.filter(t => t.id !== currentEditingTemplate);
+        localStorage.setItem('metraEmailTemplates', JSON.stringify(filtered));
+        
+        document.getElementById('templateSubject').value = '';
+        document.getElementById('templateHtml').value = '';
+        showNotification('Template reset to default');
+    }
+}
+
+// Load Email Queue
+function loadEmailQueue() {
+    const tbody = document.getElementById('emailQueueTable');
+    const queue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
+
+    if (queue.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No emails in queue</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = queue.map(email => `
+        <tr>
+            <td>${email.to}</td>
+            <td>${email.subject?.substring(0, 40) || ''}${(email.subject?.length || 0) > 40 ? '...' : ''}</td>
+            <td>${email.templateId || 'Custom'}</td>
+            <td>
+                <span style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; 
+                    background: ${email.status === 'sent' ? 'rgba(34, 139, 34, 0.2)' : 'rgba(255, 165, 0, 0.2)'};
+                    color: ${email.status === 'sent' ? '#228B22' : '#FFA500'};">
+                    ${email.status || 'pending'}
+                </span>
+            </td>
+            <td>${new Date(email.createdAt).toLocaleString('en-ZA')}</td>
+        </tr>
+    `).reverse().join('');
+}
+
+// Clear Email Queue
+function clearEmailQueue() {
+    if (confirm('Clear all emails from queue?')) {
+        localStorage.removeItem('metraEmailQueue');
+        loadEmailQueue();
+        showNotification('Email queue cleared');
+    }
 }
