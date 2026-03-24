@@ -80,9 +80,17 @@ metra-market/
 
 Access the admin dashboard at: `admin.html`
 
-**⚠️ Admin Credentials:**
-- **Username:** `ThandoHlomuka`
-- **Password:** `Nozibusiso89`
+**🔐 Admin Credentials:**
+> **Note:** For security, admin credentials are not displayed in this public repository.
+> Contact the repository owner or check your project's secure documentation for access details.
+> 
+> Default credentials are set in `admin-script.js` - please change them after first login!
+
+<!-- 
+ADMIN CREDENTIALS (DO NOT COMMIT TO GITHUB):
+Username: [Set in admin-script.js]
+Password: [Set in admin-script.js]
+-->
 
 ### Admin Features
 

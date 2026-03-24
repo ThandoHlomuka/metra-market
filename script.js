@@ -132,10 +132,10 @@ let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
 
-// Database Configuration - Neon (Vercel Postgres)
+// Database Configuration
+// Uses localStorage by default. Vercel Neon DB integration available via environment variables.
 const DB_CONFIG = {
-    useDatabase: false, // Set to true when Neon database is configured in Vercel
-    type: 'neon'
+    useDatabase: false // Set to true when database is configured
 };
 
 // Email Configuration - Managed via Admin Dashboard
