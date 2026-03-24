@@ -476,34 +476,38 @@ function updateWishlistCount() {
 }
 
 function openWishlistModal() {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('wishlistModal');
+    if (existingModal) existingModal.remove();
+
     const modal = document.createElement('div');
     modal.className = 'product-modal active';
     modal.id = 'wishlistModal';
-    
+
     const wishlistProducts = products.filter(p => wishlist.includes(p.id));
-    
+
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow: hidden;">
             <button class="modal-close" onclick="closeWishlistModal()">
                 <i class="fas fa-times"></i>
             </button>
-            <div class="modal-body">
-                <h2 style="margin-bottom: 1.5rem;">My Wishlist</h2>
+            <div class="modal-body" style="overflow-y: auto; max-height: 85vh;">
+                <h2 style="margin-bottom: 1.5rem; color: var(--light);">My Wishlist</h2>
                 ${wishlistProducts.length > 0 ? `
-                    <div class="products-grid">
+                    <div class="products-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
                         ${wishlistProducts.map(product => `
-                            <div class="product-card">
-                                <div class="product-image">${product.icon}</div>
-                                <div class="product-info">
-                                    <h3 class="product-name">${product.name}</h3>
-                                    <p class="product-desc">${product.desc}</p>
-                                    <div class="product-footer">
-                                        <span class="product-price">R${product.price.toFixed(2)}</span>
+                            <div class="product-card" style="background: rgba(255, 248, 231, 0.05); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255, 248, 231, 0.1);">
+                                <div class="product-image" style="width: 100%; height: 200px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.2), rgba(220, 20, 60, 0.2)); display: flex; align-items: center; justify-content: center; font-size: 4rem; color: var(--primary);">${product.icon}</div>
+                                <div class="product-info" style="padding: 1.5rem;">
+                                    <h3 class="product-name" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--light);">${product.name}</h3>
+                                    <p class="product-desc" style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">${product.desc}</p>
+                                    <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span class="product-price" style="font-size: 1.2rem; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">R${product.price.toFixed(2)}</span>
                                         <div style="display: flex; gap: 0.5rem;">
-                                            <button class="add-to-cart" onclick="addToCart(${product.id})">
+                                            <button class="add-to-cart" onclick="addToCart(${product.id}); showNotification('Added to cart!');" style="background: var(--gradient); border: none; color: white; padding: 0.6rem 1rem; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.3s;">
                                                 <i class="fas fa-cart-plus"></i>
                                             </button>
-                                            <button class="add-to-cart" style="background: var(--secondary);" onclick="removeFromWishlist(${product.id}); closeWishlistModal(); openWishlistModal();">
+                                            <button class="add-to-cart" style="background: var(--secondary); border: none; color: white; padding: 0.6rem 1rem; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.3s;" onclick="removeFromWishlist(${product.id}); closeWishlistModal(); setTimeout(openWishlistModal, 100);">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -512,20 +516,20 @@ function openWishlistModal() {
                             </div>
                         `).join('')}
                     </div>
-                    <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end;">
-                        <button class="btn-secondary" onclick="clearWishlist(); closeWishlistModal();">
+                    <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
+                        <button class="btn-secondary" onclick="clearWishlist(); closeWishlistModal(); setTimeout(openWishlistModal, 100);" style="background: rgba(255, 248, 231, 0.1); border: 1px solid rgba(255, 248, 231, 0.2); color: var(--light); padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600;">
                             <i class="fas fa-trash"></i> Clear All
                         </button>
-                        <button class="cta-btn" onclick="addAllToCart(); closeWishlistModal();">
+                        <button class="cta-btn" onclick="addAllToCart(); closeWishlistModal();" style="background: var(--gradient); border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-cart-plus"></i> Add All to Cart
                         </button>
                     </div>
-                ` : '<p class="empty-cart">Your wishlist is empty</p>'}
+                ` : '<p class="empty-cart" style="text-align: center; color: var(--gray); padding: 3rem 1rem; font-size: 1.1rem;">Your wishlist is empty</p>'}
             </div>
         </div>
         <div class="modal-overlay active" onclick="closeWishlistModal()"></div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 

@@ -630,6 +630,8 @@ body {
     display: flex;
     flex-direction: column;
     border-left: 1px solid rgba(255, 248, 231, 0.1);
+    max-height: 100vh;
+    overflow: hidden;
 }
 
 .cart-sidebar.active {
@@ -642,6 +644,7 @@ body {
     align-items: center;
     padding: 1.5rem;
     border-bottom: 1px solid rgba(255, 248, 231, 0.1);
+    flex-shrink: 0;
 }
 
 .close-cart {
@@ -655,7 +658,23 @@ body {
 .cart-items {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--dark);
+}
+
+.cart-items::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cart-items::-webkit-scrollbar-track {
+    background: var(--dark);
+}
+
+.cart-items::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
 }
 
 .empty-cart {
@@ -710,6 +729,10 @@ body {
 .cart-footer {
     padding: 1.5rem;
     border-top: 1px solid rgba(255, 248, 231, 0.1);
+    flex-shrink: 0;
+    background: var(--dark);
+    max-height: 50vh;
+    overflow-y: auto;
 }
 
 .shipping-options {
@@ -933,6 +956,13 @@ body {
     overflow-y: auto;
     max-height: 90vh;
     padding: 2rem;
+}
+
+.modal-content {
+    background: var(--dark);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 248, 231, 0.1);
+    position: relative;
 }
 
 .modal-product-image {
@@ -2278,6 +2308,24 @@ body {
 @media (max-width: 768px) { .mobile-bottom-nav { display: flex; justify-content: space-around; align-items: center; } .mobile-bottom-nav .nav-item { flex: 1; } .header { bottom: 60px; } body { padding-bottom: 60px; } .cart-sidebar { bottom: 60px; } }
 
 @media (max-width: 480px) { .mobile-bottom-nav { padding: 0.4rem 0; } .mobile-bottom-nav .nav-item { padding: 0.4rem 0.5rem; } .mobile-bottom-nav .nav-item i { font-size: 1.2rem; } .mobile-bottom-nav .nav-item span { font-size: 0.65rem; } }
+
+/* Cart Sidebar Responsive */
+@media (max-width: 480px) {
+    .cart-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+    .cart-items {
+        padding: 0.5rem;
+    }
+    .cart-footer {
+        padding: 1rem;
+    }
+    .checkout-btn {
+        font-size: 0.9rem;
+        padding: 0.8rem;
+    }
+}
 
 
 /* Beautiful Invoice Template */
