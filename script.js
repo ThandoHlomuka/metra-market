@@ -132,6 +132,49 @@ let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
 
+// Database Configuration
+const DB_CONFIG = {
+    useDatabase: false, // Set to true when Supabase is configured
+    supabaseUrl: 'https://your-project.supabase.co',
+    supabaseKey: 'your-anon-key'
+};
+
+// Analytics Tracking
+function trackEvent(eventType, metadata = {}) {
+    const eventData = {
+        eventType,
+        userId: currentUser?.id || null,
+        sessionId: getSessionId(),
+        pageUrl: window.location.href,
+        metadata,
+        timestamp: new Date().toISOString()
+    };
+
+    // Always save to localStorage
+    const events = JSON.parse(localStorage.getItem('metraAnalytics') || '[]');
+    events.push(eventData);
+    localStorage.setItem('metraAnalytics', JSON.stringify(events));
+
+    // Also send to API if database is enabled
+    if (DB_CONFIG.useDatabase) {
+        fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+        }).catch(err => console.log('Analytics tracking failed:', err));
+    }
+}
+
+// Session Management
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('metraSessionId');
+    if (!sessionId) {
+        sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('metraSessionId', sessionId);
+    }
+    return sessionId;
+}
+
 // Update user session activity
 function updateUserActivity() {
     if (currentUser) {
@@ -145,6 +188,9 @@ function updateUserActivity() {
             users[index].lastActive = currentUser.lastActive;
             localStorage.setItem('metraUsers', JSON.stringify(users));
         }
+
+        // Track activity
+        trackEvent('user_active', { userId: currentUser.id });
     }
 }
 
@@ -159,6 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMobileNav();
     showRandomSalesNotification();
     initFacebookSDK();
+    
+    // Track page view
+    trackEvent('page_view', { page: window.location.pathname });
     
     // Update user activity every minute
     setInterval(updateUserActivity, 60000);
@@ -222,6 +271,9 @@ function addToCart(productId) {
     updateCart();
     saveCart();
     showNotification('Added to cart!');
+    
+    // Track event
+    trackEvent('add_to_cart', { productId, productName: product.name, price: product.price });
 }
 
 function removeFromCart(productId) {
@@ -378,6 +430,14 @@ function saveOrder(order) {
 
     const deliveryText = invoiceDeliveryMethod === 'whatsapp' ? 'WhatsApp' : 'email';
     showNotification('Order placed successfully! Invoice sent via ' + deliveryText);
+    
+    // Track purchase
+    trackEvent('purchase', { 
+        orderId: order.id, 
+        total: order.total, 
+        items: order.items.length 
+    });
+    
     cart = [];
     shippingCost = 0;
     updateCart();

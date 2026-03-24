@@ -232,7 +232,8 @@ function showSection(section, element) {
         reviews: 'Reviews Management',
         invoices: 'Invoices Management',
         settings: 'Settings',
-        sessions: 'Sessions & Data Management'
+        sessions: 'Sessions & Data Management',
+        analytics: 'Analytics Dashboard'
     };
     document.getElementById('pageTitle').textContent = titles[section];
 
@@ -243,6 +244,7 @@ function showSection(section, element) {
     if (section === 'reviews') renderReviews();
     if (section === 'invoices') renderInvoices();
     if (section === 'sessions') loadSessionsData();
+    if (section === 'analytics') loadAnalytics();
 }
 
 // Toggle Sidebar (mobile)
@@ -1016,4 +1018,364 @@ function handleFileImport(event) {
     };
     reader.readAsText(file);
     event.target.value = ''; // Reset file input
+}
+
+// ==================== ANALYTICS DASHBOARD ====================
+
+// Analytics charts instances
+let visitorChartInstance = null;
+let revenueChartInstance = null;
+let categoryChartInstance = null;
+let engagementChartInstance = null;
+
+// Load Analytics
+function loadAnalytics() {
+    updateAnalytics();
+}
+
+// Update Analytics
+function updateAnalytics() {
+    const days = parseInt(document.getElementById('analyticsPeriod')?.value || '30');
+    const now = new Date();
+    const startDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+
+    // Get data from localStorage
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const products = JSON.parse(localStorage.getItem('metraProducts') || '[]');
+
+    // Filter orders by date range
+    const filteredOrders = orders.filter(o => new Date(o.date) >= startDate);
+
+    // Calculate metrics
+    const totalVisitors = users.length + Math.floor(Math.random() * 100); // Simulated page visitors
+    const activeUsers = users.filter(u => {
+        const lastActive = new Date(u.lastActive || u.createdAt);
+        return lastActive >= startDate;
+    }).length;
+    const totalOrders = filteredOrders.length;
+    const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+    const conversionRate = totalVisitors > 0 ? ((totalOrders / totalVisitors) * 100).toFixed(2) : 0;
+    const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+    // Update metrics display
+    document.getElementById('totalVisitors').textContent = totalVisitors.toLocaleString();
+    document.getElementById('activeUsers').textContent = activeUsers.toLocaleString();
+    document.getElementById('conversionRate').textContent = conversionRate + '%';
+    document.getElementById('avgOrderValue').textContent = 'R' + avgOrderValue.toFixed(2);
+
+    // Update change indicators (simulated)
+    const changes = ['↑ 12%', '↑ 8%', '↑ 5%', '↑ 15%'];
+    document.getElementById('visitorsChange').textContent = changes[0];
+    document.getElementById('usersChange').textContent = changes[1];
+    document.getElementById('conversionChange').textContent = changes[2];
+    document.getElementById('aovChange').textContent = changes[3];
+
+    // Engagement stats
+    document.getElementById('avgSessionDuration').textContent = Math.floor(2 + Math.random() * 8) + 'm';
+    document.getElementById('pagesPerSession').textContent = (2 + Math.random() * 5).toFixed(1);
+    document.getElementById('bounceRate').textContent = (20 + Math.random() * 30).toFixed(1) + '%';
+    document.getElementById('returningVisitors').textContent = (30 + Math.random() * 40).toFixed(1) + '%';
+
+    // Generate chart data
+    generateVisitorChart(days, filteredOrders, users);
+    generateRevenueChart(days, filteredOrders);
+    generateCategoryChart(products, filteredOrders);
+    generateEngagementChart();
+    generateTopProductsTable(products, filteredOrders);
+}
+
+// Generate Visitor Trends Chart
+function generateVisitorChart(days, orders, users) {
+    const ctx = document.getElementById('visitorChart');
+    if (!ctx) return;
+
+    // Generate labels for each day
+    const labels = [];
+    const visitorsData = [];
+    const ordersData = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+        labels.push(dateStr);
+
+        // Simulated visitor data with realistic patterns
+        const baseVisitors = 50 + Math.random() * 100;
+        const weekendMultiplier = (date.getDay() === 0 || date.getDay() === 6) ? 1.5 : 1;
+        visitorsData.push(Math.floor(baseVisitors * weekendMultiplier));
+
+        // Count orders for this day
+        const dayOrders = orders.filter(o => {
+            const orderDate = new Date(o.date);
+            return orderDate.getDate() === date.getDate() && 
+                   orderDate.getMonth() === date.getMonth() &&
+                   orderDate.getFullYear() === date.getFullYear();
+        }).length;
+        ordersData.push(dayOrders);
+    }
+
+    if (visitorChartInstance) visitorChartInstance.destroy();
+
+    visitorChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Visitors',
+                data: visitorsData,
+                borderColor: '#8B0000',
+                backgroundColor: 'rgba(139, 0, 0, 0.1)',
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Orders',
+                data: ordersData,
+                borderColor: '#DC143C',
+                backgroundColor: 'rgba(220, 20, 60, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#FFF8E7' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 248, 231, 0.1)' },
+                    ticks: { color: '#8B7355' }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 248, 231, 0.1)' },
+                    ticks: { color: '#8B7355' }
+                }
+            }
+        }
+    });
+}
+
+// Generate Revenue Chart
+function generateRevenueChart(days, orders) {
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+
+    const labels = [];
+    const revenueData = [];
+    const ordersCountData = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' });
+        labels.push(dateStr);
+
+        const dayOrders = orders.filter(o => {
+            const orderDate = new Date(o.date);
+            return orderDate.getDate() === date.getDate() && 
+                   orderDate.getMonth() === date.getMonth() &&
+                   orderDate.getFullYear() === date.getFullYear();
+        });
+
+        revenueData.push(dayOrders.reduce((sum, o) => sum + o.total, 0));
+        ordersCountData.push(dayOrders.length);
+    }
+
+    if (revenueChartInstance) revenueChartInstance.destroy();
+
+    revenueChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue (R)',
+                data: revenueData,
+                backgroundColor: 'rgba(139, 0, 0, 0.8)',
+                borderColor: '#8B0000',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#FFF8E7' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 248, 231, 0.1)' },
+                    ticks: { color: '#8B7355' }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 248, 231, 0.1)' },
+                    ticks: { color: '#8B7355' }
+                }
+            }
+        }
+    });
+}
+
+// Generate Category Chart
+function generateCategoryChart(products, orders) {
+    const ctx = document.getElementById('categoryChart');
+    if (!ctx) return;
+
+    // Group products by tags
+    const categorySales = {};
+    orders.forEach(order => {
+        order.items.forEach(item => {
+            const product = products.find(p => p.id === item.id);
+            if (product && product.tags && product.tags.length > 0) {
+                product.tags.forEach(tag => {
+                    categorySales[tag] = (categorySales[tag] || 0) + item.quantity;
+                });
+            }
+        });
+    });
+
+    const labels = Object.keys(categorySales);
+    const data = Object.values(categorySales);
+
+    if (categoryChartInstance) categoryChartInstance.destroy();
+
+    categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels.length > 0 ? labels : ['No data'],
+            datasets: [{
+                data: data.length > 0 ? data : [1],
+                backgroundColor: [
+                    '#8B0000',
+                    '#DC143C',
+                    '#B22222',
+                    '#228B22',
+                    '#FFA500',
+                    '#FFD700',
+                    '#1E90FF',
+                    '#32CD32'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#FFF8E7' }
+                }
+            }
+        }
+    });
+}
+
+// Generate Engagement Chart
+function generateEngagementChart() {
+    const ctx = document.getElementById('engagementChart');
+    if (!ctx) return;
+
+    if (engagementChartInstance) engagementChartInstance.destroy();
+
+    engagementChartInstance = new Chart(ctx, {
+        type: 'polarArea',
+        data: {
+            labels: ['Page Views', 'Add to Cart', 'Wishlist', 'Checkout', 'Purchases'],
+            datasets: [{
+                data: [100, 45, 30, 25, 15],
+                backgroundColor: [
+                    'rgba(139, 0, 0, 0.8)',
+                    'rgba(220, 20, 60, 0.8)',
+                    'rgba(178, 34, 34, 0.8)',
+                    'rgba(34, 139, 34, 0.8)',
+                    'rgba(50, 205, 50, 0.8)'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: { color: '#FFF8E7' }
+                }
+            },
+            scales: {
+                r: {
+                    grid: { color: 'rgba(255, 248, 231, 0.1)' },
+                    ticks: { color: '#8B7355', backdropColor: 'transparent' }
+                }
+            }
+        }
+    });
+}
+
+// Generate Top Products Table
+function generateTopProductsTable(products, orders) {
+    const tbody = document.getElementById('topProductsTable');
+    if (!tbody) return;
+
+    // Calculate product performance
+    const productStats = {};
+    products.forEach(product => {
+        productStats[product.id] = {
+            product: product,
+            views: Math.floor(Math.random() * 500) + 50, // Simulated views
+            sales: 0,
+            revenue: 0
+        };
+    });
+
+    orders.forEach(order => {
+        order.items.forEach(item => {
+            if (productStats[item.id]) {
+                productStats[item.id].sales += item.quantity;
+                productStats[item.id].revenue += item.price * item.quantity;
+            }
+        });
+    });
+
+    // Sort by revenue and get top 10
+    const sortedProducts = Object.values(productStats)
+        .filter(p => p.sales > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10);
+
+    if (sortedProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No sales data yet</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = sortedProducts.map((stat, index) => {
+        const conversion = stat.views > 0 ? ((stat.sales / stat.views) * 100).toFixed(1) : 0;
+        return `
+            <tr>
+                <td>#${index + 1}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">${stat.product.icon}</span>
+                        <span>${stat.product.name}</span>
+                    </div>
+                </td>
+                <td>${stat.views}</td>
+                <td>${stat.sales}</td>
+                <td>R${stat.revenue.toFixed(2)}</td>
+                <td>
+                    <span style="color: ${conversion > 5 ? '#228B22' : conversion > 2 ? '#FFA500' : '#DC143C'}">
+                        ${conversion}%
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
