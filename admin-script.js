@@ -231,7 +231,8 @@ function showSection(section, element) {
         users: 'Users Management',
         reviews: 'Reviews Management',
         invoices: 'Invoices Management',
-        settings: 'Settings'
+        settings: 'Settings',
+        sessions: 'Sessions & Data Management'
     };
     document.getElementById('pageTitle').textContent = titles[section];
 
@@ -241,6 +242,7 @@ function showSection(section, element) {
     if (section === 'users') renderUsersTable();
     if (section === 'reviews') renderReviews();
     if (section === 'invoices') renderInvoices();
+    if (section === 'sessions') loadSessionsData();
 }
 
 // Toggle Sidebar (mobile)
@@ -812,4 +814,206 @@ if (!document.getElementById('admin-animations')) {
         }
     `;
     document.head.appendChild(style);
+}
+
+// ==================== SESSIONS & DATA MANAGEMENT ====================
+
+// Load Sessions Data
+function loadSessionsData() {
+    // Update admin name
+    const adminName = localStorage.getItem('metraAdminName') || 'Admin';
+    document.getElementById('currentAdminName').textContent = adminName;
+
+    // Load data overview
+    const storedProducts = JSON.parse(localStorage.getItem('metraProducts') || '[]');
+    const storedOrders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const storedUsers = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const storedInvoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+
+    document.getElementById('dataProducts').textContent = storedProducts.length;
+    document.getElementById('dataOrders').textContent = storedOrders.length;
+    document.getElementById('dataUsers').textContent = storedUsers.length;
+    document.getElementById('dataInvoices').textContent = storedInvoices.length;
+
+    // Load user sessions (simulate - in real app, track login times)
+    loadUserSessions(storedUsers);
+
+    // Load carts
+    loadCartsData();
+
+    // Load wishlist stats
+    loadWishlistStats();
+}
+
+// Load User Sessions
+function loadUserSessions(users) {
+    const tbody = document.getElementById('userSessionsTable');
+    
+    // Get currently logged in users from localStorage
+    // In production, you'd track this server-side
+    const activeSessions = users.filter(u => {
+        // Check if user has recent activity (within last 24 hours)
+        const lastActive = u.lastActive || u.createdAt;
+        const now = new Date().getTime();
+        const lastActiveTime = new Date(lastActive).getTime();
+        const hoursSinceActive = (now - lastActiveTime) / (1000 * 60 * 60);
+        return hoursSinceActive < 24;
+    });
+
+    if (activeSessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No active sessions</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = activeSessions.map(user => `
+        <tr>
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>${new Date(user.lastActive || user.createdAt).toLocaleString('en-ZA')}</td>
+            <td>${user.provider || 'Email'}</td>
+            <td>
+                <button class="action-btn delete" onclick="logoutUser(${user.id})" title="Logout User">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Logout Single User
+function logoutUser(userId) {
+    if (confirm('Are you sure you want to logout this user?')) {
+        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex > -1) {
+            // Remove user's active session
+            users[userIndex].lastActive = null;
+            localStorage.setItem('metraUsers', JSON.stringify(users));
+            
+            // If this is the current user, clear their session
+            const currentUser = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
+            if (currentUser && currentUser.id === userId) {
+                localStorage.removeItem('metraCurrentUser');
+                localStorage.removeItem('metraUserLoggedIn');
+            }
+            
+            loadSessionsData();
+            showNotification('User logged out successfully!');
+        }
+    }
+}
+
+// Clear All User Sessions
+function clearAllUserSessions() {
+    if (confirm('Are you sure you want to logout ALL users? This will clear all active sessions.')) {
+        localStorage.removeItem('metraCurrentUser');
+        localStorage.removeItem('metraUserLoggedIn');
+        
+        // Clear lastActive for all users
+        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        users.forEach(u => u.lastActive = null);
+        localStorage.setItem('metraUsers', JSON.stringify(users));
+        
+        loadSessionsData();
+        showNotification('All user sessions cleared!');
+    }
+}
+
+// Load Carts Data
+function loadCartsData() {
+    const tbody = document.getElementById('cartsTable');
+    const cart = JSON.parse(localStorage.getItem('metraCart') || '[]');
+    
+    if (cart.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No active carts</td></tr>';
+        document.getElementById('totalWishlistItems').parentElement.parentElement.style.display = 'none';
+        return;
+    }
+
+    const totalValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    tbody.innerHTML = `
+        <tr>
+            <td>CART-${Date.now().toString().slice(-6)}</td>
+            <td>${cart.length} items</td>
+            <td>R${totalValue.toFixed(2)}</td>
+            <td>Just now</td>
+            <td>
+                <button class="action-btn delete" onclick="clearAllCarts()" title="Clear Cart">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
+// Clear All Carts
+function clearAllCarts() {
+    if (confirm('Are you sure you want to clear all shopping carts?')) {
+        localStorage.removeItem('metraCart');
+        loadSessionsData();
+        showNotification('All carts cleared!');
+    }
+}
+
+// Load Wishlist Stats
+function loadWishlistStats() {
+    const wishlist = JSON.parse(localStorage.getItem('metraWishlist') || '[]');
+    document.getElementById('totalWishlistItems').textContent = wishlist.length;
+    document.getElementById('activeWishlists').textContent = wishlist.length > 0 ? '1' : '0';
+}
+
+// Export All Data
+function exportAllData() {
+    const data = {
+        exportDate: new Date().toISOString(),
+        products: JSON.parse(localStorage.getItem('metraProducts') || '[]'),
+        orders: JSON.parse(localStorage.getItem('metraOrders') || '[]'),
+        users: JSON.parse(localStorage.getItem('metraUsers') || '[]'),
+        invoices: JSON.parse(localStorage.getItem('metraInvoices') || '[]'),
+        settings: JSON.parse(localStorage.getItem('metraSettings') || '{}')
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `metra-market-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('All data exported! 📦');
+}
+
+// Import Data
+function importData() {
+    document.getElementById('importFile').click();
+}
+
+// Handle File Import
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (confirm('This will overwrite all current data. Are you sure?')) {
+                if (data.products) localStorage.setItem('metraProducts', JSON.stringify(data.products));
+                if (data.orders) localStorage.setItem('metraOrders', JSON.stringify(data.orders));
+                if (data.users) localStorage.setItem('metraUsers', JSON.stringify(data.users));
+                if (data.invoices) localStorage.setItem('metraInvoices', JSON.stringify(data.invoices));
+                if (data.settings) localStorage.setItem('metraSettings', JSON.stringify(data.settings));
+                
+                showNotification('Data imported successfully! 🎉');
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        } catch (error) {
+            showNotification('Invalid file format. Please upload a valid JSON backup.');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset file input
 }

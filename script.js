@@ -132,6 +132,22 @@ let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
 
+// Update user session activity
+function updateUserActivity() {
+    if (currentUser) {
+        currentUser.lastActive = new Date().toISOString();
+        localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
+        
+        // Update in users array
+        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        const index = users.findIndex(u => u.id === currentUser.id);
+        if (index > -1) {
+            users[index].lastActive = currentUser.lastActive;
+            localStorage.setItem('metraUsers', JSON.stringify(users));
+        }
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadCart();
@@ -143,6 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMobileNav();
     showRandomSalesNotification();
     initFacebookSDK();
+    
+    // Update user activity every minute
+    setInterval(updateUserActivity, 60000);
 });
 
 // Initialize Facebook SDK
