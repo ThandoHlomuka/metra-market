@@ -1,3 +1,11 @@
+// PayFast Configuration (Sandbox Mode for Testing)
+const PAYFAST_CONFIG = {
+    sandbox: true, // Set to false for production
+    merchantId: '10000100', // Sandbox merchant ID
+    merchantKey: '46f0cd694581a', // Sandbox merchant key
+    passphrase: '87654321' // Sandbox passphrase
+};
+
 // Product Data
 const products = [
     {
@@ -293,22 +301,40 @@ function checkout() {
         status: 'processing',
         date: new Date().toLocaleDateString('en-ZA')
     };
-    
+
+    // Handle PayFast payment
+    if (paymentMethod === 'payfast') {
+        if (processPayFastPayment(order)) {
+            // Save order only if PayFast redirect succeeds
+            saveOrder(order);
+            return;
+        } else {
+            // If PayFast fails, fall back to regular checkout
+            showNotification('PayFast unavailable. Processing as regular order...');
+        }
+    }
+
+    // Regular checkout for card, EFT, bank transfer
+    saveOrder(order);
+}
+
+// Save Order
+function saveOrder(order) {
     const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
     orders.push(order);
     localStorage.setItem('metraOrders', JSON.stringify(orders));
-    
+
     if (!currentUser.orders) currentUser.orders = [];
     currentUser.orders.push(order.id);
     localStorage.setItem('metraUsers', JSON.stringify(
-        JSON.parse(localStorage.getItem('metraUsers') || '[]').map(u => 
+        JSON.parse(localStorage.getItem('metraUsers') || '[]').map(u =>
             u.id === currentUser.id ? currentUser : u
         )
     ));
     localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
-    
+
     generateInvoice(order);
-    
+
     const deliveryText = invoiceDeliveryMethod === 'whatsapp' ? 'WhatsApp' : 'email';
     showNotification('Order placed successfully! Invoice sent via ' + deliveryText);
     cart = [];
@@ -316,6 +342,56 @@ function checkout() {
     updateCart();
     saveCart();
     toggleCart();
+}
+
+// PayFast Payment Processing
+function processPayFastPayment(order) {
+    if (!PAYFAST_CONFIG.merchantId || !PAYFAST_CONFIG.merchantKey) {
+        showNotification('PayFast configuration required. Please use Card or Bank Transfer.');
+        return false;
+    }
+
+    const payFastUrl = PAYFAST_CONFIG.sandbox ? 'https://sandbox.payfast.co.za/eng/process' : 'https://www.payfast.co.za/eng/process';
+
+    const formData = {
+        merchant_id: PAYFAST_CONFIG.merchantId,
+        merchant_key: PAYFAST_CONFIG.merchantKey,
+        amount: order.total.toFixed(2),
+        item_name: 'Order ' + order.id,
+        item_description: 'Purchase from Metra Market',
+        return_url: window.location.origin + '/success.html',
+        cancel_url: window.location.origin + '/cancel.html',
+        notify_url: window.location.origin + '/ipn.php',
+        email_confirmation: order.customerEmail,
+        confirmation_first: 'buyer'
+    };
+
+    // Generate signature
+    if (PAYFAST_CONFIG.passphrase) {
+        const pfParam = Object.keys(formData).map(key => key + '=' + encodeURIComponent(formData[key])).join('&');
+        const signature = CryptoJS.MD5(pfParam + '&passphrase=' + encodeURIComponent(PAYFAST_CONFIG.passphrase)).toString();
+        formData.signature = signature;
+    }
+
+    // Create and submit form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = payFastUrl;
+    form.target = '_blank';
+
+    Object.keys(formData).forEach(key => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = formData[key];
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    return true;
 }
 
 // Generate Invoice
