@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ | Metra Market</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .faq-page {
+            min-height: 100vh;
+            padding: 100px 2rem 4rem;
+            background: var(--dark);
+            color: var(--light);
+        }
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .faq-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .faq-header h1 {
+            font-size: 2.5rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        .faq-search {
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+        .faq-search input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 248, 231, 0.05);
+            border: 1px solid rgba(255, 248, 231, 0.1);
+            border-radius: 50px;
+            color: var(--light);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .faq-search input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .faq-category {
+            margin-bottom: 3rem;
+        }
+        .faq-category h2 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .faq-item {
+            background: rgba(255, 248, 231, 0.05);
+            border: 1px solid rgba(255, 248, 231, 0.1);
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .faq-question:hover {
+            background: rgba(255, 248, 231, 0.1);
+        }
+        .faq-question i {
+            transition: transform 0.3s;
+        }
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 1.5rem;
+        }
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 1.5rem 1.5rem;
+        }
+        .faq-answer p {
+            color: var(--light);
+            line-height: 1.8;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--gradient);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: transform 0.3s;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+        @media (max-width: 768px) {
+            .faq-header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="faq-page">
+        <div class="faq-container">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Store
+            </a>
+
+            <div class="faq-header">
+                <h1><i class="fas fa-question-circle"></i> Frequently Asked Questions</h1>
+                <p>Find answers to common questions about Metra Market</p>
+            </div>
+
+            <div class="faq-search">
+                <input type="text" id="faqSearch" placeholder="Search for answers..." onkeyup="filterFAQs()">
+            </div>
+
+            <div class="faq-category">
+                <h2><i class="fas fa-shopping-cart"></i> Orders & Shipping</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How do I track my order?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Once your order ships, you'll receive an email with a tracking number. You can also track your order from your profile page under "Order History". Our shipping partner Bobgo provides real-time tracking updates.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What are the shipping costs?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Shipping costs are calculated at checkout based on your delivery address and order weight. We partner with Bobgo Delivery Services. Free shipping may be offered on orders above a certain threshold.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How long does delivery take?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Delivery times vary by location: Major centers (2-5 business days), Regional areas (5-10 business days), Remote areas (10-15 business days).</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Do you ship internationally?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Currently, we only ship within South Africa. International shipping may be available in the future.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category">
+                <h2><i class="fas fa-undo"></i> Returns & Refunds</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What is your return policy?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We offer a 30-day return policy for unused items in original packaging. Items must be returned with all tags and original receipt. See our Returns Policy page for full details.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How long do refunds take?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Refunds are processed within 5-10 business days after we receive and inspect your return. The refund will be issued to your original payment method.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Can I exchange an item?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, we offer exchanges for defective items, wrong items received, or size exchanges. Contact returns@metramarket.co.za to request an exchange.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category">
+                <h2><i class="fas fa-credit-card"></i> Payment</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What payment methods do you accept?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept Credit/Debit Cards, Instant EFT, and Bank Transfer via our secure payment processor PayFast. All payments are encrypted and secure.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Is my payment information secure?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! We use PayFast, a PCI DSS compliant payment processor. Your payment information is encrypted and we never store your card details.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category">
+                <h2><i class="fas fa-user"></i> Account</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Do I need an account to shop?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, you need to create an account to place orders. This helps us process your orders faster and allows you to track your order history.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How do I reset my password?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Click on the user icon, select "Forgot Password", and enter your email. We'll send you a link to reset your password.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-category">
+                <h2><i class="fas fa-headset"></i> Customer Support</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How can I contact customer support?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>You can reach us at support@metramarket.co.za, call +27 11 123 4567, or use the live chat feature in your profile. We're available Monday-Friday, 9 AM - 5 PM SAST.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Do you offer bulk/corporate orders?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! For bulk or corporate orders, please contact corporate@metramarket.co.za for special pricing and arrangements.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFAQ(element) {
+            const item = element.parentElement;
+            const wasActive = item.classList.contains('active');
+            
+            // Close all FAQs
+            document.querySelectorAll('.faq-item').forEach(faq => {
+                faq.classList.remove('active');
+            });
+            
+            // Open clicked FAQ if it wasn't active
+            if (!wasActive) {
+                item.classList.add('active');
+            }
+        }
+
+        function filterFAQs() {
+            const search = document.getElementById('faqSearch').value.toLowerCase();
+            document.querySelectorAll('.faq-item').forEach(item => {
+                const question = item.querySelector('.faq-question span').textContent.toLowerCase();
+                const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+                
+                if (question.includes(search) || answer.includes(search)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

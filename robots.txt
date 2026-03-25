@@ -1,0 +1,14 @@
+# Metra Market - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://metramarket.co.za/sitemap.xml
+
+# Disallow admin and private pages
+Disallow: /admin.html
+Disallow: /success.html
+Disallow: /cancel.html
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
