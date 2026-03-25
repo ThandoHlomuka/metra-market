@@ -861,22 +861,36 @@ function checkout() {
         showNotification('Your cart is empty!');
         return;
     }
-    
+
     if (!currentUser) {
         showNotification('Please login to checkout');
         openAuthModal();
         return;
     }
+
+    // Validate user email before checkout
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const userEmail = currentUser.email ? currentUser.email.trim().toLowerCase() : '';
     
+    if (!userEmail || !emailRegex.test(userEmail)) {
+        showNotification('Please update your profile with a valid email address before checkout.');
+        openProfileModal();
+        setTimeout(() => {
+            const settingsTab = document.getElementById('settingsTab');
+            if (settingsTab) settingsTab.click();
+        }, 1000);
+        return;
+    }
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal + shippingCost;
-    
+
     const order = {
         id: 'ORD-' + Date.now(),
         invoiceNumber: 'INV-' + Date.now(),
         userId: currentUser.id,
         customerName: currentUser.name,
-        customerEmail: currentUser.email,
+        customerEmail: userEmail,
         items: [...cart],
         subtotal: subtotal,
         shipping: shippingCost,
@@ -969,11 +983,36 @@ function processPayFastPayment(order) {
         return false;
     }
 
+    // Validate customer email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const customerEmail = order.customerEmail ? order.customerEmail.trim().toLowerCase() : '';
+    
+    if (!customerEmail || !emailRegex.test(customerEmail)) {
+        showNotification('Invalid email address. Please update your profile with a valid email before checkout.');
+        // Open profile modal for user to fix email
+        setTimeout(() => {
+            openProfileModal();
+            // Switch to settings tab
+            const settingsTab = document.getElementById('settingsTab');
+            if (settingsTab) settingsTab.click();
+        }, 1500);
+        return false;
+    }
+
     const payFastUrl = PAYFAST_CONFIG.sandbox ? 'https://sandbox.payfast.co.za/eng/process' : 'https://www.payfast.co.za/eng/process';
 
     // Save order ID for success/cancel pages
     localStorage.setItem('lastOrderId', order.id);
     localStorage.setItem('lastOrderTotal', order.total.toString());
+
+    // Debug logging
+    console.log('=== PayFast Payment Debug ===');
+    console.log('Merchant ID:', PAYFAST_CONFIG.merchantId);
+    console.log('Sandbox Mode:', PAYFAST_CONFIG.sandbox);
+    console.log('Order ID:', order.id);
+    console.log('Order Total:', order.total);
+    console.log('Customer Email:', customerEmail);
+    console.log('Email Valid:', emailRegex.test(customerEmail));
 
     const formData = {
         merchant_id: PAYFAST_CONFIG.merchantId,
@@ -984,16 +1023,22 @@ function processPayFastPayment(order) {
         return_url: window.location.origin + '/success.html?order_id=' + encodeURIComponent(order.id),
         cancel_url: window.location.origin + '/cancel.html?order_id=' + encodeURIComponent(order.id),
         notify_url: window.location.origin + '/ipn.php',
-        email_address: order.customerEmail,
+        email_address: customerEmail,
         email_confirmation: 'true',
         confirmation_first: 'buyer'
     };
+
+    // Debug: Log form data
+    console.log('Form Data:', formData);
 
     // Generate signature
     if (PAYFAST_CONFIG.passphrase) {
         const pfParam = Object.keys(formData).map(key => key + '=' + encodeURIComponent(formData[key])).join('&');
         const signature = CryptoJS.MD5(pfParam + '&passphrase=' + encodeURIComponent(PAYFAST_CONFIG.passphrase)).toString();
         formData.signature = signature;
+        console.log('Signature Generated:', signature);
+    } else {
+        console.log('No passphrase configured - signature not generated');
     }
 
     // Create and submit form
@@ -1011,6 +1056,7 @@ function processPayFastPayment(order) {
     });
 
     document.body.appendChild(form);
+    console.log('Submitting PayFast form...');
     form.submit();
     document.body.removeChild(form);
 
