@@ -1537,3 +1537,147 @@ function clearEmailQueue() {
         showNotification('Email queue cleared');
     }
 }
+
+// ==================== SUPPORT CHAT MANAGEMENT ====================
+
+let selectedChatMessage = null;
+
+// Load Support Chat Messages
+function loadSupportChats() {
+    const allMessages = JSON.parse(localStorage.getItem('metraChatMessages') || '[]');
+    const tbody = document.getElementById('supportChatsTable');
+    
+    // Update counts
+    const unreadCount = allMessages.filter(m => m.status === 'sent').length;
+    document.getElementById('unreadChatsCount').textContent = unreadCount;
+    document.getElementById('totalChatsCount').textContent = allMessages.length;
+
+    if (allMessages.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No support messages yet</td></tr>';
+        return;
+    }
+
+    // Group by user and get latest message
+    const userChats = {};
+    allMessages.forEach(msg => {
+        if (!userChats[msg.userId] || new Date(msg.timestamp) > new Date(userChats[msg.userId].timestamp)) {
+            userChats[msg.userId] = msg;
+        }
+    });
+
+    const sortedChats = Object.values(userChats).sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    tbody.innerHTML = sortedChats.map(chat => `
+        <tr>
+            <td>
+                <div>
+                    <strong>${chat.userName}</strong><br>
+                    <span style="color: var(--gray); font-size: 0.85rem;">${chat.userEmail}</span>
+                </div>
+            </td>
+            <td>${chat.message.substring(0, 50)}${chat.message.length > 50 ? '...' : ''}</td>
+            <td>${new Date(chat.timestamp).toLocaleString('en-ZA')}</td>
+            <td>
+                <span style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; 
+                    background: ${chat.status === 'read' ? 'rgba(34, 139, 34, 0.2)' : 'rgba(255, 165, 0, 0.2)'};
+                    color: ${chat.status === 'read' ? '#228B22' : '#FFA500'};">
+                    ${chat.status}
+                </span>
+            </td>
+            <td>
+                <button class="action-btn view" onclick="openChatReply('${chat.userId}', '${chat.id}')" title="Reply">
+                    <i class="fas fa-reply"></i>
+                </button>
+                <button class="action-btn delete" onclick="deleteChatMessage('${chat.userId}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Refresh Chat Messages
+function refreshChatMessages() {
+    loadSupportChats();
+    showNotification('Chat messages refreshed');
+}
+
+// Open Chat Reply Section
+function openChatReply(userId, messageId) {
+    const allMessages = JSON.parse(localStorage.getItem('metraChatMessages') || '[]');
+    const userChats = JSON.parse(localStorage.getItem('metraUserChats_' + userId) || '[]');
+    
+    const message = allMessages.find(m => m.id == messageId);
+    if (!message) return;
+
+    selectedChatMessage = { userId, messageId };
+    
+    document.getElementById('replyCustomerName').textContent = message.userName;
+    document.getElementById('replyCustomerEmail').textContent = message.userEmail;
+    document.getElementById('replyMessage').textContent = message.message;
+    document.getElementById('adminReplyText').value = '';
+    document.getElementById('chatReplySection').style.display = 'block';
+    
+    // Scroll to reply section
+    document.getElementById('chatReplySection').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Send Admin Reply
+function sendAdminReply() {
+    const replyText = document.getElementById('adminReplyText').value.trim();
+    
+    if (!replyText || !selectedChatMessage) {
+        showNotification('Please type a reply');
+        return;
+    }
+
+    const allMessages = JSON.parse(localStorage.getItem('metraChatMessages') || '[]');
+    const userChats = JSON.parse(localStorage.getItem('metraUserChats_' + selectedChatMessage.userId) || '[]');
+    
+    // Find and update the message with admin reply
+    const messageIndex = userChats.findIndex(m => m.id == selectedChatMessage.messageId);
+    if (messageIndex > -1) {
+        userChats[messageIndex].adminReply = replyText;
+        userChats[messageIndex].status = 'read';
+        userChats[messageIndex].replyTimestamp = new Date().toISOString();
+        
+        // Update in main chat storage
+        const mainIndex = allMessages.findIndex(m => m.id == selectedChatMessage.messageId);
+        if (mainIndex > -1) {
+            allMessages[mainIndex].adminReply = replyText;
+            allMessages[mainIndex].status = 'read';
+        }
+        
+        localStorage.setItem('metraUserChats_' + selectedChatMessage.userId, JSON.stringify(userChats));
+        localStorage.setItem('metraChatMessages', JSON.stringify(allMessages));
+        
+        showNotification('Reply sent successfully!');
+        document.getElementById('chatReplySection').style.display = 'none';
+        selectedChatMessage = null;
+        loadSupportChats();
+    }
+}
+
+// Delete Chat Message
+function deleteChatMessage(userId) {
+    if (confirm('Delete all chat messages from this user?')) {
+        localStorage.removeItem('metraUserChats_' + userId);
+        
+        // Remove from main chat storage
+        const allMessages = JSON.parse(localStorage.getItem('metraChatMessages') || '[]');
+        const filtered = allMessages.filter(m => m.userId != userId);
+        localStorage.setItem('metraChatMessages', JSON.stringify(filtered));
+        
+        loadSupportChats();
+        showNotification('Chat messages deleted');
+    }
+}
+
+// Auto-refresh chat messages every 30 seconds
+setInterval(() => {
+    if (document.getElementById('supportSection') && document.getElementById('supportSection').classList.contains('active')) {
+        loadSupportChats();
+    }
+}, 30000);

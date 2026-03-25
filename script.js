@@ -386,15 +386,77 @@ function trackEvent(eventType, metadata = {}) {
     }
 }
 
-// Session Management
-function getSessionId() {
-    let sessionId = sessionStorage.getItem('metraSessionId');
-    if (!sessionId) {
-        sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem('metraSessionId', sessionId);
-    }
-    return sessionId;
+// Session Management - Persistent across browser sessions
+const SESSION_CONFIG = {
+    expiryDays: 30, // Sessions last 30 days
+    checkInterval: 60000 // Check session expiry every minute
+};
+
+function createSession(user) {
+    const session = {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + (SESSION_CONFIG.expiryDays * 24 * 60 * 60 * 1000)).toISOString()
+    };
+    localStorage.setItem('metraSession', JSON.stringify(session));
+    localStorage.setItem('metraUserLoggedIn', 'true');
+    return session;
 }
+
+function getSession() {
+    const sessionData = localStorage.getItem('metraSession');
+    if (!sessionData) return null;
+    
+    try {
+        const session = JSON.parse(sessionData);
+        // Check if session has expired
+        if (new Date(session.expiresAt) < new Date()) {
+            destroySession();
+            return null;
+        }
+        return session;
+    } catch (e) {
+        destroySession();
+        return null;
+    }
+}
+
+function destroySession() {
+    localStorage.removeItem('metraSession');
+    localStorage.removeItem('metraUserLoggedIn');
+    localStorage.removeItem('metraCurrentUser');
+}
+
+function extendSession() {
+    const session = getSession();
+    if (session) {
+        session.expiresAt = new Date(Date.now() + (SESSION_CONFIG.expiryDays * 24 * 60 * 60 * 1000)).toISOString();
+        localStorage.setItem('metraSession', JSON.stringify(session));
+    }
+}
+
+// Auto-extend session on user activity
+['click', 'scroll', 'keypress', 'mousemove'].forEach(event => {
+    document.addEventListener(event, () => {
+        if (getSession()) {
+            extendSession();
+        }
+    }, { passive: true });
+});
+
+// Check session expiry periodically
+setInterval(() => {
+    const session = getSession();
+    if (!session && localStorage.getItem('metraUserLoggedIn') === 'true') {
+        // Session expired, force logout
+        localStorage.removeItem('metraUserLoggedIn');
+        localStorage.removeItem('metraCurrentUser');
+        showNotification('Your session has expired. Please login again.');
+        setTimeout(() => location.reload(), 2000);
+    }
+}, SESSION_CONFIG.checkInterval);
 
 // Update user session activity
 function updateUserActivity() {
@@ -437,7 +499,156 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Process email queue every 30 seconds
     setInterval(processEmailQueue, 30000);
+    
+    // Load chat messages if user is logged in
+    if (currentUser) {
+        loadChatMessages();
+    }
 });
+
+// ==================== CHAT SUPPORT SYSTEM ====================
+
+function openChatSupport() {
+    if (!currentUser) {
+        showNotification('Please login to use chat support');
+        openAuthModal();
+        return;
+    }
+
+    const existingChat = document.getElementById('chatSupportBox');
+    if (existingChat) {
+        existingChat.remove();
+        return;
+    }
+
+    const chatBox = document.createElement('div');
+    chatBox.id = 'chatSupportBox';
+    chatBox.innerHTML = `
+        <div style="position: fixed; bottom: 80px; right: 20px; width: 350px; max-height: 500px; background: var(--dark); border: 1px solid rgba(255,248,231,0.1); border-radius: 15px; z-index: 4000; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid rgba(255,248,231,0.1); background: var(--gradient); border-radius: 15px 15px 0 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-headset" style="color: white;"></i>
+                    <span style="color: white; font-weight: 600;">Support Chat</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="toggleChatMessages()" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;" title="Toggle Messages">
+                        <i class="fas fa-comments"></i>
+                    </button>
+                    <button onclick="closeChatSupport()" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; max-height: 350px;">
+                <div style="text-align: center; color: var(--gray); padding: 1rem; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> Start a conversation with our support team
+                </div>
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid rgba(255,248,231,0.1);">
+                <form onsubmit="sendChatMessage(event)" style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="chatInput" placeholder="Type your message..." style="flex: 1; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-family: inherit;" required>
+                    <button type="submit" style="background: var(--gradient); border: none; color: white; padding: 0.8rem 1rem; border-radius: 10px; cursor: pointer; transition: transform 0.3s;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(chatBox);
+    loadChatMessages();
+}
+
+function closeChatSupport() {
+    const chatBox = document.getElementById('chatSupportBox');
+    if (chatBox) chatBox.remove();
+}
+
+function toggleChatMessages() {
+    const messagesDiv = document.getElementById('chatMessages');
+    if (messagesDiv) {
+        messagesDiv.style.display = messagesDiv.style.display === 'none' ? 'flex' : 'none';
+    }
+}
+
+function sendChatMessage(event) {
+    event.preventDefault();
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message || !currentUser) return;
+
+    const chatMessage = {
+        id: Date.now(),
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        message: message,
+        from: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+        adminReply: null
+    };
+
+    // Save to localStorage
+    const messages = JSON.parse(localStorage.getItem('metraChatMessages') || '[]');
+    messages.push(chatMessage);
+    localStorage.setItem('metraChatMessages', JSON.stringify(messages));
+
+    // Also save to user's chat history
+    const userChats = JSON.parse(localStorage.getItem('metraUserChats_' + currentUser.id) || '[]');
+    userChats.push(chatMessage);
+    localStorage.setItem('metraUserChats_' + currentUser.id, JSON.stringify(userChats));
+
+    input.value = '';
+    loadChatMessages();
+    showNotification('Message sent! Admin will respond soon');
+
+    // Notify admin (in production, this would send real-time notification)
+    console.log('New chat message from', currentUser.email, ':', message);
+}
+
+function loadChatMessages() {
+    if (!currentUser) return;
+
+    const messagesDiv = document.getElementById('chatMessages');
+    if (!messagesDiv) return;
+
+    const userChats = JSON.parse(localStorage.getItem('metraUserChats_' + currentUser.id) || '[]');
+    
+    if (userChats.length === 0) {
+        messagesDiv.innerHTML = `
+            <div style="text-align: center; color: var(--gray); padding: 2rem;">
+                <i class="fas fa-comments" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p>No messages yet</p>
+                <p style="font-size: 0.85rem;">Start a conversation with our support team</p>
+            </div>
+        `;
+        return;
+    }
+
+    messagesDiv.innerHTML = userChats.map(msg => `
+        <div style="background: ${msg.from === 'user' ? 'rgba(139, 0, 0, 0.2)' : 'rgba(34, 139, 34, 0.2)'}; padding: 0.8rem; border-radius: 10px; ${msg.from === 'user' ? 'margin-left: 20px;' : 'margin-right: 20px;'}">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                <span style="font-size: 0.75rem; color: var(--gray);">${msg.from === 'user' ? 'You' : 'Support'} • ${new Date(msg.timestamp).toLocaleString('en-ZA', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span style="font-size: 0.75rem; color: ${msg.status === 'read' ? '#228B22' : '#FFA500'};">
+                    <i class="fas fa-${msg.status === 'read' ? 'check-double' : 'check'}"></i>
+                </span>
+            </div>
+            <p style="margin: 0; color: var(--light);">${msg.message}</p>
+            ${msg.adminReply ? `<p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #228B22;"><i class="fas fa-reply"></i> ${msg.adminReply}</p>` : ''}
+        </div>
+    `).join('');
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// Auto-check for new chat messages every 10 seconds
+setInterval(() => {
+    if (currentUser && document.getElementById('chatSupportBox')) {
+        loadChatMessages();
+    }
+}, 10000);
 
 // Initialize Facebook SDK
 function initFacebookSDK() {
@@ -964,19 +1175,31 @@ function switchAuthTab(tab) {
 
 function handleLogin(event) {
     event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
-    
+
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
     const user = users.find(u => (u.email === email || u.username === email) && u.password === password);
-    
+
     if (user) {
         currentUser = user;
+        // Create persistent session
+        createSession(user);
+        // Also save full user data
         localStorage.setItem('metraCurrentUser', JSON.stringify(user));
-        localStorage.setItem('metraUserLoggedIn', 'true');
+        
+        // Update last login
+        user.lastLogin = new Date().toISOString();
+        const userIndex = users.findIndex(u => u.id === user.id);
+        if (userIndex > -1) {
+            users[userIndex] = user;
+            localStorage.setItem('metraUsers', JSON.stringify(users));
+        }
+        
         closeAuthModal();
         updateProfileIcon();
         showNotification('Welcome back, ' + user.name + '!');
+        trackEvent('user_login', { userId: user.id });
     } else {
         showNotification('Invalid credentials');
     }
@@ -1026,11 +1249,12 @@ function handleRegister(event) {
         email: email,
         username: email,
         phone: phone,
-        password: password, // In production, this should be hashed
+        password: password,
         orders: [],
         wishlist: [],
         createdAt: new Date().toISOString(),
         lastActive: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
         provider: 'email'
     };
 
@@ -1046,10 +1270,10 @@ function handleRegister(event) {
             throw new Error('Failed to save user');
         }
 
-        // Login the user
+        // Login the user with persistent session
         currentUser = newUser;
+        createSession(newUser);
         localStorage.setItem('metraCurrentUser', JSON.stringify(newUser));
-        localStorage.setItem('metraUserLoggedIn', 'true');
 
         // Track registration
         trackEvent('user_registered', { userId: newUser.id, email: newUser.email });
@@ -1064,14 +1288,34 @@ function handleRegister(event) {
 }
 
 function checkUserSession() {
+    // First check if user is marked as logged in
     const loggedIn = localStorage.getItem('metraUserLoggedIn');
     if (loggedIn === 'true') {
-        const user = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
-        if (user) {
-            currentUser = user;
-            updateProfileIcon();
+        // Try to get persistent session
+        const session = getSession();
+        if (session) {
+            // Get full user data
+            const user = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
+            if (user && user.id === session.userId) {
+                currentUser = user;
+                updateProfileIcon();
+                // Update last active
+                updateUserActivity();
+                return;
+            }
         }
+        // Session invalid, clear login state
+        destroySession();
     }
+}
+
+function logout() {
+    // Clear session
+    destroySession();
+    currentUser = null;
+    closeProfileModal();
+    showNotification('You have been logged out successfully');
+    setTimeout(() => location.reload(), 1500);
 }
 
 function updateProfileIcon() {
@@ -1086,19 +1330,19 @@ function openProfileModal() {
         openAuthModal();
         return;
     }
-    
+
     const modal = document.getElementById('profileModal');
     const overlay = document.getElementById('profileOverlay');
     if (modal && overlay) {
         document.getElementById('profileName').textContent = currentUser.name;
         document.getElementById('profileEmail').textContent = currentUser.email;
-        
+
         const memberSince = new Date(currentUser.createdAt).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
         document.getElementById('memberSince').textContent = memberSince;
-        
+
         modal.classList.add('active');
         overlay.classList.add('active');
-        
+
         switchProfileTab('overview');
     }
 }
@@ -1116,10 +1360,10 @@ function switchProfileTab(tab) {
     const content = document.getElementById('profileContent');
     document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(tab + 'Tab').classList.add('active');
-    
+
     const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
     const userOrders = orders.filter(o => o.userId === currentUser.id);
-    
+
     switch(tab) {
         case 'overview':
             const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
@@ -1191,6 +1435,13 @@ function switchProfileTab(tab) {
                     <button type="submit" class="cta-btn">Update Profile</button>
                     <button type="button" class="btn-secondary" onclick="logout()" style="margin-top: 1rem; width: 100%;">Logout</button>
                 </form>
+                <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); border-radius: 15px;">
+                    <h4 style="color: #228B22; margin-bottom: 0.5rem;"><i class="fas fa-headset"></i> Need Help?</h4>
+                    <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 1rem;">Chat with our support team for assistance</p>
+                    <button class="cta-btn" onclick="openChatSupport()" style="background: linear-gradient(135deg, #228B22, #32CD32); width: 100%;">
+                        <i class="fas fa-comments"></i> Open Support Chat
+                    </button>
+                </div>
             `;
             break;
     }
@@ -1201,7 +1452,7 @@ function updateProfile(event) {
     currentUser.name = document.getElementById('editName').value;
     currentUser.email = document.getElementById('editEmail').value;
     currentUser.phone = document.getElementById('editPhone').value;
-    
+
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
     const index = users.findIndex(u => u.id === currentUser.id);
     if (index > -1) {
@@ -1209,19 +1460,11 @@ function updateProfile(event) {
         localStorage.setItem('metraUsers', JSON.stringify(users));
     }
     localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
-    
+
     document.getElementById('profileName').textContent = currentUser.name;
     document.getElementById('profileEmail').textContent = currentUser.email;
-    
-    showNotification('Profile updated successfully!');
-}
 
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('metraCurrentUser');
-    localStorage.removeItem('metraUserLoggedIn');
-    closeProfileModal();
-    location.reload();
+    showNotification('Profile updated successfully!');
 }
 
 // Google OAuth Configuration
