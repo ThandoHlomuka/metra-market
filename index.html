@@ -3,7 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metra Market | Premium Online Shopping</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Metra Market | Premium Online Shopping South Africa</title>
+    <meta name="title" content="Metra Market | Premium Online Shopping South Africa">
+    <meta name="description" content="Discover premium products at unbeatable prices. Free shipping on orders over R750. Secure payment via PayFast. 30-day returns. Shop electronics, accessories, and more.">
+    <meta name="keywords" content="online shopping, South Africa, electronics, accessories, premium products, free shipping, PayFast">
+    <meta name="author" content="Metra Market">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#8B0000">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metramarket.co.za/">
+    <meta property="og:title" content="Metra Market | Premium Online Shopping">
+    <meta property="og:description" content="Discover premium products at unbeatable prices. Free shipping on orders over R750.">
+    <meta property="og:image" content="https://metramarket.co.za/og-image.jpg">
+    <meta property="og:site_name" content="Metra Market">
+    <meta property="og:locale" content="en_ZA">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://metramarket.co.za/">
+    <meta property="twitter:title" content="Metra Market | Premium Online Shopping">
+    <meta property="twitter:description" content="Discover premium products at unbeatable prices. Free shipping on orders over R750.">
+    <meta property="twitter:image" content="https://metramarket.co.za/twitter-image.jpg">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "OnlineStore",
+        "name": "Metra Market",
+        "url": "https://metramarket.co.za",
+        "logo": "https://metramarket.co.za/logo.png",
+        "description": "Premium online shopping destination in South Africa",
+        "telephone": "+27-11-123-4567",
+        "email": "support@metramarket.co.za",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "123 Commerce Street",
+            "addressLocality": "Johannesburg",
+            "postalCode": "2001",
+            "addressCountry": "ZA"
+        },
+        "priceRange": "R50 - R5000",
+        "currenciesAccepted": "ZAR",
+        "paymentAccepted": "Credit Card, Debit Card, EFT, PayFast",
+        "shippingDetails": {
+            "@type": "ShippingDeliveryTime",
+            "handlingTime": "P1D",
+            "shippingTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 2,
+                "maxValue": 10,
+                "unitCode": "DAY"
+            }
+        }
+    }
+    </script>
+    
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -117,10 +177,11 @@
     <section class="contact" id="contact">
         <div class="contact-content">
             <h2 class="section-title">Get In Touch</h2>
-            <form class="contact-form" onsubmit="handleSubmit(event)">
-                <input type="text" placeholder="Your Name" required>
-                <input type="email" placeholder="Your Email" required>
-                <textarea placeholder="Your Message" rows="5" required></textarea>
+            <form class="contact-form" onsubmit="handleContactSubmit(event)">
+                <input type="text" id="contactName" placeholder="Your Name" required>
+                <input type="email" id="contactEmail" placeholder="Your Email" required>
+                <input type="tel" id="contactPhone" placeholder="Your Phone (Optional)">
+                <textarea id="contactMessage" placeholder="Your Message" rows="5" required></textarea>
                 <button type="submit" class="cta-btn">Send Message</button>
             </form>
         </div>
@@ -151,10 +212,11 @@
             <div class="footer-section">
                 <h4>Customer Service</h4>
                 <ul>
+                    <li><a href="track-order.html">Track Order</a></li>
+                    <li><a href="faq.html">FAQ</a></li>
                     <li><a href="terms.html">Terms & Conditions</a></li>
                     <li><a href="privacy.html">Privacy Policy</a></li>
                     <li><a href="returns.html">Returns & Refunds</a></li>
-                    <li><a href="#contact">Contact Us</a></li>
                 </ul>
             </div>
             <div class="footer-section">
@@ -269,7 +331,7 @@
                         <input type="checkbox" id="rememberMe">
                         <span>Remember me</span>
                     </label>
-                    <a href="#" class="forgot-link">Forgot password?</a>
+                    <a href="#" class="forgot-link" onclick="openForgotPasswordModal(); return false;">Forgot password?</a>
                 </div>
                 
                 <button type="submit" class="auth-btn">
@@ -372,6 +434,46 @@
     </div>
     <div class="profile-overlay" id="profileOverlay" onclick="closeProfileModal()"></div>
 
+    <!-- Forgot Password Modal -->
+    <div class="auth-modal" id="forgotPasswordModal">
+        <div class="auth-container">
+            <button class="modal-close" onclick="closeForgotPasswordModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-body" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h2 style="margin-bottom: 0.5rem;">Reset Your Password</h2>
+                <p style="color: var(--gray); margin-bottom: 1.5rem;">Enter your email address and we'll send you a link to reset your password.</p>
+                
+                <form id="forgotPasswordForm" onsubmit="handleForgotPassword(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group" style="text-align: left;">
+                        <label><i class="fas fa-envelope"></i> Email Address</label>
+                        <input type="email" id="resetEmail" placeholder="Enter your email" required style="width: 100%; padding: 1rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-size: 1rem;">
+                    </div>
+                    <button type="submit" class="cta-btn" style="width: 100%;">
+                        <i class="fas fa-paper-plane"></i> Send Reset Link
+                    </button>
+                </form>
+                
+                <div id="resetSuccess" style="display: none; margin-top: 1.5rem;">
+                    <div style="color: #228B22; font-size: 3rem; margin-bottom: 1rem;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem;">Check Your Email</h3>
+                    <p style="color: var(--gray);">We've sent a password reset link to your email address.</p>
+                    <button class="btn-secondary" onclick="closeForgotPasswordModal()" style="margin-top: 1rem;">Close</button>
+                </div>
+                
+                <p style="margin-top: 1.5rem; color: var(--gray); font-size: 0.85rem;">
+                    Remember your password? <a href="#" onclick="closeForgotPasswordModal(); openAuthModal(); return false;" style="color: var(--primary);">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="auth-overlay" id="forgotPasswordOverlay" onclick="closeForgotPasswordModal()"></div>
+
     <script src="script.js"></script>
 <div class="sales-notification" id="salesNotification"><div class="sales-notification-content"><div class="sales-notification-icon"><i class="fas fa-shopping-bag"></i></div><div class="sales-notification-text"><p class="sales-notification-message" id="salesNotificationMessage">Someone just purchased a product!</p><p class="sales-notification-time">Just now</p></div></div></div>
 
@@ -400,6 +502,188 @@
             <span>Profile</span>
         </a>
     </nav>
+
+    <!-- Cookie Consent Banner (POPIA Compliant) -->
+    <div id="cookieConsent" class="cookie-consent" style="display: none;">
+        <div class="cookie-content">
+            <div class="cookie-icon">
+                <i class="fas fa-cookie-bite"></i>
+            </div>
+            <div class="cookie-text">
+                <h4>We Value Your Privacy</h4>
+                <p>We use cookies to enhance your browsing experience, analyze site traffic, and personalize content. By continuing to use this site, you consent to our use of cookies in accordance with our <a href="privacy.html">Privacy Policy</a>.</p>
+                <div class="cookie-types">
+                    <label class="cookie-type">
+                        <input type="checkbox" id="essentialCookies" checked disabled>
+                        <span>Essential (Required)</span>
+                    </label>
+                    <label class="cookie-type">
+                        <input type="checkbox" id="analyticsCookies" checked>
+                        <span>Analytics</span>
+                    </label>
+                    <label class="cookie-type">
+                        <input type="checkbox" id="marketingCookies">
+                        <span>Marketing</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="cookie-buttons">
+            <button class="btn-secondary" onclick="acceptCookies(false)">Decline Optional</button>
+            <button class="btn-primary" onclick="acceptCookies(true)">Accept All</button>
+        </div>
+    </div>
+
+    <script>
+        // Cookie Consent Management
+        function showCookieConsent() {
+            const consent = localStorage.getItem('cookieConsent');
+            if (!consent) {
+                document.getElementById('cookieConsent').style.display = 'block';
+            } else {
+                const settings = JSON.parse(consent);
+                if (settings.analytics) loadAnalytics();
+                if (settings.marketing) loadMarketing();
+            }
+        }
+
+        function acceptCookies(all) {
+            const settings = {
+                essential: true,
+                analytics: all || document.getElementById('analyticsCookies').checked,
+                marketing: all || document.getElementById('marketingCookies').checked,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('cookieConsent', JSON.stringify(settings));
+            document.getElementById('cookieConsent').style.display = 'none';
+            
+            if (settings.analytics) loadAnalytics();
+            if (settings.marketing) loadMarketing();
+            
+            showNotification('Cookie preferences saved');
+        }
+
+        function loadAnalytics() {
+            // Load Google Analytics or other analytics
+            console.log('Analytics loaded');
+        }
+
+        function loadMarketing() {
+            // Load marketing scripts (Facebook Pixel, etc.)
+            console.log('Marketing scripts loaded');
+        }
+
+        // Show cookie consent on page load
+        document.addEventListener('DOMContentLoaded', showCookieConsent);
+    </script>
+
+    <style>
+        .cookie-consent {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--dark);
+            border-top: 2px solid var(--primary);
+            padding: 1.5rem 2rem;
+            z-index: 10000;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+        .cookie-content {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            max-width: 1200px;
+            margin: 0 auto 1.5rem;
+        }
+        .cookie-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        .cookie-text h4 {
+            color: var(--light);
+            margin-bottom: 0.5rem;
+        }
+        .cookie-text p {
+            color: var(--gray);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .cookie-text a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .cookie-types {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .cookie-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--light);
+            font-size: 0.85rem;
+        }
+        .cookie-type input {
+            width: auto;
+            cursor: pointer;
+        }
+        .cookie-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .cookie-buttons button {
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .cookie-buttons .btn-primary {
+            background: var(--gradient);
+            border: none;
+            color: white;
+        }
+        .cookie-buttons .btn-secondary {
+            background: rgba(255,248,231,0.1);
+            border: 1px solid rgba(255,248,231,0.2);
+            color: var(--light);
+        }
+        .cookie-buttons button:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            .cookie-consent {
+                padding: 1rem;
+            }
+            .cookie-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .cookie-types {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .cookie-buttons {
+                flex-direction: column;
+            }
+            .cookie-buttons button {
+                width: 100%;
+            }
+        }
+    </style>
 </body>
 </html>
 

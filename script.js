@@ -1419,6 +1419,107 @@ function logout() {
     setTimeout(() => location.reload(), 1500);
 }
 
+// Password Reset Functions
+function openForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    const overlay = document.getElementById('forgotPasswordOverlay');
+    if (modal && overlay) {
+        modal.classList.add('active');
+        overlay.classList.add('active');
+        document.getElementById('forgotPasswordForm').style.display = 'flex';
+        document.getElementById('resetSuccess').style.display = 'none';
+    }
+}
+
+function closeForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    const overlay = document.getElementById('forgotPasswordOverlay');
+    if (modal && overlay) {
+        modal.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+}
+
+function handleForgotPassword(event) {
+    event.preventDefault();
+    const email = document.getElementById('resetEmail').value.trim().toLowerCase();
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address');
+        return;
+    }
+    
+    // Check if user exists
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const user = users.find(u => u.email === email);
+    
+    if (!user) {
+        // For security, show same success message even if email doesn't exist
+        document.getElementById('forgotPasswordForm').style.display = 'none';
+        document.getElementById('resetSuccess').style.display = 'block';
+        return;
+    }
+    
+    // Generate reset token
+    const resetToken = 'reset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const resetExpiry = new Date(Date.now() + (60 * 60 * 1000)).toISOString(); // 1 hour expiry
+    
+    // Save reset token
+    const resetData = {
+        userId: user.id,
+        email: email,
+        token: resetToken,
+        expiresAt: resetExpiry,
+        createdAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('passwordReset_' + email, JSON.stringify(resetData));
+    
+    // In production, send email with reset link
+    // For demo, show token in console
+    console.log('Password Reset Token:', resetToken);
+    console.log('Reset Link:', window.location.origin + '/reset-password.html?token=' + resetToken);
+    
+    // Show success message
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('resetSuccess').style.display = 'block';
+    
+    showNotification('Password reset link sent to your email');
+}
+
+// Reset Password Page Handler (for reset-password.html)
+function handleResetPassword(token, newPassword) {
+    // Find reset data
+    const resetData = JSON.parse(localStorage.getItem('passwordReset_' + token.split('_')[1]) || 'null');
+    
+    if (!resetData || resetData.token !== token) {
+        return { success: false, message: 'Invalid reset token' };
+    }
+    
+    // Check expiry
+    if (new Date(resetData.expiresAt) < new Date()) {
+        return { success: false, message: 'Reset token has expired' };
+    }
+    
+    // Update password
+    const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    const userIndex = users.findIndex(u => u.id === resetData.userId);
+    
+    if (userIndex === -1) {
+        return { success: false, message: 'User not found' };
+    }
+    
+    users[userIndex].password = newPassword;
+    localStorage.setItem('metraUsers', JSON.stringify(users));
+    
+    // Clear reset token
+    localStorage.removeItem('passwordReset_' + resetData.email);
+    
+    return { success: true, message: 'Password updated successfully' };
+}
+
 function updateProfileIcon() {
     const icon = document.getElementById('userIcon');
     if (icon && currentUser) {
@@ -2058,6 +2159,50 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Contact Form Handler
+function handleContactSubmit(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('contactName').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const phone = document.getElementById('contactPhone').value.trim();
+    const message = document.getElementById('contactMessage').value.trim();
+    
+    // Validate
+    if (!name || !email || !message) {
+        showNotification('Please fill in all required fields');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address');
+        return;
+    }
+    
+    // Save contact message
+    const contactMessage = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        phone: phone,
+        message: message,
+        status: 'unread',
+        createdAt: new Date().toISOString()
+    };
+    
+    const messages = JSON.parse(localStorage.getItem('metraContactMessages') || '[]');
+    messages.push(contactMessage);
+    localStorage.setItem('metraContactMessages', JSON.stringify(messages));
+    
+    // In production, send email to admin
+    console.log('Contact form submission:', contactMessage);
+    
+    // Show success
+    showNotification('Message sent! We will get back to you soon.');
+    event.target.reset();
+}
 
 // Load saved invoice delivery preference
 const savedInvoiceDelivery = localStorage.getItem('metraInvoiceDeliveryPreference');
