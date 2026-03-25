@@ -544,16 +544,23 @@ function deleteReview(productId, reviewIndex) {
 // Settings
 function saveSettings(event) {
     event.preventDefault();
-    
-    settings = {
-        storeName: document.getElementById('storeName').value,
-        freeShipping: parseFloat(document.getElementById('freeShipping').value),
-        expressShipping: parseFloat(document.getElementById('expressShipping').value),
-        sameDayShipping: parseFloat(document.getElementById('sameDayShipping').value)
+
+    // Save Bobgo configuration
+    const bobgoConfig = {
+        apiKey: document.getElementById('bobgoApiKey').value.trim(),
+        secretKey: document.getElementById('bobgoSecretKey').value.trim(),
+        defaultShipping: parseFloat(document.getElementById('defaultShipping').value) || 0
     };
 
+    localStorage.setItem('metraBobgoConfig', JSON.stringify(bobgoConfig));
+
+    // Also save store name in settings
+    settings = {
+        storeName: document.getElementById('storeName').value
+    };
     localStorage.setItem('metraSettings', JSON.stringify(settings));
-    showNotification('Settings saved successfully!');
+
+    showNotification('Bobgo shipping settings saved successfully!');
 }
 
 function changeAdminPassword(event) {

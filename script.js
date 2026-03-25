@@ -132,6 +132,54 @@ let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
 
+// Bobgo Shipping Configuration
+const BOBGO_CONFIG = {
+    apiKey: '',
+    secretKey: '',
+    defaultShipping: 0,
+    enabled: false
+};
+
+// Load Bobgo settings
+function loadBobgoConfig() {
+    const saved = localStorage.getItem('metraBobgoConfig');
+    if (saved) {
+        const config = JSON.parse(saved);
+        Object.assign(BOBGO_CONFIG, config);
+        BOBGO_CONFIG.enabled = !!(config.apiKey && config.secretKey);
+    }
+}
+
+// Calculate Bobgo shipping (placeholder for API integration)
+async function calculateBobgoShipping(address) {
+    if (!BOBGO_CONFIG.enabled) {
+        return BOBGO_CONFIG.defaultShipping;
+    }
+
+    // TODO: Integrate with Bobgo API
+    // Example API call structure:
+    /*
+    const response = await fetch('https://api.bobgo.co.za/v1/shipping/calculate', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            origin: 'Johannesburg',
+            destination: address,
+            weight: calculateCartWeight(),
+            dimensions: getCartDimensions()
+        })
+    });
+    const data = await response.json();
+    return data.shipping_cost || BOBGO_CONFIG.defaultShipping;
+    */
+
+    // For now, return default shipping
+    return BOBGO_CONFIG.defaultShipping;
+}
+
 // Database Configuration
 // Uses localStorage by default. Vercel Neon DB integration available via environment variables.
 const DB_CONFIG = {
@@ -772,8 +820,15 @@ function loadCart() {
 }
 
 // Shipping
-function updateShipping(cost) {
-    shippingCost = cost;
+function updateShipping(method) {
+    if (method === 'bobgo') {
+        // Use Bobgo shipping
+        shippingCost = BOBGO_CONFIG.defaultShipping;
+        const bobgoPriceEl = document.getElementById('bobgoPrice');
+        if (bobgoPriceEl) {
+            bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+        }
+    }
     updateCart();
 }
 

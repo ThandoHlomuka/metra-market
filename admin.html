@@ -340,17 +340,20 @@
                             <input type="text" id="storeName" value="Metra Market">
                         </div>
                         <div class="form-group">
-                            <label>Free Shipping Threshold</label>
-                            <input type="number" id="freeShipping" value="750">
+                            <label>Bobgo API Key</label>
+                            <input type="text" id="bobgoApiKey" placeholder="Enter Bobgo API key" value="">
                         </div>
                         <div class="form-group">
-                            <label>Express Shipping Price</label>
-                            <input type="number" id="expressShipping" value="99">
+                            <label>Bobgo Secret Key</label>
+                            <input type="password" id="bobgoSecretKey" placeholder="Enter Bobgo secret key" value="">
                         </div>
                         <div class="form-group">
-                            <label>Same Day Shipping Price</label>
-                            <input type="number" id="sameDayShipping" value="199">
+                            <label>Default Shipping Cost (R)</label>
+                            <input type="number" id="defaultShipping" value="0" placeholder="0 for free shipping">
                         </div>
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Leave API keys empty to use default shipping cost. Add API keys to enable real-time Bobgo calculations.
+                        </p>
                         <button type="submit" class="btn-primary">Save Settings</button>
                     </form>
                 </div>

@@ -10,7 +10,7 @@ A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaS
 
 - 🎨 **Modern Design** - Beautiful crimson red & cream white gradient UI
 - 🛒 **Shopping Cart** - Full cart functionality with localStorage persistence
-- 🚚 **Shipping Options** - Standard (Free), Express (R99), Same Day (R199)
+- 🚚 **Bobgo Shipping** - Integrated with Bobgo delivery services (API ready)
 - 👤 **User Accounts** - Registration, login, and profile management
 - ❤️ **Wishlist** - Save favorite products for later
 - ⭐ **Reviews** - Customer reviews with star ratings
@@ -68,7 +68,7 @@ metra-market/
 
 - 8 sample products with full details
 - Add/remove items from cart
-- 3 shipping options with pricing
+- Bobgo shipping integration (API ready)
 - Cart & wishlist persist across page reloads
 - Contact form with validation
 - Smooth scroll navigation
@@ -219,10 +219,10 @@ Password: [Set in admin-script.js]
 - ✅ Wishlist functionality with localStorage
 - ✅ Add to wishlist from product modal
 
-**🚚 Shipping Options**
-- ✅ Standard Delivery (Free)
-- ✅ Express Delivery 1-2 days (R99)
-- ✅ Same Day Delivery (R199)
+**🚚 Bobgo Shipping**
+- ✅ Bobgo delivery integration
+- ✅ API-ready for real-time calculations
+- ✅ Default shipping cost configuration
 - ✅ Real-time cart total updates
 
 **📱 Responsive Design**
