@@ -246,18 +246,21 @@
             <p class="empty-cart">Your cart is empty</p>
         </div>
         <div class="cart-footer">
-            <div class="shipping-options">
-                <h4>Shipping - Powered by Bobgo</h4>
+            <div class="shipping-options" id="shippingOptionsContainer">
+                <h4>Shipping</h4>
                 <label class="shipping-option">
                     <input type="radio" name="shipping" value="bobgo" checked onchange="updateShipping('bobgo')">
                     <span>
                         <i class="fas fa-truck" style="color: #00C853; margin-right: 0.5rem;"></i>
                         Bobgo Delivery
                     </span>
-                    <span class="shipping-price" id="bobgoPrice">R0.00</span>
+                    <span class="shipping-price" id="bobgoPrice">Calculating...</span>
                 </label>
+                <div id="shippingOptions" style="margin-top: 1rem;">
+                    <!-- Courier options will be loaded here -->
+                </div>
                 <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0, 200, 83, 0.1); border-radius: 8px;">
-                    <i class="fas fa-info-circle"></i> Shipping cost calculated at checkout based on delivery address
+                    <i class="fas fa-info-circle"></i> Shipping cost calculated based on product weight & dimensions
                 </p>
             </div>
             <div class="payment-methods"><h4>Payment Method</h4><label class="payment-option"><input type="radio" name="payment" value="card" checked onchange="setPaymentMethod('card')"><span><i class="fas fa-credit-card"></i> Card / EFT</span></label><label class="payment-option"><input type="radio" name="payment" value="payfast" onchange="setPaymentMethod('payfast')"><span><i class="fas fa-lock"></i> PayFast (Secure)</span></label><label class="payment-option"><input type="radio" name="payment" value="bank_transfer" onchange="setPaymentMethod('bank_transfer')"><span><i class="fas fa-university"></i> Bank Transfer</span></label><div class="bank-details" id="bankDetails" style="display: none;"><p><strong>Bank:</strong> FNB</p><p><strong>Account Name:</strong> Metra Market</p><p><strong>Account Number:</strong> 62000000000</p><p><strong>Branch Code:</strong> 250655</p><p><strong>Reference:</strong> Your Order ID (provided at checkout)</p><p class="bank-note">Please send proof of payment to orders@metramarket.co.za</p></div></div><div class="invoice-delivery">

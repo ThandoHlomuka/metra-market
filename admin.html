@@ -884,6 +884,35 @@
                         <label>Tags (comma separated)</label>
                         <input type="text" id="productTags" placeholder="Tag1, Tag2, Tag3">
                     </div>
+                    
+                    <div class="form-group" style="background: rgba(0, 200, 83, 0.1); border: 1px solid rgba(0, 200, 83, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                        <label style="color: #00C853; font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                            <i class="fas fa-shipping-fast"></i> Shipping Details (Bobgo)
+                        </label>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Weight (kg)</label>
+                                <input type="number" step="0.01" id="productWeight" placeholder="0.5" value="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Length (cm)</label>
+                                <input type="number" step="0.1" id="productLength" placeholder="30" value="30">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Width (cm)</label>
+                                <input type="number" step="0.1" id="productWidth" placeholder="20" value="20">
+                            </div>
+                            <div class="form-group">
+                                <label>Height (cm)</label>
+                                <input type="number" step="0.1" id="productHeight" placeholder="15" value="15">
+                            </div>
+                        </div>
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> These details are used by Bobgo to calculate accurate shipping costs
+                        </p>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeProductModal()">Cancel</button>

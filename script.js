@@ -150,18 +150,17 @@ function loadBobgoConfig() {
     }
 }
 
-// Calculate Bobgo shipping via API
-async function calculateBobgoShipping(address) {
+// Calculate Bobgo shipping via API with product-specific data
+async function calculateBobgoShipping(address, cartItems = null) {
     if (!BOBGO_CONFIG.enabled) {
         return BOBGO_CONFIG.defaultShipping;
     }
 
     try {
-        // Get cart total weight and dimensions
-        const cartWeight = calculateCartWeight();
-        const cartDimensions = getCartDimensions();
+        // Calculate total weight and dimensions from cart items
+        const shippingData = calculateCartShippingData(cartItems || cart);
 
-        const response = await fetch(`${BOBGO_CONFIG.apiUrl}/shipping/calculate`, {
+        const response = await fetch(`${BOBGO_CONFIG.apiUrl}/couriers`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
@@ -170,8 +169,12 @@ async function calculateBobgoShipping(address) {
             body: JSON.stringify({
                 origin: 'Johannesburg',
                 destination: address || 'Cape Town',
-                weight: cartWeight,
-                dimensions: cartDimensions,
+                parcels: [{
+                    weight: shippingData.weight,
+                    length: shippingData.length,
+                    width: shippingData.width,
+                    height: shippingData.height
+                }],
                 currency: 'ZAR'
             })
         });
@@ -181,26 +184,64 @@ async function calculateBobgoShipping(address) {
         }
 
         const data = await response.json();
-        console.log('Bobgo shipping response:', data);
+        console.log('Bobgo couriers response:', data);
         
-        // Return shipping cost or fallback to default
-        return data.shipping_cost || data.cost || BOBGO_CONFIG.defaultShipping;
+        // Return courier options with pricing
+        return {
+            success: true,
+            couriers: data.couriers || [],
+            defaultCost: data.couriers?.[0]?.price || BOBGO_CONFIG.defaultShipping
+        };
     } catch (error) {
         console.error('Bobgo shipping calculation error:', error);
         // Fallback to default shipping on error
-        return BOBGO_CONFIG.defaultShipping;
+        return {
+            success: false,
+            error: error.message,
+            defaultCost: BOBGO_CONFIG.defaultShipping
+        };
     }
 }
 
-// Calculate cart total weight (in kg)
-function calculateCartWeight() {
-    // Default weight per item (can be enhanced with product-specific weights)
-    const defaultWeightPerItem = 0.5; // 0.5 kg per item
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    return totalItems * defaultWeightPerItem;
+// Calculate total shipping data from cart items
+function calculateCartShippingData(cartItems) {
+    let totalWeight = 0;
+    let maxLength = 0;
+    let maxWidth = 0;
+    let totalHeight = 0;
+
+    cartItems.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product) {
+            // Weight is cumulative
+            totalWeight += (product.weight || 0.5) * item.quantity;
+            
+            // Find largest dimensions
+            maxLength = Math.max(maxLength, product.length || 30);
+            maxWidth = Math.max(maxWidth, product.width || 20);
+            
+            // Height is cumulative for stackable items
+            totalHeight += (product.height || 15) * item.quantity;
+        }
+    });
+
+    // If no items, use defaults
+    if (totalWeight === 0) {
+        totalWeight = 0.5;
+        maxLength = 30;
+        maxWidth = 20;
+        totalHeight = 15;
+    }
+
+    return {
+        weight: totalWeight,
+        length: maxLength,
+        width: maxWidth,
+        height: totalHeight
+    };
 }
 
-// Get cart dimensions (in cm)
+// Get cart dimensions (in cm) - legacy function
 function getCartDimensions() {
     // Default dimensions (can be enhanced with product-specific dimensions)
     return {
@@ -993,10 +1034,15 @@ function loadCart() {
 }
 
 // Shipping
+let selectedCourier = null;
+let courierOptions = [];
+
 async function updateShipping(method) {
     if (method === 'bobgo') {
         // Use Bobgo shipping - calculate via API
         const bobgoPriceEl = document.getElementById('bobgoPrice');
+        const shippingOptionsEl = document.getElementById('shippingOptions');
+        
         if (bobgoPriceEl) {
             bobgoPriceEl.textContent = 'Calculating...';
         }
@@ -1004,10 +1050,40 @@ async function updateShipping(method) {
         try {
             // Get delivery address from user profile or checkout form
             const address = currentUser?.address || 'Cape Town'; // Default fallback
-            shippingCost = await calculateBobgoShipping(address);
+            const result = await calculateBobgoShipping(address);
             
-            if (bobgoPriceEl) {
-                bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+            if (result.success && result.couriers && result.couriers.length > 0) {
+                // Store courier options
+                courierOptions = result.couriers;
+                selectedCourier = result.couriers[0];
+                shippingCost = result.couriers[0].price || 0;
+                
+                // Display courier selection
+                if (shippingOptionsEl) {
+                    shippingOptionsEl.innerHTML = `
+                        <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Courier</h4>
+                        ${result.couriers.map((courier, index) => `
+                            <label class="shipping-option" style="cursor: pointer;">
+                                <input type="radio" name="bobgoCourier" value="${index}" ${index === 0 ? 'checked' : ''} onchange="selectCourier(${index})">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600;">${courier.name || 'Standard Courier'}</div>
+                                    <div style="font-size: 0.85rem; color: var(--gray);">Delivery: ${courier.delivery_time || '2-5 days'}</div>
+                                </div>
+                                <span class="shipping-price" style="color: #00C853; font-weight: 700;">R${courier.price?.toFixed(2) || '0.00'}</span>
+                            </label>
+                        `).join('')}
+                    `;
+                }
+                
+                if (bobgoPriceEl) {
+                    bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+                }
+            } else {
+                // Fallback to default
+                shippingCost = result.defaultCost;
+                if (bobgoPriceEl) {
+                    bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+                }
             }
         } catch (error) {
             console.error('Bobgo shipping error:', error);
@@ -1018,6 +1094,16 @@ async function updateShipping(method) {
         }
     }
     updateCart();
+}
+
+// Select courier from options
+function selectCourier(index) {
+    if (courierOptions[index]) {
+        selectedCourier = courierOptions[index];
+        shippingCost = selectedCourier.price || 0;
+        updateCart();
+        console.log('Selected courier:', selectedCourier);
+    }
 }
 
 // Test Bobgo Shipping (for admin testing)
@@ -2204,15 +2290,15 @@ function handleFacebookLogin(userInfo) {
 function openProductModal(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
-    
+
     const modal = document.getElementById('productModal');
     const overlay = document.getElementById('modalOverlay');
     const modalBody = document.getElementById('modalBody');
-    
+
     if (!modal || !overlay || !modalBody) return;
-    
+
     const isWishlisted = wishlist.includes(product.id);
-    
+
     modalBody.innerHTML = `
         <div class="modal-product-image">${product.icon}</div>
         <h2 class="modal-product-name">${product.name}</h2>
@@ -2229,6 +2315,23 @@ function openProductModal(productId) {
             <ul class="specs-list">
                 ${product.specs.map(spec => `<li><i class="fas fa-check"></i> ${spec}</li>`).join('')}
             </ul>
+        </div>
+        
+        <div class="modal-product-shipping" style="background: rgba(0, 200, 83, 0.1); border: 1px solid rgba(0, 200, 83, 0.3); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0;">
+            <h3 style="color: #00C853; margin-bottom: 1rem;"><i class="fas fa-shipping-fast"></i> Shipping Details</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p>
+                    <p style="font-weight: 600;">${product.weight || 0.5} kg</p>
+                </div>
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p>
+                    <p style="font-weight: 600;">${product.length || 30} × ${product.width || 20} × ${product.height || 15} cm</p>
+                </div>
+            </div>
+            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 1rem;">
+                <i class="fas fa-info-circle"></i> Shipping cost calculated at checkout based on these details
+            </p>
         </div>
         
         <div class="modal-product-tags">
@@ -2262,7 +2365,7 @@ function openProductModal(productId) {
             </button>
         </div>
     `;
-    
+
     modal.classList.add('active');
     overlay.classList.add('active');
 }
