@@ -12,6 +12,17 @@
     --gradient: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #B22222 100%);
 }
 
+/* Prevent Flash of Unstyled Content */
+html {
+    visibility: hidden;
+    opacity: 0;
+}
+
+html.loaded {
+    visibility: visible;
+    opacity: 1;
+}
+
 /* Reset & Base */
 * {
     margin: 0;
@@ -21,6 +32,8 @@
 
 html {
     scroll-behavior: smooth;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 body {

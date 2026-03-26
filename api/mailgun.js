@@ -174,7 +174,7 @@ async function sendAdminOrderNotification(order) {
                 <p><strong>Payment:</strong> ${order.paymentMethod}</p>
             </div>
             <p>
-                <a href="${process.env.BASE_URL || 'http://localhost:3000'}/admin.html" class="btn">View in Admin Dashboard</a>
+                <a href="/admin.html" class="btn">View in Admin Dashboard</a>
             </p>
         </body>
         </html>
@@ -189,7 +189,7 @@ async function sendAdminOrderNotification(order) {
 
 // Send password reset email
 async function sendPasswordResetEmail(userEmail, resetToken) {
-    const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password.html?token=${resetToken}`;
+    const resetUrl = `/reset-password.html?token=${resetToken}`;
     
     const html = `
         <!DOCTYPE html>
