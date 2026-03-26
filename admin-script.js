@@ -667,8 +667,7 @@ function saveSettings(event) {
 
     // Save Bobgo configuration
     const bobgoConfig = {
-        apiKey: document.getElementById('bobgoApiKey').value.trim(),
-        secretKey: document.getElementById('bobgoSecretKey').value.trim(),
+        apiKey: document.getElementById('bobgoApiKey').value.trim() || '5a830068eeb9431da5bf1577a9980d99',
         defaultShipping: parseFloat(document.getElementById('defaultShipping').value) || 0
     };
 
@@ -679,6 +678,9 @@ function saveSettings(event) {
         storeName: document.getElementById('storeName').value
     };
     localStorage.setItem('metraSettings', JSON.stringify(settings));
+
+    // Reload Bobgo config in main window
+    loadBobgoConfig();
 
     showNotification('Bobgo shipping settings saved successfully!');
 }

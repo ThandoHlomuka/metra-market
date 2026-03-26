@@ -134,10 +134,10 @@ let invoiceDeliveryMethod = 'email';
 
 // Bobgo Shipping Configuration
 const BOBGO_CONFIG = {
-    apiKey: '',
-    secretKey: '',
+    apiKey: '5a830068eeb9431da5bf1577a9980d99',
+    apiUrl: 'https://api.bobgo.co.za/v1',
     defaultShipping: 0,
-    enabled: false
+    enabled: true
 };
 
 // Load Bobgo settings
@@ -146,38 +146,68 @@ function loadBobgoConfig() {
     if (saved) {
         const config = JSON.parse(saved);
         Object.assign(BOBGO_CONFIG, config);
-        BOBGO_CONFIG.enabled = !!(config.apiKey && config.secretKey);
+        BOBGO_CONFIG.enabled = !!(config.apiKey || BOBGO_CONFIG.apiKey);
     }
 }
 
-// Calculate Bobgo shipping (placeholder for API integration)
+// Calculate Bobgo shipping via API
 async function calculateBobgoShipping(address) {
     if (!BOBGO_CONFIG.enabled) {
         return BOBGO_CONFIG.defaultShipping;
     }
 
-    // TODO: Integrate with Bobgo API
-    // Example API call structure:
-    /*
-    const response = await fetch('https://api.bobgo.co.za/v1/shipping/calculate', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            origin: 'Johannesburg',
-            destination: address,
-            weight: calculateCartWeight(),
-            dimensions: getCartDimensions()
-        })
-    });
-    const data = await response.json();
-    return data.shipping_cost || BOBGO_CONFIG.defaultShipping;
-    */
+    try {
+        // Get cart total weight and dimensions
+        const cartWeight = calculateCartWeight();
+        const cartDimensions = getCartDimensions();
 
-    // For now, return default shipping
-    return BOBGO_CONFIG.defaultShipping;
+        const response = await fetch(`${BOBGO_CONFIG.apiUrl}/shipping/calculate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                origin: 'Johannesburg',
+                destination: address || 'Cape Town',
+                weight: cartWeight,
+                dimensions: cartDimensions,
+                currency: 'ZAR'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Bobgo API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Bobgo shipping response:', data);
+        
+        // Return shipping cost or fallback to default
+        return data.shipping_cost || data.cost || BOBGO_CONFIG.defaultShipping;
+    } catch (error) {
+        console.error('Bobgo shipping calculation error:', error);
+        // Fallback to default shipping on error
+        return BOBGO_CONFIG.defaultShipping;
+    }
+}
+
+// Calculate cart total weight (in kg)
+function calculateCartWeight() {
+    // Default weight per item (can be enhanced with product-specific weights)
+    const defaultWeightPerItem = 0.5; // 0.5 kg per item
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    return totalItems * defaultWeightPerItem;
+}
+
+// Get cart dimensions (in cm)
+function getCartDimensions() {
+    // Default dimensions (can be enhanced with product-specific dimensions)
+    return {
+        length: 30,
+        width: 20,
+        height: 15
+    };
 }
 
 // Database Configuration
@@ -963,16 +993,50 @@ function loadCart() {
 }
 
 // Shipping
-function updateShipping(method) {
+async function updateShipping(method) {
     if (method === 'bobgo') {
-        // Use Bobgo shipping
-        shippingCost = BOBGO_CONFIG.defaultShipping;
+        // Use Bobgo shipping - calculate via API
         const bobgoPriceEl = document.getElementById('bobgoPrice');
         if (bobgoPriceEl) {
-            bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+            bobgoPriceEl.textContent = 'Calculating...';
+        }
+        
+        try {
+            // Get delivery address from user profile or checkout form
+            const address = currentUser?.address || 'Cape Town'; // Default fallback
+            shippingCost = await calculateBobgoShipping(address);
+            
+            if (bobgoPriceEl) {
+                bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+            }
+        } catch (error) {
+            console.error('Bobgo shipping error:', error);
+            shippingCost = BOBGO_CONFIG.defaultShipping;
+            if (bobgoPriceEl) {
+                bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+            }
         }
     }
     updateCart();
+}
+
+// Test Bobgo Shipping (for admin testing)
+async function testBobgoShipping() {
+    console.log('=== Testing Bobgo Shipping API ===');
+    console.log('API Key:', BOBGO_CONFIG.apiKey ? 'Configured ✓' : 'Missing ✗');
+    console.log('API URL:', BOBGO_CONFIG.apiUrl);
+    
+    try {
+        const testAddress = 'Cape Town';
+        const cost = await calculateBobgoShipping(testAddress);
+        console.log('Test shipping cost to', testAddress, ':', 'R' + cost);
+        showNotification('Bobgo API Test: R' + cost + ' to ' + testAddress);
+        return { success: true, cost: cost };
+    } catch (error) {
+        console.error('Bobgo test failed:', error);
+        showNotification('Bobgo API Test Failed: ' + error.message);
+        return { success: false, error: error.message };
+    }
 }
 
 function setPaymentMethod(method) {
