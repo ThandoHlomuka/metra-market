@@ -360,14 +360,24 @@
                         </div>
                         <div class="form-group">
                             <label>Bobgo API Key</label>
-                            <input type="text" id="bobgoApiKey" placeholder="Enter Bobgo API key" value="5a830068eeb9431da5bf1577a9980d99">
+                            <input type="text" id="bobgoApiKey" placeholder="Enter Bobgo API key" value="5a830068eeb9431da5bf1577a9980d99" readonly style="background: rgba(34, 139, 34, 0.1); border-color: #228B22;">
+                        </div>
+                        <div class="form-group">
+                            <label>API Mode</label>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem; background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); border-radius: 10px;">
+                                <i class="fas fa-check-circle" style="color: #228B22; font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600; color: #228B22;">PRODUCTION MODE</div>
+                                    <div style="font-size: 0.85rem; color: var(--gray);">Live shipping rates enabled</div>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Default Shipping Cost (R)</label>
                             <input type="number" id="defaultShipping" value="0" placeholder="0 for free shipping">
                         </div>
                         <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">
-                            <i class="fas fa-info-circle"></i> Bobgo API configured. Shipping calculated in real-time based on delivery address.
+                            <i class="fas fa-info-circle"></i> Bobgo API configured for production. Real-time courier rates from partners like Pudo, Dawn Wing, The Courier Guy, etc.
                         </p>
                         <div style="display: flex; gap: 1rem;">
                             <button type="submit" class="btn-primary">Save Settings</button>

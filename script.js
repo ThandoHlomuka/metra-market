@@ -131,13 +131,19 @@ let currentUser = null;
 let shippingCost = 0;
 let paymentMethod = 'card';
 let invoiceDeliveryMethod = 'email';
+let selectedCourier = null;
+let courierOptions = [];
+let selectedDeliveryMethod = 'delivery'; // 'delivery' or 'collection'
+let selectedCollectionPoint = null;
 
-// Bobgo Shipping Configuration
+// Bobgo Shipping Configuration - PRODUCTION MODE
 const BOBGO_CONFIG = {
     apiKey: '5a830068eeb9431da5bf1577a9980d99',
-    apiUrl: 'https://api.bobgo.co.za/v1',
+    apiUrl: 'https://api.bobgo.co.za/v1', // Production API endpoint
+    sandbox: false, // Set to false for production
     defaultShipping: 0,
-    enabled: true
+    enabled: true,
+    collectionPoints: [] // Will be populated from API
 };
 
 // Load Bobgo settings
@@ -147,20 +153,28 @@ function loadBobgoConfig() {
         const config = JSON.parse(saved);
         Object.assign(BOBGO_CONFIG, config);
         BOBGO_CONFIG.enabled = !!(config.apiKey || BOBGO_CONFIG.apiKey);
+        BOBGO_CONFIG.sandbox = config.sandbox || false;
     }
 }
 
-// Calculate Bobgo shipping via API with product-specific data
+// Get Bobgo API URL (sandbox or production)
+function getBobgoApiUrl() {
+    return BOBGO_CONFIG.sandbox 
+        ? 'https://sandbox-api.bobgo.co.za/v1' 
+        : 'https://api.bobgo.co.za/v1';
+}
+
+// Calculate Bobgo shipping via API with product-specific data - PRODUCTION
 async function calculateBobgoShipping(address, cartItems = null) {
     if (!BOBGO_CONFIG.enabled) {
-        return BOBGO_CONFIG.defaultShipping;
+        return { success: false, defaultCost: BOBGO_CONFIG.defaultShipping };
     }
 
     try {
         // Calculate total weight and dimensions from cart items
         const shippingData = calculateCartShippingData(cartItems || cart);
 
-        const response = await fetch(`${BOBGO_CONFIG.apiUrl}/couriers`, {
+        const response = await fetch(`${getBobgoApiUrl()}/couriers`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
@@ -175,7 +189,8 @@ async function calculateBobgoShipping(address, cartItems = null) {
                     width: shippingData.width,
                     height: shippingData.height
                 }],
-                currency: 'ZAR'
+                currency: 'ZAR',
+                live_rates: !BOBGO_CONFIG.sandbox // true for production, false for sandbox
             })
         });
 
@@ -200,6 +215,32 @@ async function calculateBobgoShipping(address, cartItems = null) {
             error: error.message,
             defaultCost: BOBGO_CONFIG.defaultShipping
         };
+    }
+}
+
+// Get collection points from Bobgo API
+async function getCollectionPoints() {
+    if (!BOBGO_CONFIG.enabled) return [];
+
+    try {
+        const response = await fetch(`${getBobgoApiUrl()}/collection-points`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Bobgo API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        BOBGO_CONFIG.collectionPoints = data.points || [];
+        return BOBGO_CONFIG.collectionPoints;
+    } catch (error) {
+        console.error('Error fetching collection points:', error);
+        return [];
     }
 }
 
@@ -1034,55 +1075,87 @@ function loadCart() {
 }
 
 // Shipping
-let selectedCourier = null;
-let courierOptions = [];
-
 async function updateShipping(method) {
     if (method === 'bobgo') {
         // Use Bobgo shipping - calculate via API
         const bobgoPriceEl = document.getElementById('bobgoPrice');
         const shippingOptionsEl = document.getElementById('shippingOptions');
-        
+
         if (bobgoPriceEl) {
             bobgoPriceEl.textContent = 'Calculating...';
         }
-        
+
         try {
-            // Get delivery address from user profile or checkout form
-            const address = currentUser?.address || 'Cape Town'; // Default fallback
-            const result = await calculateBobgoShipping(address);
-            
-            if (result.success && result.couriers && result.couriers.length > 0) {
-                // Store courier options
-                courierOptions = result.couriers;
-                selectedCourier = result.couriers[0];
-                shippingCost = result.couriers[0].price || 0;
-                
-                // Display courier selection
-                if (shippingOptionsEl) {
-                    shippingOptionsEl.innerHTML = `
-                        <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Courier</h4>
-                        ${result.couriers.map((courier, index) => `
-                            <label class="shipping-option" style="cursor: pointer;">
-                                <input type="radio" name="bobgoCourier" value="${index}" ${index === 0 ? 'checked' : ''} onchange="selectCourier(${index})">
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600;">${courier.name || 'Standard Courier'}</div>
-                                    <div style="font-size: 0.85rem; color: var(--gray);">Delivery: ${courier.delivery_time || '2-5 days'}</div>
-                                </div>
-                                <span class="shipping-price" style="color: #00C853; font-weight: 700;">R${courier.price?.toFixed(2) || '0.00'}</span>
-                            </label>
-                        `).join('')}
-                    `;
-                }
-                
+            if (selectedDeliveryMethod === 'collection') {
+                // Collection - no shipping cost
+                shippingCost = 0;
                 if (bobgoPriceEl) {
-                    bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+                    bobgoPriceEl.textContent = 'R0.00 (Collection)';
+                }
+                if (shippingOptionsEl) {
+                    // Show collection point selection
+                    const collectionPoints = await getCollectionPoints();
+                    if (collectionPoints.length > 0) {
+                        shippingOptionsEl.innerHTML = `
+                            <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Collection Point</h4>
+                            <select id="collectionPointSelect" onchange="selectCollectionPoint(this.value)" style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-size: 0.9rem;">
+                                <option value="">-- Select a collection point --</option>
+                                ${collectionPoints.map((point, index) => `
+                                    <option value="${index}">${point.name || 'Collection Point'} - ${point.city || 'Various'}</option>
+                                `).join('')}
+                            </select>
+                            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                                <i class="fas fa-store"></i> Free collection at Bobgo pickup points
+                            </p>
+                        `;
+                    } else {
+                        shippingOptionsEl.innerHTML = `
+                            <p style="color: var(--gray); font-size: 0.85rem;">
+                                <i class="fas fa-info-circle"></i> Collection points will be shown at checkout
+                            </p>
+                        `;
+                    }
                 }
             } else {
-                // Fallback to default
-                shippingCost = result.defaultCost;
-                if (bobgoPriceEl) {
-                    bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+                // Delivery - get courier options
+                const address = currentUser?.address || 'Cape Town';
+                const result = await calculateBobgoShipping(address);
+
+                if (result.success && result.couriers && result.couriers.length > 0) {
+                    // Store courier options
+                    courierOptions = result.couriers;
+                    selectedCourier = result.couriers[0];
+                    shippingCost = result.couriers[0].price || 0;
+
+                    // Display courier selection with partner names
+                    if (shippingOptionsEl) {
+                        shippingOptionsEl.innerHTML = `
+                            <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Courier Partner</h4>
+                            ${result.couriers.map((courier, index) => `
+                                <label class="shipping-option" style="cursor: pointer; display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem; background: rgba(255,248,231,0.05); border-radius: 8px; margin-bottom: 0.5rem;">
+                                    <input type="radio" name="bobgoCourier" value="${index}" ${index === 0 ? 'checked' : ''} onchange="selectCourier(${index})" style="width: auto; accent-color: #00C853;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: var(--light);">${courier.name || 'Standard Courier'}</div>
+                                        <div style="font-size: 0.85rem; color: var(--gray);">${courier.service_type || 'Delivery'}: ${courier.delivery_time || '2-5 days'}</div>
+                                    </div>
+                                    <span class="shipping-price" style="color: #00C853; font-weight: 700; font-size: 1.1rem;">R${courier.price?.toFixed(2) || '0.00'}</span>
+                                </label>
+                            `).join('')}
+                            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                                <i class="fas fa-truck"></i> Live rates from Bobgo courier partners
+                            </p>
+                        `;
+                    }
+
+                    if (bobgoPriceEl) {
+                        bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
+                    }
+                } else {
+                    // Fallback to default
+                    shippingCost = result.defaultCost;
+                    if (bobgoPriceEl) {
+                        bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+                    }
                 }
             }
         } catch (error) {
@@ -1104,6 +1177,24 @@ function selectCourier(index) {
         updateCart();
         console.log('Selected courier:', selectedCourier);
     }
+}
+
+// Select collection point
+function selectCollectionPoint(index) {
+    const collectionPoints = BOBGO_CONFIG.collectionPoints;
+    if (collectionPoints[index]) {
+        selectedCollectionPoint = collectionPoints[index];
+        shippingCost = 0; // Free collection
+        updateCart();
+        console.log('Selected collection point:', selectedCollectionPoint);
+    }
+}
+
+// Set delivery method (delivery or collection)
+function setDeliveryMethod(method) {
+    selectedDeliveryMethod = method;
+    localStorage.setItem('metraDeliveryMethod', method);
+    updateShipping('bobgo');
 }
 
 // Test Bobgo Shipping (for admin testing)

@@ -247,7 +247,23 @@
         </div>
         <div class="cart-footer">
             <div class="shipping-options" id="shippingOptionsContainer">
-                <h4>Shipping</h4>
+                <h4>Shipping Method</h4>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <label class="shipping-option" style="flex: 1; cursor: pointer;">
+                        <input type="radio" name="deliveryMethod" value="delivery" checked onchange="setDeliveryMethod('delivery')" style="width: auto; accent-color: #00C853;">
+                        <div style="text-align: center;">
+                            <i class="fas fa-truck" style="font-size: 1.2rem; color: #00C853; margin-bottom: 0.3rem;"></i>
+                            <div style="font-size: 0.85rem; font-weight: 600;">Delivery</div>
+                        </div>
+                    </label>
+                    <label class="shipping-option" style="flex: 1; cursor: pointer;">
+                        <input type="radio" name="deliveryMethod" value="collection" onchange="setDeliveryMethod('collection')" style="width: auto; accent-color: #00C853;">
+                        <div style="text-align: center;">
+                            <i class="fas fa-store" style="font-size: 1.2rem; color: #FFA500; margin-bottom: 0.3rem;"></i>
+                            <div style="font-size: 0.85rem; font-weight: 600;">Collection</div>
+                        </div>
+                    </label>
+                </div>
                 <label class="shipping-option">
                     <input type="radio" name="shipping" value="bobgo" checked onchange="updateShipping('bobgo')">
                     <span>
@@ -257,7 +273,7 @@
                     <span class="shipping-price" id="bobgoPrice">Calculating...</span>
                 </label>
                 <div id="shippingOptions" style="margin-top: 1rem;">
-                    <!-- Courier options will be loaded here -->
+                    <!-- Courier options or collection points will be loaded here -->
                 </div>
                 <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0, 200, 83, 0.1); border-radius: 8px;">
                     <i class="fas fa-info-circle"></i> Shipping cost calculated based on product weight & dimensions
