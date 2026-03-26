@@ -83,14 +83,40 @@ Access the admin dashboard at: `admin.html`
 **🔐 Admin Credentials:**
 > **Note:** For security, admin credentials are not displayed in this public repository.
 > Contact the repository owner or check your project's secure documentation for access details.
-> 
+>
 > Default credentials are set in `admin-script.js` - please change them after first login!
 
-<!-- 
+<!--
 ADMIN CREDENTIALS (DO NOT COMMIT TO GITHUB):
 Username: [Set in admin-script.js]
 Password: [Set in admin-script.js]
 -->
+
+### Real-Time Features
+
+The admin dashboard now includes **real-time updates**:
+- **Live Visitors Counter** - See how many people are browsing now
+- **Real-Time Orders** - New orders appear instantly
+- **Live Chat Support** - Customer messages appear in real-time
+- **Activity Feed** - Track user activity across the site
+- **Auto-Refresh** - Dashboard updates every 5 seconds
+
+### Admin Dashboard Sections
+
+#### Dashboard Overview
+- Real-time statistics (products, orders, users, revenue)
+- **Live visitors count** (updates every 5 seconds)
+- Recent orders (auto-updates)
+- Order status breakdown
+- Top-selling products
+- Recent reviews
+
+#### Analytics
+- Visitor trends chart
+- Orders & revenue chart
+- Product categories
+- User engagement funnel
+- **Live visitor tracking**
 
 ### Admin Features
 

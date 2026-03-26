@@ -538,13 +538,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMobileNav();
     showRandomSalesNotification();
     initFacebookSDK();
-    
+
     // Track page view
     trackEvent('page_view', { page: window.location.pathname });
-    
+
     // Update user activity every minute
     setInterval(updateUserActivity, 60000);
-    
+
     // Process email queue every 30 seconds
     setInterval(processEmailQueue, 30000);
     
@@ -552,7 +552,150 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentUser) {
         loadChatMessages();
     }
+    
+    // Track visitor activity for admin dashboard
+    trackVisitorActivity();
+    
+    // Listen for storage events (real-time updates from other tabs)
+    window.addEventListener('storage', handleStorageEvent);
 });
+
+// ==================== REAL-TIME ACTIVITY TRACKING ====================
+
+// Track visitor activity
+function trackVisitorActivity() {
+    const activity = {
+        type: 'page_view',
+        page: window.location.pathname,
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent,
+        sessionId: getSessionId()
+    };
+    
+    // Store in localStorage for admin to read
+    const activities = JSON.parse(localStorage.getItem('metraActivities') || '[]');
+    activities.push(activity);
+    
+    // Keep only last 1000 activities
+    if (activities.length > 1000) {
+        activities.splice(0, activities.length - 1000);
+    }
+    
+    localStorage.setItem('metraActivities', JSON.stringify(activities));
+    
+    // Update active visitors count
+    updateActiveVisitors();
+}
+
+// Update active visitors count
+function updateActiveVisitors() {
+    const sessionId = getSessionId();
+    const visitors = JSON.parse(localStorage.getItem('metraActiveVisitors') || '{}');
+    
+    // Add/update this visitor
+    visitors[sessionId] = {
+        lastActive: Date.now(),
+        page: window.location.pathname,
+        userAgent: navigator.userAgent
+    };
+    
+    // Remove visitors inactive for more than 5 minutes
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    Object.keys(visitors).forEach(sid => {
+        if (visitors[sid].lastActive < fiveMinutesAgo) {
+            delete visitors[sid];
+        }
+    });
+    
+    localStorage.setItem('metraActiveVisitors', JSON.stringify(visitors));
+}
+
+// Handle storage events (cross-tab communication)
+function handleStorageEvent(event) {
+    const adminPages = ['admin.html'];
+    const isAdminPage = adminPages.some(page => window.location.pathname.includes(page));
+    
+    if (isAdminPage) {
+        // Admin dashboard - update in real-time
+        switch(event.key) {
+            case 'metraOrders':
+                updateAdminDashboard();
+                showAdminNotification('New order received!');
+                break;
+            case 'metraUsers':
+                updateAdminDashboard();
+                break;
+            case 'metraActivities':
+                updateLiveVisitors();
+                break;
+            case 'metraActiveVisitors':
+                updateLiveVisitors();
+                break;
+            case 'metraContactMessages':
+                showAdminNotification('New contact message!');
+                break;
+            case 'metraChatMessages':
+                loadSupportChats();
+                break;
+        }
+    }
+}
+
+// Admin dashboard update function
+function updateAdminDashboard() {
+    // Refresh all dashboard sections
+    if (document.getElementById('dashboardSection') && document.getElementById('dashboardSection').classList.contains('active')) {
+        updateDashboard();
+    }
+}
+
+// Show admin notification
+function showAdminNotification(message) {
+    if (!document.getElementById('adminDashboard')) return;
+    
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #228B22, #32CD32);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-weight: 500;
+        z-index: 5000;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Update live visitors display (admin only)
+function updateLiveVisitors() {
+    const visitorsCountEl = document.getElementById('liveVisitorsCount');
+    if (!visitorsCountEl) return;
+    
+    const visitors = JSON.parse(localStorage.getItem('metraActiveVisitors') || '{}');
+    const count = Object.keys(visitors).length;
+    
+    visitorsCountEl.textContent = count;
+    
+    // Update visitor list if on analytics page
+    const visitorListEl = document.getElementById('liveVisitorList');
+    if (visitorListEl) {
+        visitorListEl.innerHTML = Object.values(visitors).map(v => `
+            <div style="padding: 0.5rem; background: rgba(255,248,231,0.05); border-radius: 5px; margin-bottom: 0.5rem;">
+                <span style="color: var(--gray); font-size: 0.85rem;">On: ${v.page}</span>
+            </div>
+        `).join('');
+    }
+}
 
 // ==================== CHAT SUPPORT SYSTEM ====================
 
@@ -969,6 +1112,15 @@ function saveOrder(order) {
         items: order.items.length 
     });
     
+    // Trigger real-time admin update
+    localStorage.setItem('metraRealtimeOrder', JSON.stringify({
+        type: 'new_order',
+        orderId: order.id,
+        total: order.total,
+        customer: order.customerName,
+        timestamp: Date.now()
+    }));
+    
     cart = [];
     shippingCost = 0;
     updateCart();
@@ -1127,22 +1279,38 @@ function sendInvoiceViaWhatsApp(invoice) {
 
 // Wishlist Functions
 function addToWishlist(productId) {
-    if (wishlist.includes(productId)) {
-        removeFromWishlist(productId);
+    if (!productId) {
+        showNotification('Invalid product');
         return;
     }
     
+    if (wishlist.includes(productId)) {
+        showNotification('Already in wishlist');
+        return;
+    }
+
     wishlist.push(productId);
     saveWishlist();
     updateWishlistCount();
     showNotification('Added to wishlist!');
+    
+    // Trigger storage event for real-time update
+    localStorage.setItem('metraWishlistUpdate', Date.now().toString());
 }
 
 function removeFromWishlist(productId) {
-    wishlist = wishlist.filter(id => id !== productId);
-    saveWishlist();
-    updateWishlistCount();
-    showNotification('Removed from wishlist');
+    if (!productId) return;
+    
+    const index = wishlist.indexOf(productId);
+    if (index > -1) {
+        wishlist.splice(index, 1);
+        saveWishlist();
+        updateWishlistCount();
+        showNotification('Removed from wishlist');
+        
+        // Trigger storage event for real-time update
+        localStorage.setItem('metraWishlistUpdate', Date.now().toString());
+    }
 }
 
 function saveWishlist() {
@@ -1151,7 +1319,16 @@ function saveWishlist() {
 
 function loadWishlist() {
     const saved = localStorage.getItem('metraWishlist');
-    if (saved) wishlist = JSON.parse(saved);
+    if (saved) {
+        try {
+            wishlist = JSON.parse(saved);
+            if (!Array.isArray(wishlist)) {
+                wishlist = [];
+            }
+        } catch (e) {
+            wishlist = [];
+        }
+    }
 }
 
 function updateWishlistCount() {

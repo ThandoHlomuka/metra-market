@@ -676,6 +676,8 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1.5rem;
+    overflow-x: auto;
+    padding: 1rem 0;
 }
 
 .review-card {
@@ -683,6 +685,7 @@ body {
     border-radius: 15px;
     border: 1px solid rgba(255, 248, 231, 0.1);
     padding: 1.5rem;
+    min-width: 300px;
 }
 
 .review-card-header {

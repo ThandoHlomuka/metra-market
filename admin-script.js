@@ -54,14 +54,134 @@ function adminLogout() {
 function showDashboard() {
     document.getElementById('adminLogin').style.display = 'none';
     document.getElementById('adminDashboard').style.display = 'flex';
-    
+
     // Load data
     loadData();
     updateDashboard();
     
+    // Start real-time updates
+    startRealTimeUpdates();
+
     // Set admin name
     const adminName = localStorage.getItem('metraAdminName') || 'Admin';
     document.getElementById('adminName').textContent = adminName;
+}
+
+// Start Real-Time Updates
+function startRealTimeUpdates() {
+    // Update every 5 seconds
+    setInterval(() => {
+        updateLiveVisitors();
+        updateRecentOrders();
+        updateDashboardStats();
+    }, 5000);
+    
+    // Listen for storage events from other tabs
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'metraOrders') {
+            loadData();
+            updateDashboard();
+            showAdminNotification('New order received!');
+        }
+        if (event.key === 'metraUsers') {
+            loadData();
+            updateDashboard();
+        }
+        if (event.key === 'metraActiveVisitors') {
+            updateLiveVisitors();
+        }
+        if (event.key === 'metraContactMessages') {
+            showAdminNotification('New contact message!');
+        }
+        if (event.key === 'metraChatMessages') {
+            loadSupportChats();
+        }
+    });
+    
+    // Initial live visitors update
+    updateLiveVisitors();
+}
+
+// Update Live Visitors Count
+function updateLiveVisitors() {
+    const visitors = JSON.parse(localStorage.getItem('metraActiveVisitors') || '{}');
+    const count = Object.keys(visitors).length;
+    
+    // Update dashboard if element exists
+    const liveCountEl = document.getElementById('liveVisitorsCount');
+    if (liveCountEl) {
+        liveCountEl.textContent = count;
+    }
+    
+    // Update analytics page if active
+    if (document.getElementById('analyticsSection')?.classList.contains('active')) {
+        const visitorListEl = document.getElementById('liveVisitorList');
+        if (visitorListEl) {
+            visitorListEl.innerHTML = Object.values(visitors).map(v => `
+                <div style="padding: 0.5rem; background: rgba(255,248,231,0.05); border-radius: 5px; margin-bottom: 0.5rem;">
+                    <span style="color: var(--gray); font-size: 0.85rem;">Viewing: ${v.page}</span>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+// Update Recent Orders in Real-Time
+function updateRecentOrders() {
+    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const recentOrders = orders.slice(-5).reverse();
+    
+    const recentOrdersEl = document.getElementById('recentOrders');
+    if (recentOrdersEl && recentOrders.length > 0) {
+        recentOrdersEl.innerHTML = recentOrders.map(order => `
+            <div class="order-item" style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid rgba(255,248,231,0.1);">
+                <div>
+                    <strong>${order.id}</strong>
+                    <p style="color: var(--gray); font-size: 0.85rem;">${order.date}</p>
+                </div>
+                <span class="status-badge ${order.status}">${order.status}</span>
+            </div>
+        `).join('');
+    }
+}
+
+// Update Dashboard Stats
+function updateDashboardStats() {
+    const storedProducts = JSON.parse(localStorage.getItem('metraProducts') || '[]');
+    const storedOrders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const storedUsers = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    
+    document.getElementById('totalProducts').textContent = storedProducts.length;
+    document.getElementById('totalOrders').textContent = storedOrders.length;
+    document.getElementById('totalUsers').textContent = storedUsers.length;
+    
+    const totalRevenue = storedOrders.reduce((sum, order) => sum + order.total, 0);
+    document.getElementById('totalRevenue').textContent = 'R' + totalRevenue.toFixed(2);
+}
+
+// Show Admin Notification
+function showAdminNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #228B22, #32CD32);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-weight: 500;
+        z-index: 5000;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 // Load All Data
