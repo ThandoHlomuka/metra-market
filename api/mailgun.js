@@ -1,11 +1,15 @@
 // Mailgun Email Integration
-// Configure with your Mailgun credentials
+// Configure with your Mailgun credentials via environment variables
 
 const MAILGUN_CONFIG = {
-    apiKey: process.env.MAILGUN_API_KEY || '',
+    apiKey: process.env.MAILGUN_API_KEY || '', // Set in Vercel environment variables
     domain: process.env.MAILGUN_DOMAIN || 'mg.metramarket.co.za',
     apiUrl: 'https://api.mailgun.net/v3'
 };
+
+// NOTE: Add these environment variables in Vercel:
+// MAILGUN_API_KEY=your-api-key-here
+// MAILGUN_DOMAIN=mg.metramarket.co.za
 
 // Send email via Mailgun API
 async function sendEmailViaMailgun(to, subject, html, text = '') {
