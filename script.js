@@ -168,6 +168,26 @@ let courierOptions = [];
 let selectedDeliveryMethod = 'delivery'; // 'delivery' or 'collection'
 let selectedCollectionPoint = null;
 
+// Coupon/Discount System
+let appliedCoupon = null;
+const VALID_COUPONS = [
+    { code: 'WELCOME10', discount: 10, type: 'percent', minOrder: 500, description: '10% off for new customers' },
+    { code: 'SAVE50', discount: 50, type: 'fixed', minOrder: 300, description: 'R50 off on orders over R300' },
+    { code: 'SUMMER20', discount: 20, type: 'percent', minOrder: 1000, description: '20% off summer sale' },
+    { code: 'FREESHIP', discount: 0, type: 'freeship', minOrder: 0, description: 'Free shipping on any order' },
+    { code: 'METRA15', discount: 15, type: 'percent', minOrder: 750, description: '15% off for Metra members' }
+];
+
+// Newsletter Subscribers
+let newsletterSubscribers = [];
+
+// Recently Viewed Products
+let recentlyViewed = [];
+const MAX_RECENTLY_VIEWED = 5;
+
+// Customer Addresses (if logged in)
+let savedAddresses = [];
+
 // Bobgo Shipping Configuration - PRODUCTION MODE
 const BOBGO_CONFIG = {
     apiKey: '5a830068eeb9431da5bf1577a9980d99',
@@ -673,13 +693,26 @@ function updateUserActivity() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Initializing Metra Market...');
     console.log('Products array length:', products.length);
-    
+
     loadEmailConfig();
     loadEmailTemplates();
     loadCart();
     loadWishlist();
+    loadNewsletterSubscribers();
+    loadRecentlyViewed();
     checkUserSession();
     
+    // Load addresses if user is logged in
+    if (currentUser) {
+        loadAddresses();
+    }
+    
+    // Load applied coupon
+    const savedCoupon = localStorage.getItem('metraAppliedCoupon');
+    if (savedCoupon) {
+        appliedCoupon = JSON.parse(savedCoupon);
+    }
+
     // Render products with error handling
     try {
         renderProducts();
@@ -687,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
         console.error('Error rendering products:', error);
     }
-    
+
     updateCart();
     updateWishlistCount();
     setupMobileNav();
@@ -713,7 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for storage events (real-time updates from other tabs)
     window.addEventListener('storage', handleStorageEvent);
-    
+
     console.log('Metra Market initialization complete');
 });
 
@@ -1035,6 +1068,9 @@ function renderProducts() {
 
     console.log('Rendering', products.length, 'products');
     
+    // Initialize filtered products
+    filteredProducts = [...products];
+    
     grid.innerHTML = products.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
             <div class="product-image">${product.icon}</div>
@@ -1051,7 +1087,166 @@ function renderProducts() {
         </div>
     `).join('');
     
+    // Update product count
+    const productCount = document.getElementById('productCount');
+    if (productCount) productCount.textContent = products.length;
+    
     console.log('Products grid HTML length:', grid.innerHTML.length);
+}
+
+// ==================== PRODUCT SEARCH, FILTER & SORT ====================
+
+// Filtered products state
+let filteredProducts = [...products];
+let currentSort = 'default';
+
+// Search Products
+function searchProducts() {
+    const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
+    filterAndRenderProducts(searchTerm);
+}
+
+// Filter Products
+function filterProducts() {
+    const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
+    filterAndRenderProducts(searchTerm);
+}
+
+// Sort Products
+function sortProducts() {
+    const sortValue = document.getElementById('sortFilter')?.value || 'default';
+    currentSort = sortValue;
+    
+    // Sort the filtered products
+    switch(sortValue) {
+        case 'price-low':
+            filteredProducts.sort((a, b) => a.price - b.price);
+            break;
+        case 'price-high':
+            filteredProducts.sort((a, b) => b.price - a.price);
+            break;
+        case 'name-asc':
+            filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'name-desc':
+            filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+        case 'rating':
+            filteredProducts.sort((a, b) => {
+                const avgRatingA = a.reviews?.length ? a.reviews.reduce((sum, r) => sum + r.rating, 0) / a.reviews.length : 0;
+                const avgRatingB = b.reviews?.length ? b.reviews.reduce((sum, r) => sum + r.rating, 0) / b.reviews.length : 0;
+                return avgRatingB - avgRatingA;
+            });
+            break;
+        default:
+            // Reset to original order
+            filteredProducts = [...products];
+            const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
+            const category = document.getElementById('categoryFilter')?.value || 'all';
+            const priceRange = document.getElementById('priceFilter')?.value || 'all';
+            filteredProducts = applyFilters(searchTerm, category, priceRange);
+    }
+    
+    renderFilteredProducts();
+}
+
+// Filter and Render Products
+function filterAndRenderProducts(searchTerm = '') {
+    const category = document.getElementById('categoryFilter')?.value || 'all';
+    const priceRange = document.getElementById('priceFilter')?.value || 'all';
+    
+    filteredProducts = applyFilters(searchTerm, category, priceRange);
+    
+    // Apply current sort
+    sortProducts();
+}
+
+// Apply Filters
+function applyFilters(searchTerm, category, priceRange) {
+    let result = [...products];
+    
+    // Search filter
+    if (searchTerm) {
+        result = result.filter(product => 
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.desc.toLowerCase().includes(searchTerm) ||
+            product.tags.some(tag => tag.toLowerCase().includes(searchTerm)) ||
+            product.sku.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Category filter
+    if (category !== 'all') {
+        result = result.filter(product => product.tags.includes(category));
+    }
+    
+    // Price filter
+    if (priceRange !== 'all') {
+        switch(priceRange) {
+            case '0-500':
+                result = result.filter(product => product.price < 500);
+                break;
+            case '500-1000':
+                result = result.filter(product => product.price >= 500 && product.price < 1000);
+                break;
+            case '1000-2000':
+                result = result.filter(product => product.price >= 1000 && product.price < 2000);
+                break;
+            case '2000+':
+                result = result.filter(product => product.price >= 2000);
+                break;
+        }
+    }
+    
+    return result;
+}
+
+// Render Filtered Products
+function renderFilteredProducts() {
+    const grid = document.getElementById('productsGrid');
+    const noResults = document.getElementById('noResults');
+    const productCount = document.getElementById('productCount');
+    
+    if (!grid) return;
+    
+    // Update product count
+    if (productCount) productCount.textContent = filteredProducts.length;
+    
+    // Show/hide no results message
+    if (noResults) {
+        noResults.style.display = filteredProducts.length === 0 ? 'block' : 'none';
+        grid.style.display = filteredProducts.length === 0 ? 'none' : 'grid';
+    }
+    
+    if (filteredProducts.length === 0) return;
+    
+    grid.innerHTML = filteredProducts.map(product => `
+        <div class="product-card" onclick="openProductModal(${product.id})">
+            <div class="product-image">${product.icon}</div>
+            <div class="product-info">
+                <h3 class="product-name">${product.name}</h3>
+                <p class="product-desc">${product.desc}</p>
+                <div class="product-footer">
+                    <span class="product-price">R${product.price.toFixed(2)}</span>
+                    <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Clear Filters
+function clearFilters() {
+    document.getElementById('productSearch').value = '';
+    document.getElementById('categoryFilter').value = 'all';
+    document.getElementById('priceFilter').value = 'all';
+    document.getElementById('sortFilter').value = 'default';
+    
+    filteredProducts = [...products];
+    currentSort = 'default';
+    renderFilteredProducts();
 }
 
 // Cart Functions
@@ -1087,26 +1282,36 @@ function updateCart() {
     const cartSubtotal = document.getElementById('cartSubtotal');
     const cartShipping = document.getElementById('cartShipping');
     const cartTotal = document.getElementById('cartTotal');
-    
+
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     if (cartCount) cartCount.textContent = totalItems;
     if (navCartCount) navCartCount.textContent = totalItems;
-    
+
     if (cart.length === 0) {
         if (cartItems) cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
         if (cartSubtotal) cartSubtotal.textContent = 'R0.00';
         if (cartShipping) cartShipping.textContent = 'R0.00';
         if (cartTotal) cartTotal.textContent = 'R0.00';
+        // Render coupon input even if cart is empty
+        renderCouponInput();
         return;
     }
-    
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const total = subtotal + shippingCost;
+    const discount = calculateDiscount(subtotal);
     
+    // Apply free shipping coupon
+    let finalShipping = shippingCost;
+    if (appliedCoupon && appliedCoupon.type === 'freeship') {
+        finalShipping = 0;
+    }
+    
+    const total = subtotal + finalShipping - discount;
+
     if (cartItems) {
         cartItems.innerHTML = cart.map(item => `
             <div class="cart-item">
-                <div class="cart-item-image">${item.icon}</div>
+                <div class="cart-item-image">${product.icon}</div>
                 <div class="cart-item-info">
                     <div class="cart-item-name">${item.name}</div>
                     <div class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</div>
@@ -1117,10 +1322,13 @@ function updateCart() {
             </div>
         `).join('');
     }
-    
+
     if (cartSubtotal) cartSubtotal.textContent = `R${subtotal.toFixed(2)}`;
-    if (cartShipping) cartShipping.textContent = `R${shippingCost.toFixed(2)}`;
+    if (cartShipping) cartShipping.textContent = `R${finalShipping.toFixed(2)}`;
     if (cartTotal) cartTotal.textContent = `R${total.toFixed(2)}`;
+    
+    // Render coupon input
+    renderCouponInput();
 }
 
 function saveCart() {
@@ -1728,6 +1936,368 @@ function clearWishlist() {
 function addAllToCart() {
     wishlist.forEach(id => addToCart(id));
     showNotification('All items added to cart!');
+}
+
+// ==================== COUPON/DISCOUNT SYSTEM ====================
+
+// Apply Coupon
+function applyCoupon(code) {
+    if (!code) {
+        showNotification('Please enter a coupon code');
+        return;
+    }
+    
+    const coupon = VALID_COUPONS.find(c => c.code.toUpperCase() === code.toUpperCase());
+    
+    if (!coupon) {
+        showNotification('Invalid coupon code');
+        return;
+    }
+    
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (subtotal < coupon.minOrder) {
+        showNotification(`Minimum order amount is R${coupon.minOrder} for this coupon`);
+        return;
+    }
+    
+    appliedCoupon = coupon;
+    updateCart();
+    showNotification(`Coupon applied! ${coupon.description}`);
+    
+    // Save to localStorage
+    localStorage.setItem('metraAppliedCoupon', JSON.stringify(coupon));
+}
+
+// Remove Coupon
+function removeCoupon() {
+    appliedCoupon = null;
+    localStorage.removeItem('metraAppliedCoupon');
+    updateCart();
+    showNotification('Coupon removed');
+}
+
+// Calculate Discount
+function calculateDiscount(subtotal) {
+    if (!appliedCoupon) return 0;
+    
+    switch(appliedCoupon.type) {
+        case 'percent':
+            return (subtotal * appliedCoupon.discount) / 100;
+        case 'fixed':
+            return Math.min(appliedCoupon.discount, subtotal);
+        case 'freeship':
+            return 0; // Discount applied to shipping
+        default:
+            return 0;
+    }
+}
+
+// Render Coupon Input in Cart
+function renderCouponInput() {
+    const cartFooter = document.querySelector('.cart-footer');
+    if (!cartFooter) return;
+    
+    let couponHTML = cartFooter.querySelector('.coupon-section');
+    
+    if (!couponHTML) {
+        couponHTML = document.createElement('div');
+        couponHTML.className = 'coupon-section';
+        cartFooter.insertBefore(couponHTML, cartFooter.firstChild);
+    }
+    
+    if (appliedCoupon) {
+        couponHTML.innerHTML = `
+            <div style="background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <i class="fas fa-tag" style="color: #228B22; margin-right: 0.5rem;"></i>
+                        <strong style="color: #228B22;">${appliedCoupon.code}</strong>
+                        <span style="color: var(--gray); font-size: 0.85rem; margin-left: 0.5rem;">${appliedCoupon.description}</span>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="removeCoupon()" style="background: rgba(220, 20, 60, 0.2); color: #DC143C; border: none; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        couponHTML.innerHTML = `
+            <div style="margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="couponCode" placeholder="Enter coupon code" style="flex: 1; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-family: inherit;">
+                    <button class="btn-primary" onclick="applyCoupon(document.getElementById('couponCode').value)" style="padding: 0.8rem 1.5rem; background: var(--gradient); border: none; color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-ticket-alt"></i> Apply
+                    </button>
+                </div>
+                <p style="color: var(--gray); font-size: 0.8rem; margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Try: WELCOME10, SAVE50, SUMMER20
+                </p>
+            </div>
+        `;
+    }
+}
+
+// ==================== NEWSLETTER SUBSCRIPTION ====================
+
+// Subscribe to Newsletter
+function subscribeToNewsletter(email) {
+    if (!email) {
+        showNotification('Please enter your email address');
+        return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address');
+        return false;
+    }
+    
+    // Check if already subscribed
+    if (newsletterSubscribers.includes(email)) {
+        showNotification('You are already subscribed to our newsletter');
+        return false;
+    }
+    
+    newsletterSubscribers.push(email);
+    localStorage.setItem('metraNewsletterSubscribers', JSON.stringify(newsletterSubscribers));
+    
+    showNotification('Thank you for subscribing! You will receive our latest offers.');
+    return true;
+}
+
+// Load Newsletter Subscribers
+function loadNewsletterSubscribers() {
+    const saved = localStorage.getItem('metraNewsletterSubscribers');
+    if (saved) {
+        newsletterSubscribers = JSON.parse(saved);
+    }
+}
+
+// ==================== RECENTLY VIEWED PRODUCTS ====================
+
+// Add to Recently Viewed
+function addToRecentlyViewed(productId) {
+    // Remove if already exists
+    recentlyViewed = recentlyViewed.filter(id => id !== productId);
+    
+    // Add to beginning
+    recentlyViewed.unshift(productId);
+    
+    // Limit to max items
+    if (recentlyViewed.length > MAX_RECENTLY_VIEWED) {
+        recentlyViewed.pop();
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('metraRecentlyViewed', JSON.stringify(recentlyViewed));
+    
+    // Update UI if on page
+    renderRecentlyViewed();
+}
+
+// Render Recently Viewed
+function renderRecentlyViewed() {
+    const container = document.getElementById('recentlyViewedContainer');
+    if (!container) return;
+    
+    if (recentlyViewed.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No recently viewed products</p>';
+        return;
+    }
+    
+    const viewedProducts = products.filter(p => recentlyViewed.includes(p.id));
+    
+    container.innerHTML = `
+        <h3 style="margin-bottom: 1.5rem; color: var(--light);">Recently Viewed</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            ${viewedProducts.map(product => `
+                <div class="product-card" onclick="openProductModal(${product.id})" style="cursor: pointer;">
+                    <div class="product-image" style="height: 150px; font-size: 3rem;">${product.icon}</div>
+                    <div class="product-info" style="padding: 1rem;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--light);">${product.name}</h4>
+                        <p style="font-weight: 700; color: var(--primary);">R${product.price.toFixed(2)}</p>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Load Recently Viewed
+function loadRecentlyViewed() {
+    const saved = localStorage.getItem('metraRecentlyViewed');
+    if (saved) {
+        recentlyViewed = JSON.parse(saved);
+    }
+}
+
+// Clear Recently Viewed
+function clearRecentlyViewed() {
+    recentlyViewed = [];
+    localStorage.removeItem('metraRecentlyViewed');
+    renderRecentlyViewed();
+    showNotification('Recently viewed cleared');
+}
+
+// ==================== CUSTOMER ADDRESSES ====================
+
+// Add Address
+function addAddress(address) {
+    if (!currentUser) {
+        showNotification('Please login to save addresses');
+        return false;
+    }
+    
+    savedAddresses.push({
+        id: Date.now(),
+        ...address,
+        isDefault: savedAddresses.length === 0
+    });
+    
+    saveAddresses();
+    showNotification('Address saved successfully');
+    return true;
+}
+
+// Remove Address
+function removeAddress(addressId) {
+    savedAddresses = savedAddresses.filter(a => a.id !== addressId);
+    saveAddresses();
+    showNotification('Address removed');
+}
+
+// Set Default Address
+function setDefaultAddress(addressId) {
+    savedAddresses.forEach(a => {
+        a.isDefault = (a.id === addressId);
+    });
+    saveAddresses();
+    showNotification('Default address updated');
+}
+
+// Save Addresses
+function saveAddresses() {
+    if (currentUser) {
+        localStorage.setItem('metraAddresses_' + currentUser.id, JSON.stringify(savedAddresses));
+    }
+}
+
+// Load Addresses
+function loadAddresses() {
+    if (currentUser) {
+        const saved = localStorage.getItem('metraAddresses_' + currentUser.id);
+        if (saved) {
+            savedAddresses = JSON.parse(saved);
+        }
+    }
+}
+
+// Get Default Address
+function getDefaultAddress() {
+    return savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+}
+
+// Render Addresses in Profile
+function renderAddresses() {
+    const container = document.getElementById('addressesContainer');
+    if (!container) return;
+    
+    if (savedAddresses.length === 0) {
+        container.innerHTML = `
+            <p style="color: var(--gray); margin-bottom: 1rem;">No saved addresses</p>
+            <button class="btn-primary" onclick="showAddAddressForm()">
+                <i class="fas fa-plus"></i> Add Address
+            </button>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+            ${savedAddresses.map(addr => `
+                <div style="background: rgba(255,248,231,0.05); border: 1px solid ${addr.isDefault ? 'var(--primary)' : 'rgba(255,248,231,0.1)'}; border-radius: 10px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div>
+                            ${addr.isDefault ? '<span style="background: var(--primary); color: white; padding: 0.2rem 0.6rem; border-radius: 15px; font-size: 0.75rem;">DEFAULT</span>' : ''}
+                            <strong style="margin-left: 0.5rem;">${addr.name}</strong>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            ${!addr.isDefault ? `<button class="btn-secondary btn-sm" onclick="setDefaultAddress(${addr.id})"><i class="fas fa-check"></i> Set Default</button>` : ''}
+                            <button class="btn-danger btn-sm" onclick="removeAddress(${addr.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <p style="color: var(--gray); font-size: 0.9rem;">${addr.street}, ${addr.city}, ${addr.province} ${addr.postalCode}</p>
+                    <p style="color: var(--gray); font-size: 0.9rem;">${addr.phone}</p>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-primary" onclick="showAddAddressForm()">
+            <i class="fas fa-plus"></i> Add New Address
+        </button>
+    `;
+}
+
+// Show Add Address Form
+function showAddAddressForm() {
+    const container = document.getElementById('addressesContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <h4 style="margin-bottom: 1rem;">Add New Address</h4>
+        <form onsubmit="handleAddAddress(event)" style="display: grid; gap: 1rem;">
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="addrName" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="addrPhone" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Street Address</label>
+                <input type="text" id="addrStreet" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+            </div>
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="addrCity" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+                </div>
+                <div class="form-group">
+                    <label>Province</label>
+                    <input type="text" id="addrProvince" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+                </div>
+                <div class="form-group">
+                    <label>Postal Code</label>
+                    <input type="text" id="addrPostal" required style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light);">
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Address</button>
+                <button type="button" class="btn-secondary" onclick="renderAddresses()"><i class="fas fa-times"></i> Cancel</button>
+            </div>
+        </form>
+    `;
+}
+
+// Handle Add Address
+function handleAddAddress(event) {
+    event.preventDefault();
+    
+    const address = {
+        name: document.getElementById('addrName').value,
+        phone: document.getElementById('addrPhone').value,
+        street: document.getElementById('addrStreet').value,
+        city: document.getElementById('addrCity').value,
+        province: document.getElementById('addrProvince').value,
+        postalCode: document.getElementById('addrPostal').value
+    };
+    
+    if (addAddress(address)) {
+        renderAddresses();
+    }
 }
 
 // Auth Modal Functions
@@ -2477,6 +3047,9 @@ function handleFacebookLogin(userInfo) {
 function openProductModal(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
+
+    // Add to recently viewed
+    addToRecentlyViewed(productId);
 
     const modal = document.getElementById('productModal');
     const overlay = document.getElementById('modalOverlay');

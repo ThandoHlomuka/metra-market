@@ -137,8 +137,59 @@
             <h2 class="section-title">Featured Products</h2>
             <p class="section-subtitle">Handpicked selections just for you</p>
         </div>
+        
+        <!-- Search & Filter Bar -->
+        <div class="product-filters">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="productSearch" placeholder="Search products..." onkeyup="searchProducts()">
+            </div>
+            
+            <div class="filter-group">
+                <select id="categoryFilter" onchange="filterProducts()">
+                    <option value="all">All Categories</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Wearables">Wearables</option>
+                    <option value="Gaming">Gaming</option>
+                    <option value="Office">Office</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Connectivity">Connectivity</option>
+                </select>
+                
+                <select id="priceFilter" onchange="filterProducts()">
+                    <option value="all">Any Price</option>
+                    <option value="0-500">Under R500</option>
+                    <option value="500-1000">R500 - R1000</option>
+                    <option value="1000-2000">R1000 - R2000</option>
+                    <option value="2000+">R2000+</option>
+                </select>
+                
+                <select id="sortFilter" onchange="sortProducts()">
+                    <option value="default">Sort By</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                    <option value="rating">Top Rated</option>
+                </select>
+            </div>
+            
+            <div class="filter-results" id="filterResults">
+                Showing <span id="productCount">0</span> products
+            </div>
+        </div>
+        
         <div class="products-grid" id="productsGrid">
             <!-- Products will be loaded dynamically -->
+        </div>
+        
+        <!-- No Results Message -->
+        <div id="noResults" style="display: none; text-align: center; padding: 3rem; color: var(--gray);">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p style="font-size: 1.2rem;">No products found matching your criteria</p>
+            <button class="btn-secondary" onclick="clearFilters()" style="margin-top: 1rem;">
+                <i class="fas fa-times"></i> Clear Filters
+            </button>
         </div>
     </section>
 
@@ -199,6 +250,21 @@
         </div>
     </section>
 
+    <!-- Recently Viewed Section -->
+    <section class="recently-viewed" id="recentlyViewed" style="padding: 4rem 2rem; background: rgba(255, 248, 231, 0.02);">
+        <div style="max-width: 1400px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 class="section-title" style="margin: 0;">Recently Viewed</h2>
+                <button class="btn-secondary btn-sm" onclick="clearRecentlyViewed()" style="background: rgba(220, 20, 60, 0.2); color: #DC143C; border: none; padding: 0.5rem 1rem; border-radius: 10px; cursor: pointer;">
+                    <i class="fas fa-times"></i> Clear History
+                </button>
+            </div>
+            <div id="recentlyViewedContainer">
+                <!-- Recently viewed products will be loaded here -->
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
@@ -234,10 +300,13 @@
             <div class="footer-section">
                 <h4>Newsletter</h4>
                 <p>Subscribe for exclusive deals</p>
-                <div class="newsletter">
-                    <input type="email" placeholder="Enter email">
-                    <button><i class="fas fa-paper-plane"></i></button>
-                </div>
+                <form class="newsletter" onsubmit="event.preventDefault(); subscribeToNewsletter(document.getElementById('newsletterEmail').value);">
+                    <input type="email" id="newsletterEmail" placeholder="Enter email" required>
+                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
+                </form>
+                <p style="font-size: 0.75rem; color: var(--gray); margin-top: 0.5rem;">
+                    <i class="fas fa-shield-alt"></i> We respect your privacy. Unsubscribe anytime.
+                </p>
             </div>
         </div>
         <div class="footer-bottom">
