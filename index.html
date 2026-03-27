@@ -137,14 +137,14 @@
             <h2 class="section-title">Featured Products</h2>
             <p class="section-subtitle">Handpicked selections just for you</p>
         </div>
-        
+
         <!-- Search & Filter Bar -->
         <div class="product-filters">
             <div class="search-box">
                 <i class="fas fa-search"></i>
                 <input type="text" id="productSearch" placeholder="Search products..." onkeyup="searchProducts()">
             </div>
-            
+
             <div class="filter-group">
                 <select id="categoryFilter" onchange="filterProducts()">
                     <option value="all">All Categories</option>
@@ -155,7 +155,7 @@
                     <option value="Accessories">Accessories</option>
                     <option value="Connectivity">Connectivity</option>
                 </select>
-                
+
                 <select id="priceFilter" onchange="filterProducts()">
                     <option value="all">Any Price</option>
                     <option value="0-500">Under R500</option>
@@ -163,7 +163,7 @@
                     <option value="1000-2000">R1000 - R2000</option>
                     <option value="2000+">R2000+</option>
                 </select>
-                
+
                 <select id="sortFilter" onchange="sortProducts()">
                     <option value="default">Sort By</option>
                     <option value="price-low">Price: Low to High</option>
@@ -173,16 +173,16 @@
                     <option value="rating">Top Rated</option>
                 </select>
             </div>
-            
+
             <div class="filter-results" id="filterResults">
                 Showing <span id="productCount">0</span> products
             </div>
         </div>
-        
+
         <div class="products-grid" id="productsGrid">
             <!-- Products will be loaded dynamically -->
         </div>
-        
+
         <!-- No Results Message -->
         <div id="noResults" style="display: none; text-align: center; padding: 3rem; color: var(--gray);">
             <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
@@ -190,6 +190,16 @@
             <button class="btn-secondary" onclick="clearFilters()" style="margin-top: 1rem;">
                 <i class="fas fa-times"></i> Clear Filters
             </button>
+        </div>
+
+        <!-- See More CTA -->
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="shopping.html" class="cta-btn" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 1rem 2.5rem; font-size: 1.1rem;">
+                <i class="fas fa-store"></i> View All Products
+            </a>
+            <p style="color: var(--gray); margin-top: 1rem; font-size: 0.9rem;">
+                Browse our complete catalogue of 20+ products
+            </p>
         </div>
     </section>
 

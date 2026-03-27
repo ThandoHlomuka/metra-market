@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop All Products | Metra Market</title>
+    <meta name="description" content="Browse our complete catalogue of premium products at unbeatable prices">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <style>
+        .shopping-hero {
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(220, 20, 60, 0.9)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%238B0000" width="100" height="100"/><circle fill="%23DC143C" cx="50" cy="50" r="40"/></svg>');
+            background-size: cover;
+            padding: 4rem 2rem;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .shopping-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        
+        .shopping-hero p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+        }
+        
+        .shopping-toolbar {
+            background: rgba(255, 248, 231, 0.05);
+            border: 1px solid rgba(255, 248, 231, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .view-btn {
+            background: rgba(255, 248, 231, 0.1);
+            border: 1px solid rgba(255, 248, 231, 0.2);
+            color: var(--light);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .view-btn.active {
+            background: var(--gradient);
+            border-color: var(--primary);
+        }
+        
+        .products-grid.list-view {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .list-view .product-card {
+            display: grid;
+            grid-template-columns: 200px 1fr auto;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .list-view .product-image {
+            height: 150px !important;
+            font-size: 3rem;
+        }
+        
+        .breadcrumb {
+            padding: 1rem 2rem;
+            background: rgba(255, 248, 231, 0.03);
+            border-bottom: 1px solid rgba(255, 248, 231, 0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .breadcrumb a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--primary);
+        }
+        
+        .breadcrumb span {
+            color: var(--gray);
+            margin: 0 0.5rem;
+        }
+        
+        .breadcrumb .current {
+            color: var(--light);
+        }
+        
+        .stock-indicator {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .stock-in-stock {
+            background: rgba(34, 139, 34, 0.2);
+            color: #228B22;
+        }
+        
+        .stock-low {
+            background: rgba(255, 165, 0, 0.2);
+            color: #FFA500;
+        }
+        
+        .stock-out {
+            background: rgba(220, 20, 60, 0.2);
+            color: #DC143C;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        document.documentElement.classList.add('loaded');
+    </script>
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="index.html"><i class="fas fa-home"></i> Home</a>
+        <span>/</span>
+        <span class="current">Shop All Products</span>
+    </div>
+    
+    <!-- Shopping Hero -->
+    <section class="shopping-hero">
+        <h1><i class="fas fa-store"></i> Shop All Products</h1>
+        <p>Browse our complete catalogue of 20+ premium products</p>
+    </section>
+    
+    <!-- Main Content -->
+    <main style="max-width: 1400px; margin: 0 auto; padding: 0 2rem 4rem;">
+        <!-- Shopping Toolbar -->
+        <div class="shopping-toolbar">
+            <div class="search-box" style="flex: 1; min-width: 250px; position: relative;">
+                <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--gray);"></i>
+                <input type="text" id="productSearch" placeholder="Search products..." onkeyup="searchProducts()" 
+                    style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; background: rgba(255,248,231,0.1); border: 1px solid rgba(255,248,231,0.2); border-radius: 10px; color: var(--light); font-size: 1rem; font-family: inherit;">
+            </div>
+            
+            <div class="filter-group" style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+                <select id="categoryFilter" onchange="filterProducts()" style="padding: 0.8rem 1.2rem; background: rgba(255,248,231,0.1); border: 1px solid rgba(255,248,231,0.2); border-radius: 10px; color: var(--light); font-size: 0.9rem; cursor: pointer;">
+                    <option value="all">All Categories</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Wearables">Wearables</option>
+                    <option value="Gaming">Gaming</option>
+                    <option value="Office">Office</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Connectivity">Connectivity</option>
+                    <option value="Electronics">Electronics</option>
+                </select>
+                
+                <select id="priceFilter" onchange="filterProducts()" style="padding: 0.8rem 1.2rem; background: rgba(255,248,231,0.1); border: 1px solid rgba(255,248,231,0.2); border-radius: 10px; color: var(--light); font-size: 0.9rem; cursor: pointer;">
+                    <option value="all">Any Price</option>
+                    <option value="0-500">Under R500</option>
+                    <option value="500-1000">R500 - R1000</option>
+                    <option value="1000-2000">R1000 - R2000</option>
+                    <option value="2000+">R2000+</option>
+                </select>
+                
+                <select id="sortFilter" onchange="sortProducts()" style="padding: 0.8rem 1.2rem; background: rgba(255,248,231,0.1); border: 1px solid rgba(255,248,231,0.2); border-radius: 10px; color: var(--light); font-size: 0.9rem; cursor: pointer;">
+                    <option value="default">Sort By</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                    <option value="rating">Top Rated</option>
+                </select>
+            </div>
+            
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('grid')" title="Grid View"><i class="fas fa-th-large"></i></button>
+                <button class="view-btn" onclick="setView('list')" title="List View"><i class="fas fa-list"></i></button>
+            </div>
+        </div>
+        
+        <!-- Results Info -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div class="filter-results">
+                Showing <span id="productCount" style="color: var(--primary); font-weight: 600;">0</span> of <span id="totalProducts" style="color: var(--gray);">20</span> products
+            </div>
+            <button class="btn-secondary btn-sm" onclick="clearFilters()" style="background: rgba(220, 20, 60, 0.2); color: #DC143C; border: none; padding: 0.5rem 1rem; border-radius: 10px; cursor: pointer;">
+                <i class="fas fa-times"></i> Clear Filters
+            </button>
+        </div>
+        
+        <!-- Products Grid -->
+        <div class="products-grid" id="productsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+            <!-- Products loaded dynamically -->
+        </div>
+        
+        <!-- No Results -->
+        <div id="noResults" style="display: none; text-align: center; padding: 4rem 2rem; color: var(--gray);">
+            <i class="fas fa-search" style="font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5;"></i>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No products found</h3>
+            <p style="margin-bottom: 1.5rem;">Try adjusting your search or filters</p>
+            <button class="btn-secondary" onclick="clearFilters()" style="background: rgba(220, 20, 60, 0.2); color: #DC143C; border: none; padding: 0.8rem 2rem; border-radius: 10px; cursor: pointer; font-size: 1rem;">
+                <i class="fas fa-redo"></i> Reset All Filters
+            </button>
+        </div>
+        
+        <!-- Recently Viewed -->
+        <div id="recentlyViewedContainer" style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(255,248,231,0.1);">
+            <!-- Recently viewed products loaded here -->
+        </div>
+    </main>
+    
+    <!-- Include main script -->
+    <script src="script.js"></script>
+    
+    <script>
+        // Set view mode
+        function setView(mode) {
+            const grid = document.getElementById('productsGrid');
+            const btns = document.querySelectorAll('.view-btn');
+            
+            btns.forEach(b => b.classList.remove('active'));
+            
+            if (mode === 'list') {
+                grid.classList.add('list-view');
+                btns[1].classList.add('active');
+            } else {
+                grid.classList.remove('list-view');
+                btns[0].classList.add('active');
+            }
+        }
+        
+        // Override renderFilteredProducts to show stock
+        const originalRenderFilteredProducts = renderFilteredProducts;
+        renderFilteredProducts = function() {
+            const grid = document.getElementById('productsGrid');
+            const noResults = document.getElementById('noResults');
+            const productCount = document.getElementById('productCount');
+            const totalProducts = document.getElementById('totalProducts');
+            
+            if (!grid) return;
+            
+            // Update counts
+            if (productCount) productCount.textContent = filteredProducts.length;
+            if (totalProducts) totalProducts.textContent = products.length;
+            
+            // Show/hide no results
+            if (noResults) {
+                noResults.style.display = filteredProducts.length === 0 ? 'block' : 'none';
+                grid.style.display = filteredProducts.length === 0 ? 'none' : 'grid';
+            }
+            
+            if (filteredProducts.length === 0) return;
+            
+            grid.innerHTML = filteredProducts.map(product => {
+                const stockStatus = product.stock > 20 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock';
+                const stockClass = product.stock > 20 ? 'stock-in-stock' : product.stock > 0 ? 'stock-low' : 'stock-out';
+                
+                return `
+                <div class="product-card" onclick="openProductModal(${product.id})" style="cursor: pointer;">
+                    <div class="product-image">${product.icon}</div>
+                    <div class="product-info">
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-desc">${product.desc}</p>
+                        <span class="stock-indicator ${stockClass}">
+                            <i class="fas fa-${product.stock > 0 ? 'check-circle' : 'times-circle'}"></i> ${stockStatus}
+                        </span>
+                        <div class="product-footer" style="margin-top: 1rem;">
+                            <span class="product-price">R${product.price.toFixed(2)}</span>
+                            <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})" ${product.stock === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
+                                ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            
+            // Render recently viewed
+            renderRecentlyViewed();
+        };
+        
+        // Initialize shopping page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render all products
+            filteredProducts = [...products];
+            renderFilteredProducts();
+            
+            // Update total count
+            document.getElementById('totalProducts').textContent = products.length;
+        });
+    </script>
+</body>
+</html>

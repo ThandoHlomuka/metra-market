@@ -22,10 +22,11 @@ const products = [
             { user: "Sipho M.", rating: 5, comment: "Amazing sound quality! Best headphones I've ever owned.", date: "2026-03-15" },
             { user: "Nomsa K.", rating: 4, comment: "Great headphones, very comfortable for long use.", date: "2026-03-10" }
         ],
-        weight: 0.35, // 350g
-        length: 22, // cm
-        width: 20, // cm
-        height: 10 // cm
+        weight: 0.35,
+        length: 22,
+        width: 20,
+        height: 10,
+        stock: 50
     },
     {
         id: 2,
@@ -41,10 +42,11 @@ const products = [
             { user: "Thabo D.", rating: 5, comment: "Perfect fitness companion! Tracks everything accurately.", date: "2026-03-18" },
             { user: "Zanele P.", rating: 5, comment: "Love the design and battery life is incredible!", date: "2026-03-12" }
         ],
-        weight: 0.15, // 150g (with packaging)
-        length: 12, // cm
-        width: 10, // cm
-        height: 8 // cm
+        weight: 0.15,
+        length: 12,
+        width: 10,
+        height: 8,
+        stock: 35
     },
     {
         id: 3,
@@ -59,10 +61,11 @@ const products = [
         reviews: [
             { user: "Priya N.", rating: 5, comment: "Game changer for my home office setup!", date: "2026-03-14" }
         ],
-        weight: 1.2, // 1.2kg
-        length: 28, // cm
-        width: 25, // cm
-        height: 6 // cm (folded)
+        weight: 1.2,
+        length: 28,
+        width: 25,
+        height: 6,
+        stock: 100
     },
     {
         id: 4,
@@ -77,10 +80,11 @@ const products = [
         reviews: [
             { user: "Kyle B.", rating: 5, comment: "Best keyboard I've ever used. The switches are so smooth!", date: "2026-03-16" }
         ],
-        weight: 1.1, // 1.1kg
-        length: 44, // cm (full-size keyboard)
-        width: 15, // cm
-        height: 5 // cm
+        weight: 1.1,
+        length: 44,
+        width: 15,
+        height: 5,
+        stock: 45
     },
     {
         id: 5,
@@ -95,10 +99,11 @@ const products = [
         reviews: [
             { user: "David M.", rating: 5, comment: "Incredibly responsive. My aim has improved significantly!", date: "2026-03-17" }
         ],
-        weight: 0.12, // 120g (with packaging)
-        length: 15, // cm
-        width: 10, // cm
-        height: 6 // cm
+        weight: 0.12,
+        length: 15,
+        width: 10,
+        height: 6,
+        stock: 80
     },
     {
         id: 6,
@@ -113,10 +118,11 @@ const products = [
         reviews: [
             { user: "Robert T.", rating: 5, comment: "Perfect for my MacBook. All ports work flawlessly.", date: "2026-03-15" }
         ],
-        weight: 0.18, // 180g
-        length: 14, // cm
-        width: 8, // cm
-        height: 4 // cm
+        weight: 0.18,
+        length: 14,
+        width: 8,
+        height: 4,
+        stock: 120
     },
     {
         id: 7,
@@ -131,10 +137,11 @@ const products = [
         reviews: [
             { user: "Mark W.", rating: 5, comment: "Amazing sound for its size. Took it to the beach!", date: "2026-03-18" }
         ],
-        weight: 0.65, // 650g
-        length: 18, // cm
-        width: 10, // cm
-        height: 10 // cm (cylindrical)
+        weight: 0.65,
+        length: 18,
+        width: 10,
+        height: 10,
+        stock: 60
     },
     {
         id: 8,
@@ -149,10 +156,239 @@ const products = [
         reviews: [
             { user: "Michelle D.", rating: 5, comment: "Beautiful case, feels so premium!", date: "2026-03-16" }
         ],
-        weight: 0.08, // 80g
-        length: 18, // cm
-        width: 12, // cm
-        height: 3 // cm
+        weight: 0.08,
+        length: 18,
+        width: 12,
+        height: 3,
+        stock: 200
+    },
+    {
+        id: 9,
+        name: "Tablet Stand",
+        price: 449.99,
+        desc: "Adjustable tablet and phone stand",
+        icon: "📱",
+        sku: "TS-009",
+        tags: ["Accessories", "Office", "Portable"],
+        fullDescription: "Universal stand for tablets and phones with adjustable angles and sturdy aluminum construction.",
+        specs: ["Universal compatibility", "Adjustable angle", "Aluminum build", "Non-slip base"],
+        reviews: [
+            { user: "Lisa M.", rating: 5, comment: "Perfect for video calls!", date: "2026-03-19" }
+        ],
+        weight: 0.4,
+        length: 15,
+        width: 12,
+        height: 3,
+        stock: 150
+    },
+    {
+        id: 10,
+        name: "Webcam HD",
+        price: 1299.99,
+        desc: "1080p HD webcam with microphone",
+        icon: "📹",
+        sku: "WC-010",
+        tags: ["Office", "Electronics", "Streaming"],
+        fullDescription: "Professional HD webcam with built-in noise-canceling microphone, perfect for video conferencing and streaming.",
+        specs: ["1080p Full HD", "Built-in mic", "Auto focus", "USB plug-and-play"],
+        reviews: [
+            { user: "James P.", rating: 4, comment: "Great quality for the price", date: "2026-03-17" }
+        ],
+        weight: 0.25,
+        length: 10,
+        width: 8,
+        height: 8,
+        stock: 75
+    },
+    {
+        id: 11,
+        name: "Power Bank 20000mAh",
+        price: 899.99,
+        desc: "High-capacity portable charger",
+        icon: "🔋",
+        sku: "PB-011",
+        tags: ["Accessories", "Portable", "Electronics"],
+        fullDescription: "Never run out of battery with this high-capacity power bank. Features dual USB ports and fast charging.",
+        specs: ["20000mAh capacity", "Dual USB ports", "Fast charging", "LED indicator"],
+        reviews: [
+            { user: "Sarah K.", rating: 5, comment: "Lasts for days!", date: "2026-03-18" }
+        ],
+        weight: 0.45,
+        length: 16,
+        width: 8,
+        height: 2,
+        stock: 90
+    },
+    {
+        id: 12,
+        name: "Gaming Headset",
+        price: 1799.99,
+        desc: "Surround sound gaming headset",
+        icon: "🎮",
+        sku: "GH-012",
+        tags: ["Gaming", "Audio", "RGB"],
+        fullDescription: "Immersive 7.1 surround sound gaming headset with RGB lighting and detachable microphone.",
+        specs: ["7.1 Surround sound", "RGB lighting", "Detachable mic", "Memory foam cushions"],
+        reviews: [
+            { user: "Mike R.", rating: 5, comment: "Best gaming headset I've owned!", date: "2026-03-16" }
+        ],
+        weight: 0.38,
+        length: 20,
+        width: 18,
+        height: 10,
+        stock: 55
+    },
+    {
+        id: 13,
+        name: "Monitor 27 inch",
+        price: 4499.99,
+        desc: "4K UHD IPS monitor",
+        icon: "🖥️",
+        sku: "MN-013",
+        tags: ["Office", "Electronics", "Gaming"],
+        fullDescription: "Stunning 4K UHD monitor with IPS panel for accurate colors and wide viewing angles.",
+        specs: ["27 inch 4K UHD", "IPS panel", "HDR10", "HDMI & DisplayPort"],
+        reviews: [
+            { user: "Alex T.", rating: 5, comment: "Crystal clear display!", date: "2026-03-15" }
+        ],
+        weight: 5.5,
+        length: 62,
+        width: 45,
+        height: 18,
+        stock: 25
+    },
+    {
+        id: 14,
+        name: "External SSD 1TB",
+        price: 2199.99,
+        desc: "Portable solid state drive",
+        icon: "💾",
+        sku: "SSD-014",
+        tags: ["Electronics", "Storage", "Portable"],
+        fullDescription: "Ultra-fast portable SSD with 1TB storage. Perfect for backups and file transfers.",
+        specs: ["1TB capacity", "USB 3.2 Gen 2", "1050MB/s read", "Shock resistant"],
+        reviews: [
+            { user: "Chris B.", rating: 5, comment: "Lightning fast!", date: "2026-03-14" }
+        ],
+        weight: 0.06,
+        length: 10,
+        width: 6,
+        height: 1,
+        stock: 70
+    },
+    {
+        id: 15,
+        name: "Desk Lamp LED",
+        price: 549.99,
+        desc: "Adjustable LED desk lamp",
+        icon: "💡",
+        sku: "DL-015",
+        tags: ["Office", "Home", "LED"],
+        fullDescription: "Modern LED desk lamp with adjustable brightness and color temperature.",
+        specs: ["Adjustable brightness", "Color temperature control", "USB charging port", "Touch control"],
+        reviews: [
+            { user: "Emma W.", rating: 4, comment: "Great for late night work", date: "2026-03-13" }
+        ],
+        weight: 0.8,
+        length: 40,
+        width: 15,
+        height: 15,
+        stock: 110
+    },
+    {
+        id: 16,
+        name: "Bluetooth Earbuds",
+        price: 799.99,
+        desc: "True wireless earbuds",
+        icon: "🎵",
+        sku: "BE-016",
+        tags: ["Audio", "Wireless", "Portable"],
+        fullDescription: "Compact true wireless earbuds with charging case. Great sound quality and comfortable fit.",
+        specs: ["True wireless", "20hr battery with case", "IPX4 water resistant", "Touch controls"],
+        reviews: [
+            { user: "Tom H.", rating: 4, comment: "Great value for money", date: "2026-03-12" }
+        ],
+        weight: 0.05,
+        length: 8,
+        width: 8,
+        height: 4,
+        stock: 130
+    },
+    {
+        id: 17,
+        name: "Laptop Bag",
+        price: 649.99,
+        desc: "Premium laptop messenger bag",
+        icon: "👜",
+        sku: "LB-017",
+        tags: ["Accessories", "Office", "Travel"],
+        fullDescription: "Stylish and protective laptop bag with multiple compartments for accessories.",
+        specs: ["Fits 15.6 inch laptops", "Water resistant", "Multiple compartments", "Padded shoulder strap"],
+        reviews: [
+            { user: "Nina S.", rating: 5, comment: "Perfect for daily commute", date: "2026-03-11" }
+        ],
+        weight: 0.9,
+        length: 42,
+        width: 30,
+        height: 12,
+        stock: 85
+    },
+    {
+        id: 18,
+        name: "Smart Home Hub",
+        price: 1899.99,
+        desc: "Voice-controlled smart home assistant",
+        icon: "🏠",
+        sku: "SH-018",
+        tags: ["Smart Home", "Electronics", "Voice Control"],
+        fullDescription: "Control your entire home with voice commands. Compatible with thousands of smart devices.",
+        specs: ["Voice control", "Smart home hub", "Premium speaker", "Privacy controls"],
+        reviews: [
+            { user: "Peter J.", rating: 5, comment: "Makes life so much easier!", date: "2026-03-10" }
+        ],
+        weight: 0.7,
+        length: 15,
+        width: 15,
+        height: 10,
+        stock: 40
+    },
+    {
+        id: 19,
+        name: "Fitness Tracker",
+        price: 1499.99,
+        desc: "Advanced fitness band with GPS",
+        icon: "💪",
+        sku: "FT-019",
+        tags: ["Wearables", "Fitness", "Health"],
+        fullDescription: "Track your workouts, heart rate, sleep, and more with this advanced fitness tracker.",
+        specs: ["Built-in GPS", "Heart rate monitor", "Sleep tracking", "7-day battery"],
+        reviews: [
+            { user: "Kelly M.", rating: 5, comment: "Perfect for my workouts!", date: "2026-03-09" }
+        ],
+        weight: 0.03,
+        length: 4,
+        width: 2,
+        height: 1,
+        stock: 95
+    },
+    {
+        id: 20,
+        name: "Wireless Charger",
+        price: 399.99,
+        desc: "Fast wireless charging pad",
+        icon: "⚡",
+        sku: "WC-020",
+        tags: ["Accessories", "Wireless", "Charging"],
+        fullDescription: "Fast wireless charging for all Qi-enabled devices. Sleek design with LED indicator.",
+        specs: ["15W fast charging", "Qi-certified", "LED indicator", "Non-slip surface"],
+        reviews: [
+            { user: "Dan L.", rating: 4, comment: "Works great with my phone", date: "2026-03-08" }
+        ],
+        weight: 0.15,
+        length: 10,
+        width: 10,
+        height: 1,
+        stock: 180
     }
 ];
 
@@ -1052,7 +1288,7 @@ function initFacebookSDK() {
     }(document, 'script', 'facebook-jssdk'));
 }
 
-// Render Products
+// Render Products (Homepage - shows random selection)
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
     if (!grid) {
@@ -1071,7 +1307,10 @@ function renderProducts() {
     // Initialize filtered products
     filteredProducts = [...products];
     
-    grid.innerHTML = products.map(product => `
+    // Show random selection of products on homepage (shuffle and show all 20)
+    const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
+    
+    grid.innerHTML = shuffledProducts.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
             <div class="product-image">${product.icon}</div>
             <div class="product-info">
