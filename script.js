@@ -1884,7 +1884,7 @@ function processPayFastPayment(order) {
     // Validate customer email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const customerEmail = order.customerEmail ? order.customerEmail.trim().toLowerCase() : '';
-    
+
     if (!customerEmail || !emailRegex.test(customerEmail)) {
         showNotification('Invalid email address. Please update your profile with a valid email before checkout.');
         // Open profile modal for user to fix email
@@ -1911,6 +1911,7 @@ function processPayFastPayment(order) {
     console.log('Order Total:', order.total);
     console.log('Customer Email:', customerEmail);
     console.log('Email Valid:', emailRegex.test(customerEmail));
+    console.log('PayFast URL:', payFastUrl);
 
     const formData = {
         merchant_id: PAYFAST_CONFIG.merchantId,
@@ -1940,25 +1941,38 @@ function processPayFastPayment(order) {
     }
 
     // Create and submit form
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = payFastUrl;
-    form.target = '_blank';
+    try {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = payFastUrl;
+        form.target = '_blank'; // Open in new window/tab
+        form.style.display = 'none';
 
-    Object.keys(formData).forEach(key => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = formData[key];
-        form.appendChild(input);
-    });
+        Object.keys(formData).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = formData[key];
+            form.appendChild(input);
+        });
 
-    document.body.appendChild(form);
-    console.log('Submitting PayFast form...');
-    form.submit();
-    document.body.removeChild(form);
-
-    return true;
+        document.body.appendChild(form);
+        console.log('Submitting PayFast form...');
+        
+        // Submit the form
+        form.submit();
+        
+        // Remove form after submission
+        setTimeout(() => {
+            document.body.removeChild(form);
+        }, 1000);
+        
+        return true;
+    } catch (error) {
+        console.error('PayFast form submission error:', error);
+        showNotification('PayFast payment failed. Please try again or use another payment method.');
+        return false;
+    }
 }
 
 // Generate Invoice
@@ -2110,41 +2124,44 @@ function openWishlistModal() {
     const modal = document.createElement('div');
     modal.className = 'product-modal active';
     modal.id = 'wishlistModal';
+    
+    // Force reflow for animation
+    setTimeout(() => modal.classList.add('active'), 10);
 
     const wishlistProducts = products.filter(p => wishlist.includes(p.id));
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; max-height: 85vh;">
-            <button class="modal-close" onclick="closeWishlistModal()">
+        <div class="modal-content" style="max-width: 900px; max-height: 85vh; background: #1a0a0a;">
+            <button class="modal-close" onclick="closeWishlistModal()" style="z-index: 100; background: rgba(255,255,255,0.1);">
                 <i class="fas fa-times"></i>
             </button>
-            <div class="modal-body" style="max-height: 85vh;">
-                <h2 style="margin-bottom: 1.5rem; color: var(--light); text-align: center;">
-                    <i class="fas fa-heart" style="color: var(--secondary);"></i> My Wishlist
+            <div class="modal-body" style="max-height: 85vh; padding: 2rem; background: #1a0a0a;">
+                <h2 style="margin-bottom: 1.5rem; color: #FFF8E7; text-align: center; font-size: 1.8rem;">
+                    <i class="fas fa-heart" style="color: #DC143C;"></i> My Wishlist
                 </h2>
                 ${wishlistProducts.length > 0 ? `
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; padding: 1rem;">
                         ${wishlistProducts.map(product => `
-                            <div style="background: rgba(255, 248, 231, 0.08); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255, 248, 231, 0.15); transition: transform 0.3s, box-shadow 0.3s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.3), rgba(220, 20, 60, 0.3)); display: flex; align-items: center; justify-content: center; font-size: 3.5rem;">
+                            <div style="background: linear-gradient(135deg, rgba(255, 248, 231, 0.08), rgba(255, 248, 231, 0.03)); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255, 248, 231, 0.15); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.4), rgba(220, 20, 60, 0.4)); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; border-bottom: 1px solid rgba(255, 248, 231, 0.1);">
                                     ${product.icon}
                                 </div>
                                 <div style="padding: 1rem;">
-                                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #FFF8E7; min-height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
                                         ${product.name}
                                     </h3>
-                                    <p style="color: var(--gray); font-size: 0.8rem; margin-bottom: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <p style="color: #8B7355; font-size: 0.8rem; margin-bottom: 0.8rem; min-height: 32px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
                                         ${product.desc}
                                     </p>
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 1.1rem; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.8rem; border-top: 1px solid rgba(255, 248, 231, 0.1);">
+                                        <span style="font-size: 1.1rem; font-weight: 700; color: #DC143C;">
                                             R${product.price.toFixed(2)}
                                         </span>
                                         <div style="display: flex; gap: 0.4rem;">
-                                            <button onclick="event.stopPropagation(); addToCart(${product.id});" title="Add to Cart" style="background: var(--gradient); border: none; color: white; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                            <button onclick="addToCart(${product.id}); showNotification('Added to cart!');" title="Add to Cart" style="background: linear-gradient(135deg, #8B0000, #DC143C); border: none; color: white; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(139, 0, 0, 0.4);">
                                                 <i class="fas fa-cart-plus"></i>
                                             </button>
-                                            <button onclick="event.stopPropagation(); removeFromWishlist(${product.id}); openWishlistModal();" title="Remove" style="background: rgba(220, 20, 60, 0.3); border: none; color: white; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                            <button onclick="removeFromWishlist(${product.id}); openWishlistModal();" title="Remove" style="background: rgba(220, 20, 60, 0.2); border: 1px solid rgba(220, 20, 60, 0.4); color: #DC143C; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -2154,23 +2171,23 @@ function openWishlistModal() {
                         `).join('')}
                     </div>
                     <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,248,231,0.1); display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
-                        <button onclick="clearWishlist(); openWishlistModal();" style="background: rgba(255, 248, 231, 0.1); border: 1px solid rgba(255, 248, 231, 0.2); color: var(--light); padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s;" onmouseover="this.style.background='rgba(220, 20, 60, 0.2)'" onmouseout="this.style.background='rgba(255, 248, 231, 0.1)'">
+                        <button onclick="clearWishlist(); openWishlistModal();" style="background: rgba(255, 248, 231, 0.1); border: 1px solid rgba(255, 248, 231, 0.2); color: #FFF8E7; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s;">
                             <i class="fas fa-trash"></i> Clear All
                         </button>
-                        <button onclick="addAllToCart(); closeWishlistModal();" style="background: var(--gradient); border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <button onclick="addAllToCart(); closeWishlistModal();" style="background: linear-gradient(135deg, #8B0000, #DC143C); border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);">
                             <i class="fas fa-cart-plus"></i> Add All to Cart
                         </button>
                     </div>
                 ` : `
-                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray);">
-                        <i class="fas fa-heart" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                        <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">Your wishlist is empty</p>
+                    <div style="text-align: center; padding: 4rem 2rem; color: #8B7355;">
+                        <i class="fas fa-heart" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3; color: #DC143C;"></i>
+                        <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #FFF8E7;">Your wishlist is empty</p>
                         <p style="font-size: 0.9rem;">Start adding products you love!</p>
                     </div>
                 `}
             </div>
         </div>
-        <div class="modal-overlay active" onclick="closeWishlistModal()"></div>
+        <div class="modal-overlay active" onclick="closeWishlistModal()" style="background: rgba(26, 10, 10, 0.95);"></div>
     `;
 
     document.body.appendChild(modal);
