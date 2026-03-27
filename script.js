@@ -21,7 +21,11 @@ const products = [
         reviews: [
             { user: "Sipho M.", rating: 5, comment: "Amazing sound quality! Best headphones I've ever owned.", date: "2026-03-15" },
             { user: "Nomsa K.", rating: 4, comment: "Great headphones, very comfortable for long use.", date: "2026-03-10" }
-        ]
+        ],
+        weight: 0.35, // 350g
+        length: 22, // cm
+        width: 20, // cm
+        height: 10 // cm
     },
     {
         id: 2,
@@ -36,7 +40,11 @@ const products = [
         reviews: [
             { user: "Thabo D.", rating: 5, comment: "Perfect fitness companion! Tracks everything accurately.", date: "2026-03-18" },
             { user: "Zanele P.", rating: 5, comment: "Love the design and battery life is incredible!", date: "2026-03-12" }
-        ]
+        ],
+        weight: 0.15, // 150g (with packaging)
+        length: 12, // cm
+        width: 10, // cm
+        height: 8 // cm
     },
     {
         id: 3,
@@ -50,7 +58,11 @@ const products = [
         specs: ["Aluminum alloy", "6 height adjustments", "Supports 17 inch", "Anti-slip pads", "Foldable"],
         reviews: [
             { user: "Priya N.", rating: 5, comment: "Game changer for my home office setup!", date: "2026-03-14" }
-        ]
+        ],
+        weight: 1.2, // 1.2kg
+        length: 28, // cm
+        width: 25, // cm
+        height: 6 // cm (folded)
     },
     {
         id: 4,
@@ -64,7 +76,11 @@ const products = [
         specs: ["Cherry MX Red switches", "RGB backlighting", "Aluminum frame", "N-key rollover", "Detachable cable"],
         reviews: [
             { user: "Kyle B.", rating: 5, comment: "Best keyboard I've ever used. The switches are so smooth!", date: "2026-03-16" }
-        ]
+        ],
+        weight: 1.1, // 1.1kg
+        length: 44, // cm (full-size keyboard)
+        width: 15, // cm
+        height: 5 // cm
     },
     {
         id: 5,
@@ -78,7 +94,11 @@ const products = [
         specs: ["25K DPI sensor", "68g ultra-light", "80hr battery", "Wireless 2.4GHz", "6 programmable buttons"],
         reviews: [
             { user: "David M.", rating: 5, comment: "Incredibly responsive. My aim has improved significantly!", date: "2026-03-17" }
-        ]
+        ],
+        weight: 0.12, // 120g (with packaging)
+        length: 15, // cm
+        width: 10, // cm
+        height: 6 // cm
     },
     {
         id: 6,
@@ -92,7 +112,11 @@ const products = [
         specs: ["4K HDMI output", "3x USB 3.0", "SD/microSD readers", "100W PD", "Aluminum body"],
         reviews: [
             { user: "Robert T.", rating: 5, comment: "Perfect for my MacBook. All ports work flawlessly.", date: "2026-03-15" }
-        ]
+        ],
+        weight: 0.18, // 180g
+        length: 14, // cm
+        width: 8, // cm
+        height: 4 // cm
     },
     {
         id: 7,
@@ -106,7 +130,11 @@ const products = [
         specs: ["360° sound", "24hr battery", "IPX7 waterproof", "Bluetooth 5.0", "Built-in mic"],
         reviews: [
             { user: "Mark W.", rating: 5, comment: "Amazing sound for its size. Took it to the beach!", date: "2026-03-18" }
-        ]
+        ],
+        weight: 0.65, // 650g
+        length: 18, // cm
+        width: 10, // cm
+        height: 10 // cm (cylindrical)
     },
     {
         id: 8,
@@ -120,7 +148,11 @@ const products = [
         specs: ["Genuine leather", "Card slots", "Magnetic closure", "Precise cutouts", "Wireless charging compatible"],
         reviews: [
             { user: "Michelle D.", rating: 5, comment: "Beautiful case, feels so premium!", date: "2026-03-16" }
-        ]
+        ],
+        weight: 0.08, // 80g
+        length: 18, // cm
+        width: 12, // cm
+        height: 3 // cm
     }
 ];
 
@@ -639,12 +671,23 @@ function updateUserActivity() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Initializing Metra Market...');
+    console.log('Products array length:', products.length);
+    
     loadEmailConfig();
     loadEmailTemplates();
     loadCart();
     loadWishlist();
     checkUserSession();
-    renderProducts();
+    
+    // Render products with error handling
+    try {
+        renderProducts();
+        console.log('Products rendered successfully');
+    } catch (error) {
+        console.error('Error rendering products:', error);
+    }
+    
     updateCart();
     updateWishlistCount();
     setupMobileNav();
@@ -659,17 +702,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Process email queue every 30 seconds
     setInterval(processEmailQueue, 30000);
-    
+
     // Load chat messages if user is logged in
     if (currentUser) {
         loadChatMessages();
     }
-    
+
     // Track visitor activity for admin dashboard
     trackVisitorActivity();
-    
+
     // Listen for storage events (real-time updates from other tabs)
     window.addEventListener('storage', handleStorageEvent);
+    
+    console.log('Metra Market initialization complete');
 });
 
 // ==================== REAL-TIME ACTIVITY TRACKING ====================
@@ -977,7 +1022,18 @@ function initFacebookSDK() {
 // Render Products
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
-    if (!grid) return;
+    if (!grid) {
+        console.error('Products grid element not found!');
+        return;
+    }
+    
+    if (!products || products.length === 0) {
+        console.error('No products to render!');
+        grid.innerHTML = '<p style="text-align: center; color: var(--gray);">No products available</p>';
+        return;
+    }
+
+    console.log('Rendering', products.length, 'products');
     
     grid.innerHTML = products.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
@@ -994,6 +1050,8 @@ function renderProducts() {
             </div>
         </div>
     `).join('');
+    
+    console.log('Products grid HTML length:', grid.innerHTML.length);
 }
 
 // Cart Functions
@@ -1579,6 +1637,24 @@ function updateWishlistCount() {
     if (navCount) navCount.textContent = wishlist.length;
 }
 
+// Handle wishlist button click in product modal
+function handleWishlistClick(productId, button) {
+    if (!productId) {
+        showNotification('Invalid product');
+        return;
+    }
+
+    if (wishlist.includes(productId)) {
+        // Already in wishlist - remove it
+        removeFromWishlist(productId);
+        button.innerHTML = '<i class="fas fa-heart"></i> Add to Wishlist';
+    } else {
+        // Add to wishlist
+        addToWishlist(productId);
+        button.innerHTML = '<i class="fas fa-heart"></i> Wishlisted';
+    }
+}
+
 function openWishlistModal() {
     // Remove existing modal if any
     const existingModal = document.getElementById('wishlistModal');
@@ -1694,11 +1770,24 @@ function switchAuthTab(tab) {
 
 function handleLogin(event) {
     event.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const emailInput = document.getElementById('loginEmail').value.trim();
+    const email = emailInput.toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
+    console.log('Login attempt:', { email: emailInput, passwordLength: password.length });
+
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
-    const user = users.find(u => (u.email === email || u.username === email) && u.password === password);
+    console.log('Users in storage:', users.length);
+    
+    // Find user by email or username (case-insensitive for email/username)
+    const user = users.find(u => {
+        const storedEmail = (u.email || '').toLowerCase();
+        const storedUsername = (u.username || '').toLowerCase();
+        const emailMatch = storedEmail === email || storedUsername === email;
+        const passwordMatch = u.password === password;
+        console.log('Checking user:', { storedEmail, storedUsername, emailMatch, passwordMatch });
+        return emailMatch && passwordMatch;
+    });
 
     if (user) {
         currentUser = user;
@@ -1706,7 +1795,7 @@ function handleLogin(event) {
         createSession(user);
         // Also save full user data
         localStorage.setItem('metraCurrentUser', JSON.stringify(user));
-        
+
         // Update last login
         user.lastLogin = new Date().toISOString();
         const userIndex = users.findIndex(u => u.id === user.id);
@@ -1714,23 +1803,27 @@ function handleLogin(event) {
             users[userIndex] = user;
             localStorage.setItem('metraUsers', JSON.stringify(users));
         }
-        
+
         closeAuthModal();
         updateProfileIcon();
         showNotification('Welcome back, ' + user.name + '!');
         trackEvent('user_login', { userId: user.id });
     } else {
-        showNotification('Invalid credentials');
+        console.log('Login failed - user not found or password mismatch');
+        showNotification('Invalid credentials. Please check your email and password.');
     }
 }
 
 function handleRegister(event) {
     event.preventDefault();
     const name = document.getElementById('registerName').value.trim();
-    const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+    const emailInput = document.getElementById('registerEmail').value.trim();
+    const email = emailInput.toLowerCase();
     const phone = document.getElementById('registerPhone').value.trim();
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+    console.log('Registration attempt:', { name, email: emailInput, phone, passwordLength: password.length });
 
     // Validation
     if (!name || !email || !password) {
@@ -1757,7 +1850,9 @@ function handleRegister(event) {
 
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
 
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    // Check if email already exists (case-insensitive)
+    const existingUser = users.find(u => (u.email || '').toLowerCase() === email);
+    if (existingUser) {
         showNotification('Email already registered. Please login instead.');
         return;
     }
@@ -1781,12 +1876,13 @@ function handleRegister(event) {
         users.push(newUser);
         localStorage.setItem('metraUsers', JSON.stringify(users));
         
-        // Verify save was successful
-        const savedUsers = JSON.parse(localStorage.getItem('metraUsers') || '[]');
-        const savedUser = savedUsers.find(u => u.id === newUser.id);
-        
+        // Verify save was successful immediately
+        const verifySave = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+        const savedUser = verifySave.find(u => u.id === newUser.id);
+        console.log('User saved verification:', { saved: !!savedUser, totalUsers: verifySave.length });
+
         if (!savedUser) {
-            throw new Error('Failed to save user');
+            throw new Error('Failed to save user to localStorage');
         }
 
         // Login the user with persistent session
@@ -2451,7 +2547,7 @@ function openProductModal(productId) {
             <button class="cta-btn" style="flex: 1;" onclick="addToCart(${product.id}); closeProductModal();">
                 <i class="fas fa-cart-plus"></i> Add to Cart
             </button>
-            <button class="cta-btn" style="background: var(--secondary);" onclick="addToWishlist(${product.id}); this.innerHTML = '${isWishlisted ? '<i class=\'fas fa-heart\'></i> Wishlisted' : '<i class=\'fas fa-heart\'></i> Add to Wishlist'}';">
+            <button class="cta-btn" style="background: var(--secondary);" onclick="handleWishlistClick(${product.id}, this)">
                 <i class="fas fa-heart"></i> ${isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
             </button>
         </div>

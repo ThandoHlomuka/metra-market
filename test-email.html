@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mailgun Email - Metra Market</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .test-container {
+            background: rgba(255, 248, 231, 0.05);
+            border: 1px solid rgba(255, 248, 231, 0.1);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .test-header h1 {
+            color: #fff;
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .test-header p {
+            color: var(--gray);
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--light);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 248, 231, 0.05);
+            border: 1px solid rgba(255, 248, 231, 0.1);
+            border-radius: 10px;
+            color: var(--light);
+            font-size: 1rem;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-send {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 0, 0, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result-box.success {
+            background: rgba(34, 139, 34, 0.1);
+            border: 1px solid rgba(34, 139, 34, 0.3);
+            color: #228B22;
+            display: block;
+        }
+
+        .result-box.error {
+            background: rgba(220, 20, 60, 0.1);
+            border: 1px solid rgba(220, 20, 60, 0.3);
+            color: #DC143C;
+            display: block;
+        }
+
+        .result-box h3 {
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-box p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .config-note {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #FFA500;
+            font-size: 0.85rem;
+        }
+
+        .config-note strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: var(--gray);
+            margin-top: 1rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1><i class="fas fa-envelope"></i> Test Mailgun Email</h1>
+            <p>Send a test email to verify Mailgun integration</p>
+        </div>
+
+        <div class="config-note">
+            <strong><i class="fas fa-info-circle"></i> Mailgun Configuration Required</strong>
+            You need a valid Mailgun API key. Get one from <a href="https://app.mailgun.com" target="_blank" style="color: #FFA500;">mailgun.com</a>
+        </div>
+
+        <form id="testEmailForm" onsubmit="sendTestEmail(event)">
+            <div class="form-group">
+                <label><i class="fas fa-key"></i> Mailgun API Key</label>
+                <input type="password" id="apiKey" placeholder="key-xxxxxxxxxxxxxxxxxxxxxxxx" required>
+                <p style="color: var(--gray); font-size: 0.8rem; margin-top: 0.5rem;">
+                    Your API key is only used for this test and is not stored
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-globe"></i> Mailgun Domain</label>
+                <input type="text" id="domain" value="mg.metramarket.co.za" placeholder="mg.yourdomain.com" required>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Recipient Email</label>
+                <input type="email" id="recipient" value="thandohlomuka8@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-file-alt"></i> Subject</label>
+                <input type="text" id="subject" value="🧪 Test Email from Metra Market - Mailgun Integration" required>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-align-left"></i> Message (Optional)</label>
+                <textarea id="message" placeholder="Enter your test message here...">This is a test email from the Metra Market Mailgun integration test page.
+
+If you're receiving this, it means the Mailgun API is working correctly!
+
+Timestamp: ${new Date().toLocaleString('en-ZA')}
+</textarea>
+            </div>
+
+            <button type="submit" class="btn-send" id="sendBtn">
+                <i class="fas fa-paper-plane"></i> Send Test Email
+            </button>
+
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner"></i> Sending email... Please wait
+            </div>
+        </form>
+
+        <div class="result-box" id="resultBox">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+        </div>
+
+        <div class="back-link">
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Back to Metra Market</a>
+        </div>
+    </div>
+
+    <script>
+        async function sendTestEmail(event) {
+            event.preventDefault();
+
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const domain = document.getElementById('domain').value.trim();
+            const recipient = document.getElementById('recipient').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const message = document.getElementById('message').value;
+
+            const sendBtn = document.getElementById('sendBtn');
+            const loading = document.getElementById('loading');
+            const resultBox = document.getElementById('resultBox');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+
+            // Reset result
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'none';
+
+            // Validate
+            if (!apiKey) {
+                showResult('error', 'API Key Required', 'Please enter your Mailgun API key');
+                return;
+            }
+
+            // Show loading
+            sendBtn.disabled = true;
+            loading.classList.add('active');
+
+            // Prepare email data
+            const formData = new FormData();
+            formData.append('from', `Metra Market <noreply@${domain}>`);
+            formData.append('to', recipient);
+            formData.append('subject', subject);
+            formData.append('html', `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: linear-gradient(135deg, #8B0000, #DC143C); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                        .content { background: #f9f9f9; padding: 20px; }
+                        .footer { background: #8B0000; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; }
+                        .test-badge { background: #FFA500; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: inline-block; margin-bottom: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <span class="test-badge">🧪 TEST EMAIL</span>
+                            <h1>Metra Market</h1>
+                            <p>Mailgun Integration Test</p>
+                        </div>
+                        <div class="content">
+                            <p>Hello,</p>
+                            <p>This is a test email from the Metra Market Mailgun integration test page.</p>
+                            <p><strong>If you're receiving this, it means the Mailgun API is working correctly!</strong></p>
+                            <div style="background: white; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #8B0000;">
+                                <p style="margin: 0;"><strong>Test Details:</strong></p>
+                                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                                    <li>Recipient: ${recipient}</li>
+                                    <li>Domain: ${domain}</li>
+                                    <li>Timestamp: ${new Date().toLocaleString('en-ZA')}</li>
+                                </ul>
+                            </div>
+                            <p style="white-space: pre-wrap;">${message}</p>
+                        </div>
+                        <div class="footer">
+                            <p>© 2026 Metra Market. All rights reserved.</p>
+                            <p>This is an automated test email. Please do not reply.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            formData.append('text', `
+                🧪 TEST EMAIL - Metra Market Mailgun Integration Test
+                
+                Hello,
+                
+                This is a test email from the Metra Market Mailgun integration test page.
+                
+                If you're receiving this, it means the Mailgun API is working correctly!
+                
+                Test Details:
+                - Recipient: ${recipient}
+                - Domain: ${domain}
+                - Timestamp: ${new Date().toLocaleString('en-ZA')}
+                
+                Message:
+                ${message}
+                
+                ---
+                © 2026 Metra Market. All rights reserved.
+                This is an automated test email. Please do not reply.
+            `);
+
+            try {
+                const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(`api:${apiKey}`)
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showResult('success', 'Email Sent Successfully!', `Mailgun Message ID: ${result.id}`);
+                    console.log('Email sent successfully:', result);
+                } else {
+                    showResult('error', 'Failed to Send Email', `Error: ${result.message || 'Unknown error'}`);
+                    console.error('Mailgun error:', result);
+                }
+            } catch (error) {
+                showResult('error', 'Request Failed', `Error: ${error.message}`);
+                console.error('Request error:', error);
+            } finally {
+                sendBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        }
+
+        function showResult(type, title, message) {
+            const resultBox = document.getElementById('resultBox');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+
+            resultBox.className = `result-box ${type}`;
+            resultTitle.innerHTML = type === 'success' 
+                ? '<i class="fas fa-check-circle"></i> ' + title 
+                : '<i class="fas fa-exclamation-circle"></i> ' + title;
+            resultMessage.textContent = message;
+        }
+
+        // Auto-fill API key from localStorage if previously entered
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('metraMailgunApiKey');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+        });
+
+        // Save API key to localStorage for convenience (optional)
+        document.getElementById('apiKey').addEventListener('change', (e) => {
+            if (e.target.value) {
+                localStorage.setItem('metraMailgunApiKey', e.target.value);
+            }
+        });
+    </script>
+</body>
+</html>

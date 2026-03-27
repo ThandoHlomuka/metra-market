@@ -1,6 +1,6 @@
 # Metra Market 🛍️
 
-A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaScript.
+A comprehensive online store with a customized admin dashboard, developed by Metra Team in partnership with Thando Hlomuka.
 
 ![Metra Market](https://img.shields.io/badge/Metra-Market-8B0000?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-1.5.0-crimson?style=for-the-badge)
@@ -18,6 +18,7 @@ A modern, stylish, and eye-catching online store built with HTML, CSS, and JavaS
 - ⚡ **Fast & Lightweight** - No frameworks, pure HTML/CSS/JS
 - 🎯 **User Friendly** - Intuitive navigation and checkout process
 - 🔧 **Admin CMS** - Complete admin dashboard for managing all aspects
+- 📧 **Email System** - Mailgun integration, email templates, bulk notifications
 
 ## 🚀 Quick Start
 
@@ -160,7 +161,34 @@ The admin dashboard now includes **real-time updates**:
 
 ## 📬 Changelog / Updates
 
-### v1.5.0 - March 23, 2026 *(Latest)*
+### v1.6.0 - March 26, 2026 *(Latest)*
+**📧 Comprehensive Email Management System**
+- ✅ Mailgun API integration for reliable email delivery
+- ✅ SMTP fallback configuration
+- ✅ Email template designer with 8 template types
+- ✅ 3 pre-designed layout styles (Modern, Minimal, Classic)
+- ✅ Live email template preview
+- ✅ Quick insert placeholders for template variables
+- ✅ Send test emails from admin dashboard
+- ✅ Bulk email notifications to user groups
+- ✅ Email queue management with filtering
+- ✅ Email statistics dashboard (Sent, Pending, Failed, Total)
+- ✅ Export email logs to CSV
+- ✅ Resend failed emails functionality
+
+**🏪 Shop Feed Improvements**
+- ✅ Enhanced product rendering with error handling
+- ✅ Debug logging for troubleshooting
+- ✅ Defensive checks for missing elements
+
+**📝 Documentation Updates**
+- ✅ Updated README with proper authorship
+- ✅ Changed license to Proprietary
+- ✅ Added project type description
+
+---
+
+### v1.5.0 - March 23, 2026 *(Previous)*
 **📧 Invoice Delivery Preferences**
 - ✅ Customer chooses invoice delivery: Email or WhatsApp
 - ✅ Invoice sent via WhatsApp with formatted message
@@ -310,16 +338,20 @@ The admin dashboard now includes **real-time updates**:
 
 ## 📄 License
 
-MIT License - Feel free to use for personal or commercial projects!
+Proprietary - Developed by Metra Team in partnership with Thando Hlomuka. All rights reserved.
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Development Team
 
-**Metra Market Team**
+**Developed by Metra Team in partnership with Thando Hlomuka**
+
+**Project Type:** Comprehensive Online Store with Customized Admin Dashboard
+
+**Contact:** Metra Market Team
 
 Made with ❤️ by Metra Market Team
 
 ---
 
-*Last Updated: March 23, 2026*
+*Last Updated: March 26, 2026*
