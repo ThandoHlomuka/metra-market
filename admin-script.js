@@ -1649,8 +1649,8 @@ function sendTestEmailFromAdmin(event) {
     }
 }
 
-// Send Test Email via Mailgun
-function sendTestEmailViaMailgun(config, to, type, customMessage) {
+// Send Test Email via Mailgun - Uses serverless API
+async function sendTestEmailViaMailgun(config, to, type, customMessage) {
     const resultDiv = document.getElementById('testEmailResult');
     resultDiv.style.display = 'block';
     resultDiv.innerHTML = '<p style="color: #FFA500;"><i class="fas fa-spinner fa-spin"></i> Sending via Mailgun...</p>';
@@ -1690,31 +1690,29 @@ function sendTestEmailViaMailgun(config, to, type, customMessage) {
         custom: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><p>${customMessage || 'Custom test email'}</p></div>`
     };
 
-    const formData = new FormData();
-    formData.append('from', `Metra Market <${config.fromEmail}>`);
-    formData.append('to', to);
-    formData.append('subject', subjects[type]);
-    formData.append('html', htmlTemplates[type]);
+    try {
+        const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to,
+                subject: subjects[type],
+                html: htmlTemplates[type],
+                from: config.fromEmail || 'noreply@metramarket.co.za'
+            })
+        });
 
-    fetch(`https://api.mailgun.net/v3/${config.domain}/messages`, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Basic ' + btoa(`api:${config.apiKey}`)
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.id) {
+        const result = await response.json();
+
+        if (response.ok && result.success) {
             showTestEmailResult('success', `Email sent successfully via Mailgun! Message ID: ${result.id}`);
             queueEmail(config.fromEmail, to, subjects[type], type, 'sent');
         } else {
-            showTestEmailResult('error', 'Mailgun error: ' + (result.message || 'Unknown error'));
+            showTestEmailResult('error', 'Mailgun error: ' + (result.error || result.message || 'Unknown error'));
         }
-    })
-    .catch(error => {
+    } catch (error) {
         showTestEmailResult('error', 'Failed to send: ' + error.message);
-    });
+    }
 }
 
 // Send Test Email via SMTP (simulation - requires backend for real SMTP)
@@ -1765,21 +1763,20 @@ function queueEmail(from, to, subject, template, status) {
     loadEmailQueue();
 }
 
-// Send Bulk Notification
-function sendBulkNotification(event) {
+// Send Bulk Notification - Uses serverless batch email API
+async function sendBulkNotification(event) {
     event.preventDefault();
 
     const mailgunConfig = JSON.parse(localStorage.getItem('metraMailgunConfig') || '{}');
-    const smtpConfig = JSON.parse(localStorage.getItem('metraEmailConfig') || '{}');
 
     const group = document.getElementById('bulkNotificationGroup').value;
     const subject = document.getElementById('bulkNotificationSubject').value;
     const message = document.getElementById('bulkNotificationMessage').value;
     const isHtml = document.getElementById('bulkNotificationHtml').checked;
 
-    // Check if email service is configured
-    if (!mailgunConfig.enabled && !smtpConfig.enabled) {
-        showBulkNotificationResult('error', 'Please configure either Mailgun or SMTP settings first');
+    // Check if Mailgun is configured
+    if (!mailgunConfig.enabled || !mailgunConfig.apiKey || !mailgunConfig.domain) {
+        showBulkNotificationResult('error', 'Please configure Mailgun settings first and enable the service');
         return;
     }
 
@@ -1816,102 +1813,70 @@ function sendBulkNotification(event) {
     resultDiv.style.display = 'block';
     resultDiv.innerHTML = `<p style="color: #FFA500;"><i class="fas fa-spinner fa-spin"></i> Sending to ${recipients.length} recipients... Please wait</p>`;
 
-    // Send emails
-    let sent = 0;
-    let failed = 0;
-    const config = mailgunConfig.enabled ? mailgunConfig : smtpConfig;
+    // Prepare email data for batch API
+    const emails = recipients.map(user => ({
+        to: user.email,
+        html: isHtml ? message : `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <p>Dear ${user.name},</p>
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8B0000;">
+                    <p style="white-space: pre-wrap; margin: 0;">${message}</p>
+                </div>
+                <p style="text-align: center; margin-top: 30px; color: #666;">
+                    <strong>Metra Market Team</strong><br>
+                    <small>Sent on ${new Date().toLocaleString('en-ZA')}</small>
+                </p>
+            </div>
+        `
+    }));
 
-    // Process in batches to avoid overwhelming the API
-    const batchSize = 5;
-    let currentIndex = 0;
+    try {
+        // Send in batches of 100 (API limit)
+        let totalSent = 0;
+        let totalFailed = 0;
 
-    function sendNextBatch() {
-        const batch = recipients.slice(currentIndex, currentIndex + batchSize);
-        if (batch.length === 0) {
-            // All done
-            showBulkNotificationResult('success', `Bulk notification completed! Sent: ${sent}, Failed: ${failed}`);
-            return;
+        for (let i = 0; i < emails.length; i += 100) {
+            const batch = emails.slice(i, i + 100);
+            
+            const response = await fetch('/api/send-batch-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emails: batch,
+                    subject,
+                    from: `Metra Market <${mailgunConfig.fromEmail || 'noreply@metramarket.co.za'}>`
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                totalSent += result.successCount;
+                totalFailed += result.failureCount;
+                
+                resultDiv.innerHTML = `<p style="color: #FFA500;"><i class="fas fa-spinner fa-spin"></i> Sent ${totalSent}/${emails.length} emails...</p>`;
+            } else {
+                totalFailed += batch.length;
+            }
+
+            // Small delay between batches
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        batch.forEach(user => {
-            if (mailgunConfig.enabled && mailgunConfig.apiKey && mailgunConfig.domain) {
-                // Send via Mailgun
-                const formData = new FormData();
-                formData.append('from', `Metra Market <${mailgunConfig.fromEmail}>`);
-                formData.append('to', user.email);
-                formData.append('subject', subject);
+        if (totalFailed === 0) {
+            showBulkNotificationResult('success', `✅ Bulk notification completed! Sent: ${totalSent} emails successfully`);
+        } else {
+            showBulkNotificationResult('success', `⚠️ Bulk notification completed! Sent: ${totalSent}, Failed: ${totalFailed}`);
+        }
 
-                if (isHtml) {
-                    formData.append('html', `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <style>
-                                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                                .header { background: linear-gradient(135deg, #8B0000, #DC143C); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-                                .content { background: #f9f9f9; padding: 20px; }
-                                .footer { background: #8B0000; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="container">
-                                <div class="header">
-                                    <h1>📢 Message from Metra Market</h1>
-                                </div>
-                                <div class="content">
-                                    <p>Dear ${user.name},</p>
-                                    <div style="background: white; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #8B0000;">
-                                        <p style="white-space: pre-wrap; margin: 0;">${message}</p>
-                                    </div>
-                                    <p style="text-align: center; margin-top: 30px;">
-                                        <strong>Metra Market Team</strong><br>
-                                        <small style="color: #666;">Sent on ${new Date().toLocaleString('en-ZA')}</small>
-                                    </p>
-                                </div>
-                                <div class="footer">
-                                    <p>&copy; 2026 Metra Market. All rights reserved.</p>
-                                    <p>You're receiving this because you're a registered user.</p>
-                                </div>
-                            </div>
-                        </body>
-                        </html>
-                    `);
-                } else {
-                    formData.append('text', `Hi ${user.name},\n\n${message}\n\nMetra Market Team\nSent on ${new Date().toLocaleString('en-ZA')}`);
-                }
-
-                fetch(`https://api.mailgun.net/v3/${mailgunConfig.domain}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Basic ' + btoa(`api:${mailgunConfig.apiKey}`)
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.id) {
-                        sent++;
-                        queueEmail(mailgunConfig.fromEmail, user.email, subject, 'bulk_notification', 'sent');
-                    } else {
-                        failed++;
-                    }
-                })
-                .catch(() => {
-                    failed++;
-                });
-            } else {
-                // Simulate SMTP sending
-                sent++;
-                queueEmail(smtpConfig.fromEmail, user.email, subject, 'bulk_notification', 'pending');
-            }
+        // Queue emails for tracking
+        recipients.forEach(user => {
+            queueEmail(mailgunConfig.fromEmail, user.email, subject, 'bulk_notification', 'sent');
         });
 
-        currentIndex += batchSize;
-        setTimeout(sendNextBatch, 2000); // Wait 2 seconds between batches
+    } catch (error) {
+        showBulkNotificationResult('error', 'Failed to send bulk emails: ' + error.message);
     }
-
-    sendNextBatch();
 }
 
 // Show Bulk Notification Result

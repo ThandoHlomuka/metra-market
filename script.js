@@ -754,58 +754,121 @@ function loadEmailTemplates() {
     }
 }
 
-// Send Email Function
-function sendEmail(to, templateId, data) {
+// Send Email Function - Now sends via Mailgun API
+async function sendEmail(to, templateId, data) {
     const template = EMAIL_TEMPLATES[templateId];
     if (!template) {
-        console.error('Email template not found:', templateId);
-        return false;
-    }
-
-    if (!EMAIL_CONFIG.enabled) {
-        // Email not enabled, just log
-        console.log('Email not enabled. Would send to:', to);
-        console.log('Template:', template.name);
-        return false;
+        console.error('❌ Email template not found:', templateId);
+        return { success: false, error: 'Template not found' };
     }
 
     // Replace placeholders
     let subject = template.subject;
     let html = template.html;
-    
+
     Object.keys(data).forEach(key => {
         const regex = new RegExp('{{' + key + '}}', 'g');
-        subject = subject.replace(regex, data[key]);
-        html = html.replace(regex, data[key]);
+        subject = subject.replace(regex, data[key] || '');
+        html = html.replace(regex, data[key] || '');
     });
 
-    // Store email in queue (for later processing when backend is connected)
+    // Store email in queue
     const emailQueue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
-    emailQueue.push({
+    const emailRecord = {
         to,
         subject,
         html,
         templateId,
-        status: 'pending',
+        status: 'sending',
         createdAt: new Date().toISOString()
-    });
+    };
+    emailQueue.push(emailRecord);
     localStorage.setItem('metraEmailQueue', JSON.stringify(emailQueue));
 
-    console.log('Email queued:', { to, subject, template: template.name });
-    return true;
+    // Try to send via Mailgun API
+    try {
+        const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to,
+                subject,
+                html,
+                from: EMAIL_CONFIG.fromEmail || 'noreply@metramarket.co.za'
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            emailRecord.status = 'sent';
+            emailRecord.sentAt = new Date().toISOString();
+            emailRecord.messageId = result.id;
+            console.log('✅ Email sent successfully:', result.id);
+        } else {
+            emailRecord.status = 'failed';
+            emailRecord.error = result.error || result.message;
+            console.error('❌ Email sending failed:', result.error);
+        }
+    } catch (error) {
+        emailRecord.status = 'failed';
+        emailRecord.error = error.message;
+        console.error('❌ Email sending error:', error);
+    }
+
+    // Update queue
+    localStorage.setItem('metraEmailQueue', JSON.stringify(emailQueue));
+    return emailRecord;
 }
 
-// Process Email Queue (call this periodically)
-function processEmailQueue() {
+// Process Email Queue - Sends all pending emails
+async function processEmailQueue() {
     const queue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
-    if (queue.length === 0) return;
-
-    console.log(`Processing ${queue.length} emails in queue...`);
+    const pendingEmails = queue.filter(e => e.status === 'pending' || e.status === 'failed');
     
-    // In production, this would send via SMTP/API
-    // For now, just mark as sent
-    queue.forEach(email => email.status = 'sent');
+    if (pendingEmails.length === 0) {
+        console.log('✅ No pending emails to process');
+        return { processed: 0 };
+    }
+
+    console.log(`📧 Processing ${pendingEmails.length} pending emails...`);
+    let processed = 0;
+
+    for (const email of pendingEmails) {
+        try {
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: email.to,
+                    subject: email.subject,
+                    html: email.html
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                email.status = 'sent';
+                email.sentAt = new Date().toISOString();
+                email.messageId = result.id;
+                processed++;
+            } else {
+                email.status = 'failed';
+                email.error = result.error || result.message;
+            }
+        } catch (error) {
+            email.status = 'failed';
+            email.error = error.message;
+        }
+
+        // Small delay to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
     localStorage.setItem('metraEmailQueue', JSON.stringify(queue));
+    console.log(`✅ Processed ${processed}/${pendingEmails.length} emails`);
+    return { processed, total: pendingEmails.length };
 }
 
 // Analytics Tracking
