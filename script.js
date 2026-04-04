@@ -1366,14 +1366,14 @@ function renderProducts() {
     }
 
     console.log('Rendering', products.length, 'products');
-    
+
     // Initialize filtered products
     filteredProducts = [...products];
-    
-    // Show random selection of products on homepage (shuffle and show all 20)
-    const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
-    
-    grid.innerHTML = shuffledProducts.map(product => `
+
+    // Show only 8 products on homepage
+    const homepageProducts = products.slice(0, 8);
+
+    grid.innerHTML = homepageProducts.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
             <div class="product-image">${product.icon}</div>
             <div class="product-info">
@@ -1388,11 +1388,11 @@ function renderProducts() {
             </div>
         </div>
     `).join('');
-    
+
     // Update product count
     const productCount = document.getElementById('productCount');
-    if (productCount) productCount.textContent = products.length;
-    
+    if (productCount) productCount.textContent = `${homepageProducts.length} of ${products.length} products`;
+
     console.log('Products grid HTML length:', grid.innerHTML.length);
 }
 
