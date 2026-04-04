@@ -1358,14 +1358,14 @@ function renderProducts() {
         console.error('Products grid element not found!');
         return;
     }
-    
+
     if (!products || products.length === 0) {
         console.error('No products to render!');
-        grid.innerHTML = '<p style="text-align: center; color: var(--gray);">No products available</p>';
+        grid.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 3rem;">No products available</p>';
         return;
     }
 
-    console.log('Rendering', products.length, 'products');
+    console.log('✅ Rendering', products.length, 'products');
 
     // Initialize filtered products
     filteredProducts = [...products];
@@ -1393,7 +1393,7 @@ function renderProducts() {
     const productCount = document.getElementById('productCount');
     if (productCount) productCount.textContent = `${homepageProducts.length} of ${products.length} products`;
 
-    console.log('Products grid HTML length:', grid.innerHTML.length);
+    console.log('✅ Products grid updated with', homepageProducts.length, 'products');
 }
 
 // ==================== PRODUCT SEARCH, FILTER & SORT ====================
@@ -2321,9 +2321,41 @@ function showOrderSuccess(order) {
     <div class="modal active" id="orderSuccessModal">
         <div class="modal-overlay"></div>
         <div class="modal-content order-success-content">
-            <div class="success-animation">
-                <i class="fas fa-check-circle"></i>
+            <!-- Checkout Animation -->
+            <div class="checkout-animation-container">
+                <div class="checkout-scene">
+                    <div class="cashier-counter">
+                        <div class="counter-top"></div>
+                        <div class="counter-front"></div>
+                    </div>
+                    <div class="cashier">
+                        <div class="cashier-body"></div>
+                        <div class="cashier-head">
+                            <div class="cashier-face"></div>
+                        </div>
+                        <div class="cashier-arm arm-left"></div>
+                        <div class="cashier-arm arm-right"></div>
+                    </div>
+                    <div class="customer">
+                        <div class="customer-body"></div>
+                        <div class="customer-head">
+                            <div class="customer-face"></div>
+                        </div>
+                        <div class="customer-arm"></div>
+                    </div>
+                    <div class="register">
+                        <div class="register-screen"></div>
+                        <div class="register-base"></div>
+                    </div>
+                    <div class="receipt">
+                        <div class="receipt-paper"></div>
+                    </div>
+                    <div class="payment-success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
             </div>
+
             <h2>Order Placed Successfully!</h2>
             <p class="order-success-message">Thank you for shopping with Metra Market, <strong>${order.customerName}</strong>!</p>
             
@@ -2368,11 +2400,19 @@ function showOrderSuccess(order) {
 
     document.body.insertAdjacentHTML('beforeend', successHTML);
 
-    // Auto-close after 10 seconds
+    // Trigger checkout animation
+    setTimeout(() => {
+        const animationContainer = document.querySelector('.checkout-animation-container');
+        if (animationContainer) {
+            animationContainer.classList.add('animate');
+        }
+    }, 300);
+
+    // Auto-close after 15 seconds
     setTimeout(() => {
         const modal = document.getElementById('orderSuccessModal');
         if (modal) modal.remove();
-    }, 10000);
+    }, 15000);
 }
 
 // PayFast Payment Processing

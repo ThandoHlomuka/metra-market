@@ -2766,4 +2766,345 @@ body {
     }
 }
 
+/* ==================== CHECKOUT ANIMATION ==================== */
+.checkout-animation-container {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 2rem;
+    position: relative;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.checkout-animation-container.animate {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.checkout-scene {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Cashier Counter */
+.cashier-counter {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 60px;
+}
+
+.counter-top {
+    width: 140px;
+    height: 15px;
+    background: linear-gradient(135deg, #8B4513, #A0522D);
+    border-radius: 4px 4px 0 0;
+    position: absolute;
+    top: 0;
+}
+
+.counter-front {
+    width: 140px;
+    height: 45px;
+    background: linear-gradient(135deg, #654321, #8B4513);
+    border-radius: 0 0 4px 4px;
+    position: absolute;
+    bottom: 0;
+}
+
+/* Cashier */
+.cashier {
+    position: absolute;
+    bottom: 100px;
+    left: 30px;
+    animation: cashierBounce 2s ease-in-out infinite;
+}
+
+@keyframes cashierBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.cashier-body {
+    width: 40px;
+    height: 50px;
+    background: linear-gradient(135deg, #228B22, #32CD32);
+    border-radius: 8px 8px 0 0;
+    position: relative;
+}
+
+.cashier-head {
+    width: 30px;
+    height: 30px;
+    background: #FFDAB9;
+    border-radius: 50%;
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.cashier-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+}
+
+.cashier-face::before,
+.cashier-face::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #333;
+    border-radius: 50%;
+    top: 10px;
+}
+
+.cashier-face::before { left: 8px; }
+.cashier-face::after { right: 8px; }
+
+.cashier-arm {
+    position: absolute;
+    width: 8px;
+    height: 30px;
+    background: #228B22;
+    border-radius: 4px;
+    top: 10px;
+}
+
+.arm-left {
+    left: -5px;
+    transform: rotate(20deg);
+    animation: armWave 1.5s ease-in-out infinite;
+}
+
+.arm-right {
+    right: -5px;
+    transform: rotate(-20deg);
+}
+
+@keyframes armWave {
+    0%, 100% { transform: rotate(20deg); }
+    50% { transform: rotate(40deg); }
+}
+
+/* Customer */
+.customer {
+    position: absolute;
+    bottom: 100px;
+    right: 30px;
+    animation: customerApproach 3s ease-in-out infinite;
+}
+
+@keyframes customerApproach {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-10px); }
+}
+
+.customer-body {
+    width: 35px;
+    height: 45px;
+    background: linear-gradient(135deg, #4169E1, #6495ED);
+    border-radius: 8px 8px 0 0;
+}
+
+.customer-head {
+    width: 28px;
+    height: 28px;
+    background: #DEB887;
+    border-radius: 50%;
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.customer-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+}
+
+.customer-face::before,
+.customer-face::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #333;
+    border-radius: 50%;
+    top: 9px;
+}
+
+.customer-face::before { left: 7px; }
+.customer-face::after { right: 7px; }
+
+.customer-arm {
+    position: absolute;
+    width: 7px;
+    height: 25px;
+    background: #4169E1;
+    border-radius: 4px;
+    top: 10px;
+    right: -4px;
+    transform: rotate(-30deg);
+    animation: customerPay 2s ease-in-out infinite;
+}
+
+@keyframes customerPay {
+    0%, 100% { transform: rotate(-30deg); }
+    50% { transform: rotate(-50deg); }
+}
+
+/* Cash Register */
+.register {
+    position: absolute;
+    bottom: 105px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.register-screen {
+    width: 35px;
+    height: 20px;
+    background: #000;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+}
+
+.register-screen::after {
+    content: 'R' attr(data-amount);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #00FF00;
+    font-size: 8px;
+    font-family: monospace;
+    animation: screenFlash 1s ease-in-out infinite;
+}
+
+@keyframes screenFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.register-base {
+    width: 40px;
+    height: 15px;
+    background: linear-gradient(135deg, #696969, #808080);
+    border-radius: 0 0 3px 3px;
+    margin-top: 2px;
+}
+
+/* Receipt */
+.receipt {
+    position: absolute;
+    bottom: 120px;
+    left: calc(50% + 25px);
+    z-index: 5;
+}
+
+.receipt-paper {
+    width: 20px;
+    height: 0;
+    background: #FFF;
+    border-radius: 2px;
+    animation: receiptPrint 2s ease-out forwards;
+    animation-delay: 1s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes receiptPrint {
+    0% { height: 0; }
+    100% { height: 40px; }
+}
+
+.receipt-paper::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 3px;
+    right: 3px;
+    height: 2px;
+    background: #CCC;
+    box-shadow: 0 5px 0 #CCC, 0 10px 0 #CCC, 0 15px 0 #CCC, 0 20px 0 #CCC, 0 25px 0 #CCC;
+}
+
+/* Payment Success Icon */
+.payment-success-icon {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #228B22, #32CD32);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    box-shadow: 0 10px 30px rgba(34, 139, 34, 0.4);
+    opacity: 0;
+    animation: successPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: 2s;
+}
+
+@keyframes successPop {
+    0% { transform: translateX(-50%) scale(0); opacity: 0; }
+    50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.payment-success-icon i {
+    animation: checkDraw 0.5s ease-out forwards;
+    animation-delay: 2.3s;
+    opacity: 0;
+}
+
+@keyframes checkDraw {
+    0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+/* Floating Particles */
+.checkout-animation-container::before,
+.checkout-animation-container::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: rgba(34, 139, 34, 0.3);
+    border-radius: 50%;
+    animation: floatParticle 3s ease-in-out infinite;
+}
+
+.checkout-animation-container::before {
+    top: 10px;
+    left: 20px;
+    animation-delay: 0s;
+}
+
+.checkout-animation-container::after {
+    top: 30px;
+    right: 20px;
+    animation-delay: 1.5s;
+}
+
+@keyframes floatParticle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+    50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+}
+
 .invoice-section { background: linear-gradient(135deg, rgba(139, 0, 0, 0.05), rgba(220, 20, 60, 0.05)); border-left: 4px solid var(--primary); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); } .invoice-table th { background: linear-gradient(135deg, #8B0000, #DC143C); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; } .invoice-table tbody tr { transition: all 0.3s; } .invoice-table tbody tr:hover { background: rgba(139, 0, 0, 0.08); transform: scale(1.01); } .invoice-row.invoice-total { background: linear-gradient(135deg, rgba(139, 0, 0, 0.1), rgba(220, 20, 60, 0.1)); border-top: 3px solid var(--primary); border-bottom: 3px solid var(--primary); padding: 1.5rem; border-radius: 10px; margin-top: 1rem; } .invoice-footer { background: linear-gradient(135deg, rgba(139, 0, 0, 0.05), rgba(220, 20, 60, 0.05)); padding: 2rem; border-radius: 10px; } .invoice-actions .btn-primary { background: linear-gradient(135deg, #8B0000, #DC143C); box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3); } .invoice-actions .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(139, 0, 0, 0.4); } .invoice-actions .btn-secondary { background: linear-gradient(135deg, rgba(139, 0, 0, 0.1), rgba(220, 20, 60, 0.1)); border: 2px solid var(--primary); color: var(--primary); } .invoice-actions .btn-secondary:hover { background: var(--gradient); color: white; border-color: transparent; }
