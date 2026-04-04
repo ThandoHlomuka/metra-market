@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Batch Email API
 // Sends multiple emails for bulk notifications
 
-const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '';
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '[MAILGUN_API_KEY]';
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'mg.metramarket.co.za';
 const MAILGUN_API_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}`;
 

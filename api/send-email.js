@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Mailgun Email API
 // This handles all email sending through Mailgun from the server side (avoids CORS issues)
 
-const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '';
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '[MAILGUN_API_KEY]';
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'mg.metramarket.co.za';
 const MAILGUN_API_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}`;
 
