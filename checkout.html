@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout | Metra Market</title>
-    <link rel="stylesheet" href="styles.css?v=2.0.0">
+    <link rel="stylesheet" href="styles.css?v=3.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -112,13 +112,13 @@
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-        .payment-options, .delivery-options {
+        .payment-options, .delivery-options, .shipping-options {
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
             margin: 1rem 0;
         }
-        .payment-option, .delivery-option {
+        .payment-option, .delivery-option, .shipping-option {
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -126,9 +126,33 @@
             background: rgba(255, 248, 231, 0.05);
             border-radius: 8px;
             cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.3s;
         }
-        .payment-option input, .delivery-option input {
+        .shipping-option.selected {
+            border-color: var(--primary);
+            background: rgba(139, 0, 0, 0.1);
+        }
+        .payment-option input, .delivery-option input, .shipping-option input {
             width: auto;
+            accent-color: #00C853;
+        }
+        .shipping-option-info {
+            flex: 1;
+        }
+        .shipping-option-name {
+            color: var(--light);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .shipping-option-time {
+            color: var(--gray);
+            font-size: 0.8rem;
+        }
+        .shipping-option-price {
+            color: #00C853;
+            font-weight: 700;
+            font-size: 1.1rem;
         }
         .checkout-submit-btn {
             width: 100%;
@@ -149,6 +173,11 @@
         .checkout-submit-btn:hover {
             transform: translateY(-2px);
         }
+        .checkout-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         .checkbox-label {
             display: flex;
             align-items: center;
@@ -158,6 +187,26 @@
         }
         .checkbox-label a {
             color: var(--primary);
+        }
+        .shipping-loading {
+            text-align: center;
+            color: var(--gray);
+            padding: 1rem;
+        }
+        .shipping-loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .shipping-error {
+            background: rgba(220, 20, 60, 0.1);
+            border: 1px solid rgba(220, 20, 60, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #ff6b6b;
+            text-align: center;
         }
         @media (max-width: 768px) {
             .checkout-container {
@@ -211,7 +260,7 @@
                     </div>
                     <div class="checkout-total-row">
                         <span>Shipping:</span>
-                        <span id="checkoutShipping">R0.00</span>
+                        <span id="checkoutShipping">Select shipping below</span>
                     </div>
                     <div class="checkout-total-row final-total">
                         <span>Total:</span>
@@ -254,7 +303,7 @@
                     </div>
                     <div class="form-group">
                         <label for="checkoutProvince">Province *</label>
-                        <select id="checkoutProvince" required>
+                        <select id="checkoutProvince" required onchange="calculateShipping()">
                             <option value="">Select Province</option>
                             <option value="Gauteng">Gauteng</option>
                             <option value="Western Cape">Western Cape</option>
@@ -266,6 +315,13 @@
                             <option value="North West">North West</option>
                             <option value="Northern Cape">Northern Cape</option>
                         </select>
+                    </div>
+
+                    <h3 style="color: var(--light); margin: 1.5rem 0 1rem;"><i class="fas fa-truck"></i> Shipping Options</h3>
+                    <div id="shippingOptionsContainer">
+                        <div class="shipping-loading">
+                            <i class="fas fa-spinner"></i> Calculating shipping rates...
+                        </div>
                     </div>
 
                     <h3 style="color: var(--light); margin: 1.5rem 0 1rem;"><i class="fas fa-credit-card"></i> Payment Method</h3>
@@ -280,18 +336,6 @@
                         </label>
                     </div>
 
-                    <h3 style="color: var(--light); margin: 1.5rem 0 1rem;"><i class="fas fa-truck"></i> Delivery Method</h3>
-                    <div class="delivery-options">
-                        <label class="delivery-option">
-                            <input type="radio" name="checkoutDelivery" value="delivery" checked>
-                            <span><i class="fas fa-truck"></i> Home Delivery</span>
-                        </label>
-                        <label class="delivery-option">
-                            <input type="radio" name="checkoutDelivery" value="collection">
-                            <span><i class="fas fa-store"></i> Store Collection (Free)</span>
-                        </label>
-                    </div>
-
                     <div class="form-group" style="margin-top: 1.5rem;">
                         <label class="checkbox-label">
                             <input type="checkbox" id="checkoutTerms" required>
@@ -299,7 +343,7 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="checkout-submit-btn">
+                    <button type="submit" class="checkout-submit-btn" id="checkoutSubmitBtn">
                         <i class="fas fa-lock"></i> Complete Order & Pay
                     </button>
 
@@ -311,12 +355,17 @@
         </div>
     </div>
 
-    <script src="script.js?v=2.0.0"></script>
+    <script src="script.js?v=3.0.0"></script>
     <script>
+        // Global variables
+        let selectedShippingOption = null;
+        let selectedShippingCost = 0;
+        let cart = [];
+
         // Load cart and display items
         document.addEventListener('DOMContentLoaded', function() {
             const saved = localStorage.getItem('metraCart');
-            const cart = saved ? JSON.parse(saved) : [];
+            cart = saved ? JSON.parse(saved) : [];
 
             if (cart.length === 0) {
                 window.location.href = 'shopping.html';
@@ -336,14 +385,10 @@
                 </div>
             `).join('');
 
-            // Calculate totals
+            // Calculate subtotal
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const shipping = 0; // Will be calculated
-            const total = subtotal + shipping;
-
             document.getElementById('checkoutSubtotal').textContent = 'R' + subtotal.toFixed(2);
-            document.getElementById('checkoutShipping').textContent = 'Calculated at next step';
-            document.getElementById('checkoutTotal').textContent = 'R' + total.toFixed(2);
+            document.getElementById('checkoutTotal').textContent = 'R' + subtotal.toFixed(2);
 
             // Update cart count
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -352,11 +397,192 @@
             // Pre-fill if user is logged in
             const currentUser = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
             if (currentUser) {
-                document.getElementById('checkoutName').value = currentUser.name || '';
-                document.getElementById('checkoutEmail').value = currentUser.email || '';
-                document.getElementById('checkoutPhone').value = currentUser.phone || '';
+                const nameEl = document.getElementById('checkoutName');
+                const emailEl = document.getElementById('checkoutEmail');
+                const phoneEl = document.getElementById('checkoutPhone');
+                if (nameEl) nameEl.value = currentUser.name || '';
+                if (emailEl) emailEl.value = currentUser.email || '';
+                if (phoneEl) phoneEl.value = currentUser.phone || '';
             }
+
+            // Calculate shipping after a short delay
+            setTimeout(calculateShipping, 500);
         });
+
+        // Calculate shipping based on cart items and destination
+        function calculateShipping() {
+            const province = document.getElementById('checkoutProvince').value;
+            const container = document.getElementById('shippingOptionsContainer');
+
+            if (!province) {
+                container.innerHTML = '<p style="color: var(--gray); text-align: center;">Please select a province to see shipping options</p>';
+                return;
+            }
+
+            // Show loading
+            container.innerHTML = '<div class="shipping-loading"><i class="fas fa-spinner"></i> Calculating shipping rates...</div>';
+
+            // Calculate total weight and dimensions from cart
+            let totalWeight = 0;
+            let maxLength = 0;
+            let maxWidth = 0;
+            let totalHeight = 0;
+
+            cart.forEach(item => {
+                const product = products.find(p => p.id === item.id);
+                if (product) {
+                    totalWeight += (product.weight || 0.5) * item.quantity;
+                    maxLength = Math.max(maxLength, product.length || 30);
+                    maxWidth = Math.max(maxWidth, product.width || 20);
+                    totalHeight += (product.height || 15) * item.quantity;
+                }
+            });
+
+            // Use defaults if no data
+            if (totalWeight === 0) {
+                totalWeight = 0.5;
+                maxLength = 30;
+                maxWidth = 20;
+                totalHeight = 15;
+            }
+
+            console.log('Shipping calculation:', {
+                province,
+                weight: totalWeight,
+                dimensions: `${maxLength}x${maxWidth}x${totalHeight}cm`
+            });
+
+            // Try Bobgo API first
+            fetchBobgoRates(province, totalWeight, maxLength, maxWidth, totalHeight)
+                .then(options => {
+                    if (options && options.length > 0) {
+                        displayShippingOptions(options);
+                    } else {
+                        // Fallback to flat rates
+                        displayFallbackRates(province);
+                    }
+                })
+                .catch(error => {
+                    console.error('Bobgo API failed:', error);
+                    displayFallbackRates(province);
+                });
+        }
+
+        // Fetch Bobgo shipping rates
+        async function fetchBobgoRates(province, weight, length, width, height) {
+            const BOBGO_API_KEY = '5a830068eeb9431da5bf1577a9980d99';
+            const BOBGO_API_URL = 'https://api.bobgo.co.za/v1';
+
+            try {
+                const response = await fetch(`${BOBGO_API_URL}/couriers`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${BOBGO_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        origin: 'Johannesburg',
+                        destination: province,
+                        parcels: [{
+                            weight: Math.round(weight * 1000) / 1000, // kg with 3 decimals
+                            length: Math.round(length),
+                            width: Math.round(width),
+                            height: Math.round(height)
+                        }],
+                        currency: 'ZAR',
+                        live_rates: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Bobgo response:', data);
+
+                if (data.couriers && data.couriers.length > 0) {
+                    return data.couriers.map((courier, index) => ({
+                        id: 'bobgo_' + index,
+                        name: courier.name || courier.courier_name || 'Standard Courier',
+                        time: courier.delivery_time || courier.estimated_days ? `${courier.estimated_days || '2-5'} business days` : '2-5 business days',
+                        price: parseFloat(courier.price) || 0,
+                        service: courier.service_type || 'Standard'
+                    }));
+                }
+
+                return [];
+            } catch (error) {
+                console.error('Bobgo API error:', error);
+                return [];
+            }
+        }
+
+        // Display fallback shipping rates
+        function displayFallbackRates(province) {
+            const isLocal = province === 'Gauteng';
+            const baseRate = isLocal ? 99 : 149;
+            const expressRate = isLocal ? 149 : 249;
+
+            const options = [
+                {
+                    id: 'standard',
+                    name: 'Standard Delivery',
+                    time: '3-5 business days',
+                    price: baseRate,
+                    service: 'Standard'
+                },
+                {
+                    id: 'express',
+                    name: 'Express Delivery',
+                    time: '1-2 business days',
+                    price: expressRate,
+                    service: 'Express'
+                }
+            ];
+
+            displayShippingOptions(options);
+        }
+
+        // Display shipping options
+        function displayShippingOptions(options) {
+            const container = document.getElementById('shippingOptionsContainer');
+
+            container.innerHTML = options.map((option, index) => `
+                <label class="shipping-option ${index === 0 ? 'selected' : ''}" onclick="selectShipping('${option.id}', ${option.price}, this)">
+                    <input type="radio" name="shippingOption" value="${option.id}" ${index === 0 ? 'checked' : ''}>
+                    <div class="shipping-option-info">
+                        <div class="shipping-option-name">${option.name}</div>
+                        <div class="shipping-option-time">${option.time}</div>
+                    </div>
+                    <div class="shipping-option-price">R${option.price.toFixed(2)}</div>
+                </label>
+            `).join('');
+
+            // Auto-select first option
+            if (options.length > 0) {
+                selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'));
+            }
+        }
+
+        // Select shipping option
+        function selectShipping(id, price, element) {
+            selectedShippingOption = id;
+            selectedShippingCost = price;
+
+            // Update UI
+            document.querySelectorAll('.shipping-option').forEach(el => el.classList.remove('selected'));
+            if (element) element.classList.add('selected');
+
+            // Update totals
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = subtotal + price;
+
+            document.getElementById('checkoutShipping').textContent = 'R' + price.toFixed(2);
+            document.getElementById('checkoutTotal').textContent = 'R' + total.toFixed(2);
+
+            console.log('Shipping selected:', { id, price, total });
+        }
 
         // Process checkout
         function processCheckout(event) {
@@ -370,7 +596,6 @@
             const postalCode = document.getElementById('checkoutPostalCode').value.trim();
             const province = document.getElementById('checkoutProvince').value;
             const paymentMethod = document.querySelector('input[name="checkoutPayment"]:checked').value;
-            const deliveryMethod = document.querySelector('input[name="checkoutDelivery"]:checked').value;
             const termsAccepted = document.getElementById('checkoutTerms').checked;
 
             if (!termsAccepted) {
@@ -378,12 +603,13 @@
                 return;
             }
 
-            const saved = localStorage.getItem('metraCart');
-            const cart = saved ? JSON.parse(saved) : [];
+            if (!selectedShippingOption) {
+                alert('Please select a shipping option');
+                return;
+            }
 
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const shipping = deliveryMethod === 'collection' ? 0 : 150;
-            const total = subtotal + shipping;
+            const total = subtotal + selectedShippingCost;
 
             const order = {
                 id: 'ORD-' + Date.now(),
@@ -392,10 +618,10 @@
                 customerEmail: email,
                 customerPhone: phone,
                 shippingAddress: { street: address, city: city, postalCode: postalCode, province: province, country: 'South Africa' },
-                deliveryMethod: deliveryMethod,
+                shippingMethod: selectedShippingOption,
+                shippingCost: selectedShippingCost,
                 items: cart,
                 subtotal: subtotal,
-                shipping: shipping,
                 total: total,
                 paymentMethod: paymentMethod,
                 status: 'pending_payment',
@@ -408,11 +634,10 @@
             orders.push(order);
             localStorage.setItem('metraOrders', JSON.stringify(orders));
 
-            // Handle PayFast payment
+            // Handle payment
             if (paymentMethod === 'payfast') {
                 redirectToPayFast(order);
             } else {
-                // Bank transfer - show success
                 localStorage.removeItem('metraCart');
                 window.location.href = 'success.html?order_id=' + encodeURIComponent(order.id);
             }
@@ -436,7 +661,6 @@
                 name_last: order.customerName.split(' ').slice(1).join(' ') || ''
             };
 
-            // Create and submit form
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = payFastUrl;
