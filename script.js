@@ -1814,90 +1814,454 @@ function checkout() {
         return;
     }
 
-    if (!currentUser) {
-        showNotification('Please login to checkout');
-        openAuthModal();
+    // Open checkout modal instead of requiring login
+    openCheckoutModal();
+}
+
+// Guest Checkout Modal
+function openCheckoutModal() {
+    const modal = document.getElementById('checkoutModal');
+    if (!modal) {
+        createCheckoutModal();
+    }
+    
+    setTimeout(() => {
+        const checkoutModal = document.getElementById('checkoutModal');
+        if (checkoutModal) {
+            checkoutModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Load checkout items
+            loadCheckoutItems();
+            
+            // Pre-fill if user is logged in
+            if (currentUser) {
+                document.getElementById('checkoutName').value = currentUser.name || '';
+                document.getElementById('checkoutEmail').value = currentUser.email || '';
+                document.getElementById('checkoutPhone').value = currentUser.phone || '';
+            }
+        }
+    }, 100);
+}
+
+function createCheckoutModal() {
+    const modalHTML = `
+    <div class="modal" id="checkoutModal">
+        <div class="modal-overlay" onclick="closeCheckoutModal()"></div>
+        <div class="modal-content checkout-modal-content">
+            <button class="modal-close" onclick="closeCheckoutModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="checkout-modal-body">
+                <div class="checkout-header">
+                    <h2><i class="fas fa-shopping-bag"></i> Checkout</h2>
+                    <p class="checkout-subtitle">Complete your order</p>
+                </div>
+
+                <div class="checkout-grid">
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        <h3><i class="fas fa-receipt"></i> Order Summary</h3>
+                        <div id="checkoutItemsList"></div>
+                        <div class="checkout-totals">
+                            <div class="checkout-total-row">
+                                <span>Subtotal:</span>
+                                <span id="checkoutSubtotal">R0.00</span>
+                            </div>
+                            <div class="checkout-total-row">
+                                <span>Shipping:</span>
+                                <span id="checkoutShipping">R0.00</span>
+                            </div>
+                            <div class="checkout-total-row discount-row" id="discountRow" style="display: none;">
+                                <span>Discount:</span>
+                                <span id="checkoutDiscount">-R0.00</span>
+                            </div>
+                            <div class="checkout-total-row final-total">
+                                <span>Total:</span>
+                                <span id="checkoutTotal">R0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Coupon Code -->
+                        <div class="coupon-section">
+                            <h4><i class="fas fa-tag"></i> Have a coupon?</h4>
+                            <div class="coupon-input-group">
+                                <input type="text" id="couponCode" placeholder="Enter coupon code" maxlength="20">
+                                <button onclick="applyCoupon()" class="btn-apply-coupon">Apply</button>
+                            </div>
+                            <p id="couponMessage" style="display: none; font-size: 0.85rem; margin-top: 0.5rem;"></p>
+                        </div>
+                    </div>
+
+                    <!-- Customer Details -->
+                    <div class="customer-details">
+                        <h3><i class="fas fa-user"></i> Your Details</h3>
+                        <form id="checkoutForm" onsubmit="processCheckout(event)">
+                            <div class="form-group">
+                                <label for="checkoutName">Full Name *</label>
+                                <input type="text" id="checkoutName" required placeholder="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutEmail">Email Address *</label>
+                                <input type="email" id="checkoutEmail" required placeholder="john@example.com">
+                                <small style="color: var(--gray); font-size: 0.8rem;">We'll send your order confirmation here</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutPhone">Phone Number *</label>
+                                <input type="tel" id="checkoutPhone" required placeholder="+27 12 345 6789">
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;"><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
+                            <div class="form-group">
+                                <label for="checkoutAddress">Street Address *</label>
+                                <input type="text" id="checkoutAddress" required placeholder="123 Main Street">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="checkoutCity">City *</label>
+                                    <input type="text" id="checkoutCity" required placeholder="Johannesburg">
+                                </div>
+                                <div class="form-group">
+                                    <label for="checkoutPostalCode">Postal Code *</label>
+                                    <input type="text" id="checkoutPostalCode" required placeholder="2001" maxlength="4">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="checkoutProvince">Province *</label>
+                                <select id="checkoutProvince" required>
+                                    <option value="">Select Province</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Free State">Free State</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="North West">North West</option>
+                                    <option value="Northern Cape">Northern Cape</option>
+                                </select>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;"><i class="fas fa-credit-card"></i> Payment Method</h3>
+                            <div class="payment-options">
+                                <label class="payment-option">
+                                    <input type="radio" name="checkoutPayment" value="card" checked>
+                                    <span><i class="fas fa-credit-card"></i> Card / EFT</span>
+                                </label>
+                                <label class="payment-option">
+                                    <input type="radio" name="checkoutPayment" value="payfast">
+                                    <span><i class="fas fa-lock"></i> PayFast (Secure)</span>
+                                </label>
+                                <label class="payment-option">
+                                    <input type="radio" name="checkoutPayment" value="bank_transfer">
+                                    <span><i class="fas fa-university"></i> Bank Transfer</span>
+                                </label>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;"><i class="fas fa-truck"></i> Delivery Method</h3>
+                            <div class="delivery-options">
+                                <label class="delivery-option">
+                                    <input type="radio" name="checkoutDelivery" value="delivery" checked onchange="toggleDeliveryOptions()">
+                                    <span><i class="fas fa-truck"></i> Home Delivery</span>
+                                </label>
+                                <label class="delivery-option">
+                                    <input type="radio" name="checkoutDelivery" value="collection" onchange="toggleDeliveryOptions()">
+                                    <span><i class="fas fa-store"></i> Store Collection (Free)</span>
+                                </label>
+                            </div>
+
+                            <div id="collectionDetails" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 200, 83, 0.1); border-radius: 8px;">
+                                <p><strong>Collection Point:</strong></p>
+                                <p>123 Commerce Street, Johannesburg, 2001</p>
+                                <p style="font-size: 0.85rem; color: var(--gray);">Ready for collection within 24 hours of order confirmation</p>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1.5rem;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="checkoutTerms" required>
+                                    <span>I agree to the <a href="terms.html" target="_blank">Terms & Conditions</a> and <a href="privacy.html" target="_blank">Privacy Policy</a> *</span>
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="checkoutNewsletter">
+                                    <span>Subscribe to our newsletter for exclusive deals</span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="checkout-submit-btn">
+                                <i class="fas fa-lock"></i> Complete Order
+                            </button>
+
+                            <p class="secure-checkout-note">
+                                <i class="fas fa-shield-alt"></i> Your information is secure and encrypted
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeCheckoutModal() {
+    const modal = document.getElementById('checkoutModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+function toggleDeliveryOptions() {
+    const deliveryMethod = document.querySelector('input[name="checkoutDelivery"]:checked').value;
+    const collectionDetails = document.getElementById('collectionDetails');
+
+    if (deliveryMethod === 'collection') {
+        collectionDetails.style.display = 'block';
+        // Remove shipping cost for collection
+        shippingCost = 0;
+        updateCheckoutTotals();
+    } else {
+        collectionDetails.style.display = 'none';
+        // Recalculate shipping
+        calculateShipping();
+        updateCheckoutTotals();
+    }
+}
+
+function updateCheckoutTotals() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = window.appliedDiscount || 0;
+    const total = subtotal + shippingCost - discount;
+
+    document.getElementById('checkoutSubtotal').textContent = `R${subtotal.toFixed(2)}`;
+    document.getElementById('checkoutShipping').textContent = shippingCost === 0 ? 'FREE' : `R${shippingCost.toFixed(2)}`;
+    
+    if (discount > 0) {
+        document.getElementById('discountRow').style.display = 'flex';
+        document.getElementById('checkoutDiscount').textContent = `-R${discount.toFixed(2)}`;
+    }
+    
+    document.getElementById('checkoutTotal').textContent = `R${total.toFixed(2)}`;
+}
+
+function loadCheckoutItems() {
+    const container = document.getElementById('checkoutItemsList');
+    if (!container) return;
+
+    container.innerHTML = cart.map(item => `
+        <div class="checkout-item">
+            <div class="checkout-item-icon">${item.icon}</div>
+            <div class="checkout-item-details">
+                <h4>${item.name}</h4>
+                <p>Qty: ${item.quantity} x R${item.price.toFixed(2)}</p>
+            </div>
+            <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
+        </div>
+    `).join('');
+
+    updateCheckoutTotals();
+}
+
+// Coupon System
+const VALID_COUPONS = {
+    'WELCOME10': { discount: 0.10, type: 'percent', description: '10% off your order', maxDiscount: 500 },
+    'SAVE50': { discount: 50, type: 'fixed', description: 'R50 off your order' },
+    'FREESHIP': { discount: 0, type: 'freeshipping', description: 'Free shipping' },
+    'METRA20': { discount: 0.20, type: 'percent', description: '20% off orders over R1000', minPurchase: 1000, maxDiscount: 1000 }
+};
+
+function applyCoupon() {
+    const code = document.getElementById('couponCode').value.trim().toUpperCase();
+    const message = document.getElementById('couponMessage');
+    
+    if (!code) {
+        message.style.display = 'block';
+        message.style.color = '#DC143C';
+        message.textContent = 'Please enter a coupon code';
         return;
     }
 
-    // Validate user email before checkout
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const userEmail = currentUser.email ? currentUser.email.trim().toLowerCase() : '';
+    const coupon = VALID_COUPONS[code];
     
-    if (!userEmail || !emailRegex.test(userEmail)) {
-        showNotification('Please update your profile with a valid email address before checkout.');
-        openProfileModal();
-        setTimeout(() => {
-            const settingsTab = document.getElementById('settingsTab');
-            if (settingsTab) settingsTab.click();
-        }, 1000);
+    if (!coupon) {
+        message.style.display = 'block';
+        message.style.color = '#DC143C';
+        message.textContent = 'Invalid coupon code';
         return;
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const total = subtotal + shippingCost;
+
+    if (coupon.minPurchase && subtotal < coupon.minPurchase) {
+        message.style.display = 'block';
+        message.style.color = '#DC143C';
+        message.textContent = `Minimum purchase of R${coupon.minPurchase} required`;
+        return;
+    }
+
+    let discountAmount = 0;
+    
+    if (coupon.type === 'percent') {
+        discountAmount = subtotal * coupon.discount;
+        if (coupon.maxDiscount) {
+            discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+        }
+    } else if (coupon.type === 'fixed') {
+        discountAmount = coupon.discount;
+    } else if (coupon.type === 'freeshipping') {
+        shippingCost = 0;
+        discountAmount = 0;
+    }
+
+    window.appliedDiscount = discountAmount;
+    window.appliedCoupon = code;
+
+    message.style.display = 'block';
+    message.style.color = '#228B22';
+    message.textContent = `✓ Coupon applied! ${coupon.description}`;
+
+    updateCheckoutTotals();
+    showNotification('Coupon applied successfully!', 'success');
+}
+
+function processCheckout(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('checkoutName').value.trim();
+    const email = document.getElementById('checkoutEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('checkoutPhone').value.trim();
+    const address = document.getElementById('checkoutAddress').value.trim();
+    const city = document.getElementById('checkoutCity').value.trim();
+    const postalCode = document.getElementById('checkoutPostalCode').value.trim();
+    const province = document.getElementById('checkoutProvince').value;
+    const paymentMethod = document.querySelector('input[name="checkoutPayment"]:checked').value;
+    const deliveryMethod = document.querySelector('input[name="checkoutDelivery"]:checked').value;
+    const termsAccepted = document.getElementById('checkoutTerms').checked;
+    const newsletterSignup = document.getElementById('checkoutNewsletter').checked;
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address');
+        return;
+    }
+
+    if (!termsAccepted) {
+        showNotification('Please accept the Terms & Conditions to continue');
+        return;
+    }
+
+    // Check stock availability
+    for (const item of cart) {
+        const product = products.find(p => p.id === item.id);
+        if (product && product.stock !== undefined && product.stock < item.quantity) {
+            showNotification(`Sorry, only ${product.stock} units available for ${product.name}`);
+            return;
+        }
+    }
+
+    // Create guest user if not logged in
+    let userId = currentUser ? currentUser.id : 'guest-' + Date.now();
+    let customerName = name;
+    let customerEmail = email;
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = window.appliedDiscount || 0;
+    const total = subtotal + shippingCost - discount;
 
     const order = {
         id: 'ORD-' + Date.now(),
         invoiceNumber: 'INV-' + Date.now(),
-        userId: currentUser.id,
-        customerName: currentUser.name,
-        customerEmail: userEmail,
+        userId: userId,
+        isGuest: !currentUser,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: phone,
+        shippingAddress: {
+            street: address,
+            city: city,
+            postalCode: postalCode,
+            province: province,
+            country: 'South Africa'
+        },
+        deliveryMethod: deliveryMethod,
         items: [...cart],
         subtotal: subtotal,
         shipping: shippingCost,
+        discount: discount,
+        couponCode: window.appliedCoupon || null,
         total: total,
         paymentMethod: paymentMethod,
-        invoiceDelivery: invoiceDeliveryMethod,
         status: 'processing',
-        date: new Date().toLocaleDateString('en-ZA')
+        date: new Date().toLocaleDateString('en-ZA'),
+        createdAt: new Date().toISOString()
     };
 
     // Handle PayFast payment
     if (paymentMethod === 'payfast') {
         if (processPayFastPayment(order)) {
-            // Save order only if PayFast redirect succeeds
-            saveOrder(order);
+            saveOrder(order, newsletterSignup);
             return;
         } else {
-            // If PayFast fails, fall back to regular checkout
             showNotification('PayFast unavailable. Processing as regular order...');
         }
     }
 
-    // Regular checkout for card, EFT, bank transfer
-    saveOrder(order);
+    // Regular checkout
+    saveOrder(order, newsletterSignup);
 }
 
-// Save Order
-function saveOrder(order) {
+// Save Order (updated for guest checkout)
+function saveOrder(order, newsletterSignup = false) {
     const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
     orders.push(order);
     localStorage.setItem('metraOrders', JSON.stringify(orders));
 
-    if (!currentUser.orders) currentUser.orders = [];
-    currentUser.orders.push(order.id);
-    localStorage.setItem('metraUsers', JSON.stringify(
-        JSON.parse(localStorage.getItem('metraUsers') || '[]').map(u =>
-            u.id === currentUser.id ? currentUser : u
-        )
-    ));
-    localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
+    // Update user orders if logged in
+    if (currentUser) {
+        if (!currentUser.orders) currentUser.orders = [];
+        currentUser.orders.push(order.id);
+        localStorage.setItem('metraUsers', JSON.stringify(
+            JSON.parse(localStorage.getItem('metraUsers') || '[]').map(u =>
+                u.id === currentUser.id ? currentUser : u
+            )
+        ));
+        localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
+    }
+
+    // Update stock
+    order.items.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product && product.stock !== undefined) {
+            product.stock -= item.quantity;
+        }
+    });
 
     generateInvoice(order);
 
     // Send order confirmation email to customer
-    const itemsList = order.items.map(item => 
-        `<li>${item.name} x ${item.quantity} - R${(item.price * item.quantity).toFixed(2)}</li>`
+    const itemsList = order.items.map(item =>
+        `<tr>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">R${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>`
     ).join('');
-    
+
     sendEmail(order.customerEmail, 'order_confirmation', {
         customerName: order.customerName,
         orderNumber: order.id,
         invoiceNumber: order.invoiceNumber,
         date: order.date,
         total: order.total.toFixed(2),
-        itemsList: itemsList
+        itemsList: itemsList,
+        subtotal: order.subtotal.toFixed(2),
+        shipping: order.shipping.toFixed(2),
+        paymentMethod: order.paymentMethod
     });
 
     // Send admin notification
@@ -1911,16 +2275,25 @@ function saveOrder(order) {
         adminUrl: window.location.origin + '/admin.html'
     });
 
-    const deliveryText = invoiceDeliveryMethod === 'whatsapp' ? 'WhatsApp' : 'email';
-    showNotification('Order placed successfully! Invoice sent via ' + deliveryText);
-    
+    // Newsletter signup
+    if (newsletterSignup) {
+        const subscribers = JSON.parse(localStorage.getItem('metraSubscribers') || '[]');
+        if (!subscribers.find(s => s.email === order.customerEmail)) {
+            subscribers.push({ email: order.customerEmail, date: new Date().toISOString(), source: 'checkout' });
+            localStorage.setItem('metraSubscribers', JSON.stringify(subscribers));
+        }
+    }
+
+    showNotification('🎉 Order placed successfully! Check your email for confirmation.');
+
     // Track purchase
-    trackEvent('purchase', { 
-        orderId: order.id, 
-        total: order.total, 
-        items: order.items.length 
+    trackEvent('purchase', {
+        orderId: order.id,
+        total: order.total,
+        items: order.items.length,
+        isGuest: order.isGuest
     });
-    
+
     // Trigger real-time admin update
     localStorage.setItem('metraRealtimeOrder', JSON.stringify({
         type: 'new_order',
@@ -1929,12 +2302,77 @@ function saveOrder(order) {
         customer: order.customerName,
         timestamp: Date.now()
     }));
-    
+
+    // Clear cart and close modal
     cart = [];
     shippingCost = 0;
+    window.appliedDiscount = 0;
+    window.appliedCoupon = null;
     updateCart();
     saveCart();
-    toggleCart();
+    closeCheckoutModal();
+
+    // Show order success page
+    showOrderSuccess(order);
+}
+
+function showOrderSuccess(order) {
+    const successHTML = `
+    <div class="modal active" id="orderSuccessModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content order-success-content">
+            <div class="success-animation">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Order Placed Successfully!</h2>
+            <p class="order-success-message">Thank you for shopping with Metra Market, <strong>${order.customerName}</strong>!</p>
+            
+            <div class="order-details-summary">
+                <div class="order-detail-row">
+                    <span>Order Number:</span>
+                    <strong>${order.id}</strong>
+                </div>
+                <div class="order-detail-row">
+                    <span>Invoice:</span>
+                    <strong>${order.invoiceNumber}</strong>
+                </div>
+                <div class="order-detail-row">
+                    <span>Total:</span>
+                    <strong style="color: #228B22;">R${order.total.toFixed(2)}</strong>
+                </div>
+                <div class="order-detail-row">
+                    <span>Payment Method:</span>
+                    <strong>${order.paymentMethod === 'card' ? 'Card/EFT' : order.paymentMethod === 'payfast' ? 'PayFast' : 'Bank Transfer'}</strong>
+                </div>
+            </div>
+
+            <div class="order-next-steps">
+                <h4>What's Next?</h4>
+                <ul>
+                    <li><i class="fas fa-envelope"></i> Order confirmation sent to <strong>${order.customerEmail}</strong></li>
+                    <li><i class="fas fa-box"></i> Your order will be processed within 1-2 business days</li>
+                    <li><i class="fas fa-truck"></i> You'll receive tracking info once shipped</li>
+                </ul>
+            </div>
+
+            <div class="order-actions">
+                <a href="track-order.html" class="btn-track-order">
+                    <i class="fas fa-map-marker-alt"></i> Track Your Order
+                </a>
+                <a href="shopping.html" class="btn-continue-shopping">
+                    <i class="fas fa-shopping-bag"></i> Continue Shopping
+                </a>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', successHTML);
+
+    // Auto-close after 10 seconds
+    setTimeout(() => {
+        const modal = document.getElementById('orderSuccessModal');
+        if (modal) modal.remove();
+    }, 10000);
 }
 
 // PayFast Payment Processing
