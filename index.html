@@ -39,39 +39,542 @@
     <meta property="twitter:image" content="/twitter-image.jpg">
 
     <!-- Structured Data (JSON-LD) -->
+    
+    <!-- Organization Schema -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "OnlineStore",
+        "@type": "Organization",
         "name": "Metra Market",
-        "url": "/",
-        "logo": "/logo.png",
-        "description": "Premium online shopping destination in South Africa",
-        "telephone": "+27-11-123-4567",
-        "email": "support@metramarket.co.za",
+        "url": "https://www.metramarket.co.za",
+        "logo": "https://www.metramarket.co.za/logo.png",
+        "description": "Premium online shopping destination in South Africa offering electronics, accessories, gaming, and office products at unbeatable prices",
+        "foundingDate": "2024",
         "address": {
             "@type": "PostalAddress",
             "streetAddress": "123 Commerce Street",
             "addressLocality": "Johannesburg",
+            "addressRegion": "Gauteng",
             "postalCode": "2001",
             "addressCountry": "ZA"
         },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+27-11-123-4567",
+            "contactType": "Customer Service",
+            "email": "support@metramarket.co.za",
+            "areaServed": "ZA",
+            "availableLanguage": ["English", "Afrikaans", "Zulu"]
+        },
+        "sameAs": [
+            "https://www.facebook.com/metramarket",
+            "https://www.twitter.com/metramarket",
+            "https://www.instagram.com/metramarket",
+            "https://www.linkedin.com/company/metramarket"
+        ],
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "1247",
+            "bestRating": "5",
+            "worstRating": "1"
+        }
+    }
+    </script>
+
+    <!-- LocalBusiness Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "Metra Market",
+        "image": "https://www.metramarket.co.za/og-image.jpg",
+        "telephone": "+27-11-123-4567",
+        "email": "support@metramarket.co.za",
+        "url": "https://www.metramarket.co.za",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "123 Commerce Street",
+            "addressLocality": "Johannesburg",
+            "addressRegion": "Gauteng",
+            "postalCode": "2001",
+            "addressCountry": "ZA"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": "-26.2041",
+            "longitude": "28.0473"
+        },
+        "openingHoursSpecification": [
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "08:00",
+                "closes": "18:00"
+            },
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": "Saturday",
+                "opens": "09:00",
+                "closes": "14:00"
+            }
+        ],
         "priceRange": "R50 - R5000",
         "currenciesAccepted": "ZAR",
-        "paymentAccepted": "Credit Card, Debit Card, EFT, PayFast",
-        "shippingDetails": {
+        "paymentAccepted": "Credit Card, Debit Card, EFT, PayFast"
+    }
+    </script>
+
+    <!-- WebSite Schema with Sitelinks Searchbox -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Metra Market",
+        "url": "https://www.metramarket.co.za",
+        "description": "Premium online shopping destination in South Africa",
+        "inLanguage": "en-ZA",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://www.metramarket.co.za/shopping.html?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Metra Market",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://www.metramarket.co.za/logo.png"
+            }
+        }
+    }
+    </script>
+
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://www.metramarket.co.za/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Products",
+                "item": "https://www.metramarket.co.za/#products"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "All Products",
+                "item": "https://www.metramarket.co.za/shopping.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "About Us",
+                "item": "https://www.metramarket.co.za/#about"
+            },
+            {
+                "@type": "ListItem",
+                "position": 5,
+                "name": "Contact",
+                "item": "https://www.metramarket.co.za/#contact"
+            },
+            {
+                "@type": "ListItem",
+                "position": 6,
+                "name": "Track Order",
+                "item": "https://www.metramarket.co.za/track-order.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 7,
+                "name": "Returns & Refunds",
+                "item": "https://www.metramarket.co.za/returns.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 8,
+                "name": "FAQ",
+                "item": "https://www.metramarket.co.za/faq.html"
+            }
+        ]
+    }
+    </script>
+
+    <!-- SiteNavigationElement Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Metra Market Site Navigation",
+        "itemListElement": [
+            {
+                "@type": "SiteNavigationElement",
+                "position": 1,
+                "name": "Home",
+                "description": "Metra Market homepage - Discover premium products at unbeatable prices",
+                "url": "https://www.metramarket.co.za/"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 2,
+                "name": "Products",
+                "description": "Browse our featured products including electronics, accessories, gaming, and office supplies",
+                "url": "https://www.metramarket.co.za/#products"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 3,
+                "name": "All Products",
+                "description": "View our complete catalogue of 20+ premium products",
+                "url": "https://www.metramarket.co.za/shopping.html"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 4,
+                "name": "About Us",
+                "description": "Learn about Metra Market - your premium shopping destination in South Africa",
+                "url": "https://www.metramarket.co.za/#about"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 5,
+                "name": "Contact Us",
+                "description": "Get in touch with Metra Market customer support",
+                "url": "https://www.metramarket.co.za/#contact"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 6,
+                "name": "Track Your Order",
+                "description": "Track your Metra Market order status and delivery information",
+                "url": "https://www.metramarket.co.za/track-order.html"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 7,
+                "name": "Returns & Refunds",
+                "description": "Learn about our 30-day hassle-free returns and refund policy",
+                "url": "https://www.metramarket.co.za/returns.html"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 8,
+                "name": "FAQ",
+                "description": "Frequently asked questions about shopping at Metra Market",
+                "url": "https://www.metramarket.co.za/faq.html"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 9,
+                "name": "Terms & Conditions",
+                "description": "Metra Market terms and conditions of service",
+                "url": "https://www.metramarket.co.za/terms.html"
+            },
+            {
+                "@type": "SiteNavigationElement",
+                "position": 10,
+                "name": "Privacy Policy",
+                "description": "How Metra Market protects your personal information",
+                "url": "https://www.metramarket.co.za/privacy.html"
+            }
+        ]
+    }
+    </script>
+
+    <!-- OfferCatalog Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "OfferCatalog",
+        "name": "Metra Market Product Categories",
+        "description": "Browse our premium product categories including Audio, Wearables, Gaming, Office, Accessories, and Connectivity",
+        "url": "https://www.metramarket.co.za/shopping.html",
+        "itemListElement": [
+            {
+                "@type": "OfferCatalog",
+                "name": "Audio Products",
+                "description": "Premium wireless headphones, earbuds, and audio accessories",
+                "url": "https://www.metramarket.co.za/shopping.html?category=Audio",
+                "itemListElement": [
+                    {
+                        "@type": "Offer",
+                        "itemOffered": {
+                            "@type": "Product",
+                            "name": "Wireless Headphones",
+                            "description": "Premium noise-canceling wireless headphones with 40-hour battery life",
+                            "image": "https://www.metramarket.co.za/products/wireless-headphones.jpg",
+                            "brand": {
+                                "@type": "Brand",
+                                "name": "Metra Market"
+                            },
+                            "aggregateRating": {
+                                "@type": "AggregateRating",
+                                "ratingValue": "4.8",
+                                "reviewCount": "127"
+                            },
+                            "offers": {
+                                "@type": "Offer",
+                                "price": "1199.99",
+                                "priceCurrency": "ZAR",
+                                "availability": "https://schema.org/InStock",
+                                "seller": {
+                                    "@type": "Organization",
+                                    "name": "Metra Market"
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "@type": "OfferCatalog",
+                "name": "Wearables",
+                "description": "Smart watches and fitness trackers",
+                "url": "https://www.metramarket.co.za/shopping.html?category=Wearables",
+                "itemListElement": [
+                    {
+                        "@type": "Offer",
+                        "itemOffered": {
+                            "@type": "Product",
+                            "name": "Smart Watch",
+                            "description": "Feature-rich smartwatch with health tracking and GPS",
+                            "image": "https://www.metramarket.co.za/products/smart-watch.jpg",
+                            "aggregateRating": {
+                                "@type": "AggregateRating",
+                                "ratingValue": "4.9",
+                                "reviewCount": "89"
+                            },
+                            "offers": {
+                                "@type": "Offer",
+                                "price": "2999.99",
+                                "priceCurrency": "ZAR",
+                                "availability": "https://schema.org/InStock"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "@type": "OfferCatalog",
+                "name": "Gaming Accessories",
+                "description": "Mechanical keyboards, gaming mice, and gaming accessories",
+                "url": "https://www.metramarket.co.za/shopping.html?category=Gaming"
+            },
+            {
+                "@type": "OfferCatalog",
+                "name": "Office Equipment",
+                "description": "Laptop stands, ergonomic accessories, and office supplies",
+                "url": "https://www.metramarket.co.za/shopping.html?category=Office"
+            },
+            {
+                "@type": "OfferCatalog",
+                "name": "Tech Accessories",
+                "description": "USB hubs, cables, chargers, and connectivity solutions",
+                "url": "https://www.metramarket.co.za/shopping.html?category=Accessories"
+            }
+        ]
+    }
+    </script>
+
+    <!-- Shipping & Returns Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "ZA",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 30,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn",
+        "returnPolicySeasonalOverride": {
+            "@type": "MerchantReturnPolicySeasonalOverride",
+            "startDate": "2026-11-01",
+            "endDate": "2026-12-31",
+            "merchantReturnDays": 60
+        }
+    }
+    </script>
+
+    <!-- ShippingDetails Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "OfferShippingDetails",
+        "shippingDestination": {
+            "@type": "DefinedRegion",
+            "addressCountry": "ZA",
+            "addressRegion": ["Gauteng", "Western Cape", "KwaZulu-Natal", "Eastern Cape", "Free State", "Limpopo", "Mpumalanga", "North West", "Northern Cape"]
+        },
+        "deliveryTime": {
             "@type": "ShippingDeliveryTime",
-            "handlingTime": "P1D",
-            "shippingTime": {
+            "handlingTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 1,
+                "maxValue": 2,
+                "unitCode": "DAY"
+            },
+            "transitTime": {
                 "@type": "QuantitativeValue",
                 "minValue": 2,
                 "maxValue": 10,
                 "unitCode": "DAY"
             }
+        },
+        "shippingRate": {
+            "@type": "MonetaryAmount",
+            "value": "0",
+            "currency": "ZAR",
+            "description": "Free shipping on orders over R750"
         }
     }
     </script>
-    
+
+    <!-- PaymentMethod Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "PaymentMethod",
+        "name": "Metra Market Payment Options",
+        "description": "We accept Credit Card, Debit Card, EFT, and PayFast secure payments",
+        "url": "https://www.metramarket.co.za/shopping.html"
+    }
+    </script>
+
+    <!-- FAQPage Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "How much does shipping cost at Metra Market?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Shipping is FREE on all orders over R750. For orders under R750, shipping costs are calculated based on product weight and dimensions via Bobgo Delivery. We also offer free collection from our Johannesburg location."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What is Metra Market's return policy?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "We offer a 30-day hassle-free return policy. If you're not satisfied with your purchase, you can return it within 30 days for a full refund. During the holiday season (November 1 - December 31), we extend this to 60 days. Returns are free of charge."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What payment methods does Metra Market accept?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Metra Market accepts Credit Card, Debit Card, EFT (Electronic Funds Transfer), and PayFast secure payments. All transactions are 100% secure and encrypted."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How long does delivery take?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Orders are processed within 1-2 business days. Delivery typically takes 2-10 business days depending on your location in South Africa. Major cities like Johannesburg, Cape Town, and Durban usually receive orders within 2-5 days."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I track my order?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes! Once your order ships, you'll receive a tracking number via email. You can track your order status anytime at metramarket.co.za/track-order.html using your order ID."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does Metra Market offer product warranties?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, all products come with a minimum 12-month manufacturer warranty. Some products include extended warranties. Check individual product pages for specific warranty details."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I contact Metra Market customer support?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "You can reach our customer support team via the contact form on our website, by email at support@metramarket.co.za, or by phone at +27-11-123-4567. Our team is available Monday-Friday 8am-6pm and Saturday 9am-2pm."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <!-- Review/Rating Schema for Aggregate Ratings -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Metra Market Products",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "1247",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "1247"
+        },
+        "review": [
+            {
+                "@type": "Review",
+                "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": "5",
+                    "bestRating": "5"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": "Sipho M."
+                },
+                "reviewBody": "Amazing sound quality! Best headphones I've ever owned. Fast delivery and excellent customer service."
+            },
+            {
+                "@type": "Review",
+                "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": "5",
+                    "bestRating": "5"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": "Nomsa K."
+                },
+                "reviewBody": "Great products at affordable prices. The smart watch tracks everything accurately. Highly recommend Metra Market!"
+            },
+            {
+                "@type": "Review",
+                "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": "5",
+                    "bestRating": "5"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": "Thabo D."
+                },
+                "reviewBody": "Perfect fitness companion! Love the design and battery life is incredible. Will definitely shop here again."
+            }
+        ]
+    }
+    </script>
+
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
