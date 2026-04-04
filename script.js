@@ -1016,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCart();
     updateWishlistCount();
     setupMobileNav();
+    initTouchGestures();
     showRandomSalesNotification();
     initFacebookSDK();
 
@@ -3942,6 +3943,191 @@ function closeProductModal() {
     if (modal && overlay) {
         modal.classList.remove('active');
         overlay.classList.remove('active');
+    }
+}
+
+// ==================== TOUCH & SWIPE GESTURES ====================
+function initTouchGestures() {
+    if (typeof window === 'undefined') return;
+    
+    // Only enable on touch devices
+    if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    let isSwiping = false;
+    let currentTranslateX = 0;
+    let productSwipeIndex = 0;
+
+    // Product swipe container (mobile only)
+    const productsGrid = document.getElementById('productsGrid');
+    if (productsGrid && window.innerWidth < 768) {
+        productsGrid.style.display = 'flex';
+        productsGrid.style.overflowX = 'auto';
+        productsGrid.style.scrollSnapType = 'x mandatory';
+        productsGrid.style.scrollBehavior = 'smooth';
+        productsGrid.style.webkitOverflowScrolling = 'touch';
+        productsGrid.style.gap = '1rem';
+        productsGrid.style.paddingBottom = '1rem';
+        
+        // Add scroll snap to product cards
+        const productCards = productsGrid.querySelectorAll('.product-card');
+        productCards.forEach(card => {
+            card.style.minWidth = '85vw';
+            card.style.scrollSnapAlign = 'center';
+            card.style.flexShrink = '0';
+        });
+    }
+
+    // Cart swipe gesture
+    const cartSidebar = document.getElementById('cartSidebar');
+    const cartOverlay = document.getElementById('cartOverlay');
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+        isSwiping = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (!isSwiping) return;
+        isSwiping = false;
+        
+        touchEndX = e.changedTouches[0].clientX;
+        touchEndY = e.changedTouches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        const deltaTime = Date.now() - touchStartTime;
+        
+        // Only process horizontal swipes
+        if (Math.abs(deltaX) < Math.abs(deltaY)) return;
+        if (Math.abs(deltaX) < 50) return; // Minimum swipe distance
+        if (deltaTime > 500) return; // Maximum swipe duration
+
+        // Swipe right from left edge - Open cart
+        if (deltaX > 0 && touchStartX < 50) {
+            if (cartSidebar && !cartSidebar.classList.contains('active')) {
+                toggleCart();
+            }
+        }
+        
+        // Swipe left - Close cart
+        if (deltaX < 0 && cartSidebar && cartSidebar.classList.contains('active')) {
+            if (cartOverlay) {
+                toggleCart();
+            }
+        }
+    }, { passive: true });
+
+    // Product modal swipe for specs/reviews
+    const productModal = document.getElementById('productModal');
+    if (productModal) {
+        let modalSwipeStartX = 0;
+        let modalSwipeStartY = 0;
+
+        productModal.addEventListener('touchstart', (e) => {
+            modalSwipeStartX = e.touches[0].clientX;
+            modalSwipeStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        productModal.addEventListener('touchend', (e) => {
+            const deltaX = e.changedTouches[0].clientX - modalSwipeStartX;
+            const deltaY = e.changedTouches[0].clientY - modalSwipeStartY;
+            
+            // Swipe down to close modal
+            if (deltaY > 100 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                closeProductModal();
+            }
+        }, { passive: true });
+    }
+
+    // Checkout modal swipe down to close
+    const checkoutModal = document.getElementById('checkoutModal');
+    if (checkoutModal) {
+        let checkoutSwipeStartY = 0;
+
+        checkoutModal.addEventListener('touchstart', (e) => {
+            checkoutSwipeStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        checkoutModal.addEventListener('touchend', (e) => {
+            const deltaY = e.changedTouches[0].clientY - checkoutSwipeStartY;
+            
+            // Swipe down to close
+            if (deltaY > 100) {
+                closeCheckoutModal();
+            }
+        }, { passive: true });
+    }
+
+    // Horizontal swipe between product images in modal
+    const modalImage = document.querySelector('.product-modal-image');
+    if (modalImage) {
+        let imageSwipeX = 0;
+        
+        modalImage.addEventListener('touchstart', (e) => {
+            imageSwipeX = e.touches[0].clientX;
+        }, { passive: true });
+
+        modalImage.addEventListener('touchend', (e) => {
+            const deltaX = e.changedTouches[0].clientX - imageSwipeX;
+            
+            if (Math.abs(deltaX) > 50) {
+                // Could implement image gallery swipe here
+                console.log('Image swipe detected:', deltaX > 0 ? 'right' : 'left');
+            }
+        }, { passive: true });
+    }
+
+    // Pull to refresh on homepage
+    let pullStartY = 0;
+    let isPulling = false;
+    
+    document.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) {
+            pullStartY = e.touches[0].clientY;
+            isPulling = true;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        const pullDistance = e.touches[0].clientY - pullStartY;
+        
+        // Pull down more than 100px at top of page
+        if (pullDistance > 100 && window.scrollY === 0) {
+            // Could trigger refresh
+            console.log('Pull to refresh triggered');
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        isPulling = false;
+    }, { passive: true });
+
+    console.log('✅ Touch gestures initialized');
+
+    // Show cart swipe hint on mobile
+    if (window.innerWidth < 768) {
+        const cartHint = document.getElementById('cartSwipeHint');
+        if (cartHint) {
+            cartHint.style.display = 'block';
+            // Hide hint after 5 seconds
+            setTimeout(() => {
+                cartHint.style.display = 'none';
+            }, 5000);
+        }
     }
 }
 
