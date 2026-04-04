@@ -229,7 +229,20 @@
     
     <!-- Include main script -->
     <script src="script.js"></script>
-    
+
+    <!-- Product Detail Modal -->
+    <div class="product-modal" id="productModal" style="display: none;">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeProductModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-body" id="modalBody">
+                <!-- Product details loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modalOverlay" onclick="closeProductModal()" style="display: none;"></div>
+
     <script>
         // Set view mode
         function setView(mode) {
