@@ -1549,18 +1549,18 @@ function clearFilters() {
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
-    
+
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
-        existingItem.quantity++;
+        existingItem.quantity += 1;
     } else {
         cart.push({ ...product, quantity: 1 });
     }
-    
+
     updateCart();
     saveCart();
-    showNotification('Added to cart!');
-    
+    showNotification(`${product.name} added to cart!`);
+
     // Track event
     trackEvent('add_to_cart', { productId, productName: product.name, price: product.price });
 }
@@ -1633,7 +1633,29 @@ function saveCart() {
 
 function loadCart() {
     const saved = localStorage.getItem('metraCart');
-    if (saved) cart = JSON.parse(saved);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            // Validate cart data
+            if (Array.isArray(parsed)) {
+                // Remove any duplicates and invalid items
+                const seen = new Set();
+                cart = parsed.filter(item => {
+                    if (!item || !item.id || seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    // Ensure quantity is a valid number
+                    item.quantity = Math.max(1, parseInt(item.quantity) || 1);
+                    return true;
+                });
+                // Save cleaned cart
+                saveCart();
+            }
+        } catch (e) {
+            console.error('Failed to load cart:', e);
+            cart = [];
+            saveCart();
+        }
+    }
 }
 
 // Shipping
@@ -1647,41 +1669,50 @@ async function updateShipping(method) {
             bobgoPriceEl.textContent = 'Calculating...';
         }
 
+        // Set timeout to prevent stuck "Calculating..."
+        const timeoutId = setTimeout(() => {
+            if (bobgoPriceEl && bobgoPriceEl.textContent === 'Calculating...') {
+                console.warn('Bobgo API timeout, using default shipping cost');
+                shippingCost = BOBGO_CONFIG.defaultShipping;
+                if (bobgoPriceEl) {
+                    bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Standard)';
+                }
+                if (shippingOptionsEl) {
+                    shippingOptionsEl.innerHTML = `
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> Standard shipping: R${shippingCost.toFixed(2)}
+                        </p>
+                    `;
+                }
+                updateCart();
+            }
+        }, 5000); // 5 second timeout
+
         try {
             if (selectedDeliveryMethod === 'collection') {
+                clearTimeout(timeoutId);
                 // Collection - no shipping cost
                 shippingCost = 0;
                 if (bobgoPriceEl) {
                     bobgoPriceEl.textContent = 'R0.00 (Collection)';
                 }
                 if (shippingOptionsEl) {
-                    // Show collection point selection
-                    const collectionPoints = await getCollectionPoints();
-                    if (collectionPoints.length > 0) {
-                        shippingOptionsEl.innerHTML = `
-                            <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Collection Point</h4>
-                            <select id="collectionPointSelect" onchange="selectCollectionPoint(this.value)" style="width: 100%; padding: 0.8rem; background: rgba(255,248,231,0.05); border: 1px solid rgba(255,248,231,0.1); border-radius: 10px; color: var(--light); font-size: 0.9rem;">
-                                <option value="">-- Select a collection point --</option>
-                                ${collectionPoints.map((point, index) => `
-                                    <option value="${index}">${point.name || 'Collection Point'} - ${point.city || 'Various'}</option>
-                                `).join('')}
-                            </select>
-                            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
-                                <i class="fas fa-store"></i> Free collection at Bobgo pickup points
-                            </p>
-                        `;
-                    } else {
-                        shippingOptionsEl.innerHTML = `
-                            <p style="color: var(--gray); font-size: 0.85rem;">
-                                <i class="fas fa-info-circle"></i> Collection points will be shown at checkout
-                            </p>
-                        `;
-                    }
+                    shippingOptionsEl.innerHTML = `
+                        <p style="color: var(--gray); font-size: 0.85rem;">
+                            <i class="fas fa-store"></i> Free collection at checkout
+                        </p>
+                    `;
                 }
+                updateCart();
             } else {
-                // Delivery - get courier options
+                // Delivery - get courier options with timeout
                 const address = currentUser?.address || 'Cape Town';
-                const result = await calculateBobgoShipping(address);
+                const result = await Promise.race([
+                    calculateBobgoShipping(address),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4500))
+                ]);
+
+                clearTimeout(timeoutId);
 
                 if (result.success && result.couriers && result.couriers.length > 0) {
                     // Store courier options
@@ -1712,20 +1743,38 @@ async function updateShipping(method) {
                     if (bobgoPriceEl) {
                         bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2);
                     }
+                    updateCart();
                 } else {
                     // Fallback to default
-                    shippingCost = result.defaultCost;
+                    shippingCost = result.defaultCost || BOBGO_CONFIG.defaultShipping;
                     if (bobgoPriceEl) {
-                        bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+                        bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Standard)';
                     }
+                    if (shippingOptionsEl) {
+                        shippingOptionsEl.innerHTML = `
+                            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                                <i class="fas fa-truck"></i> Standard shipping: R${shippingCost.toFixed(2)}
+                            </p>
+                        `;
+                    }
+                    updateCart();
                 }
             }
         } catch (error) {
+            clearTimeout(timeoutId);
             console.error('Bobgo shipping error:', error);
             shippingCost = BOBGO_CONFIG.defaultShipping;
             if (bobgoPriceEl) {
-                bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Default)';
+                bobgoPriceEl.textContent = 'R' + shippingCost.toFixed(2) + ' (Standard)';
             }
+            if (shippingOptionsEl) {
+                shippingOptionsEl.innerHTML = `
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                        <i class="fas fa-truck"></i> Standard shipping: R${shippingCost.toFixed(2)}
+                    </p>
+                `;
+            }
+            updateCart();
         }
     }
     updateCart();
@@ -1814,34 +1863,40 @@ function checkout() {
 
 // Guest Checkout Modal
 function openCheckoutModal() {
-    const modal = document.getElementById('checkoutModal');
+    let modal = document.getElementById('checkoutModal');
+    let overlay = document.getElementById('checkoutModalOverlay');
+    
     if (!modal) {
         createCheckoutModal();
+        modal = document.getElementById('checkoutModal');
+        overlay = document.getElementById('checkoutModalOverlay');
     }
-    
-    setTimeout(() => {
-        const checkoutModal = document.getElementById('checkoutModal');
-        if (checkoutModal) {
-            checkoutModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            
-            // Load checkout items
-            loadCheckoutItems();
-            
-            // Pre-fill if user is logged in
-            if (currentUser) {
-                document.getElementById('checkoutName').value = currentUser.name || '';
-                document.getElementById('checkoutEmail').value = currentUser.email || '';
-                document.getElementById('checkoutPhone').value = currentUser.phone || '';
-            }
+
+    // Show modal immediately
+    if (modal) {
+        modal.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // Load checkout items
+        loadCheckoutItems();
+
+        // Pre-fill if user is logged in
+        if (currentUser) {
+            const nameEl = document.getElementById('checkoutName');
+            const emailEl = document.getElementById('checkoutEmail');
+            const phoneEl = document.getElementById('checkoutPhone');
+            if (nameEl) nameEl.value = currentUser.name || '';
+            if (emailEl) emailEl.value = currentUser.email || '';
+            if (phoneEl) phoneEl.value = currentUser.phone || '';
         }
-    }, 100);
+    }
 }
 
 function createCheckoutModal() {
     const modalHTML = `
     <div class="modal" id="checkoutModal">
-        <div class="modal-overlay" onclick="closeCheckoutModal()"></div>
+        <div class="modal-overlay" id="checkoutModalOverlay" onclick="closeCheckoutModal()"></div>
         <div class="modal-content checkout-modal-content">
             <button class="modal-close" onclick="closeCheckoutModal()">
                 <i class="fas fa-times"></i>
@@ -2003,10 +2058,14 @@ function createCheckoutModal() {
 
 function closeCheckoutModal() {
     const modal = document.getElementById('checkoutModal');
+    const overlay = document.getElementById('checkoutModalOverlay');
     if (modal) {
         modal.classList.remove('active');
-        document.body.style.overflow = '';
     }
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+    document.body.style.overflow = '';
 }
 
 function toggleDeliveryOptions() {
