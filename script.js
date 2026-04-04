@@ -3962,26 +3962,6 @@ function initTouchGestures() {
     let currentTranslateX = 0;
     let productSwipeIndex = 0;
 
-    // Product swipe container (mobile only)
-    const productsGrid = document.getElementById('productsGrid');
-    if (productsGrid && window.innerWidth < 768) {
-        productsGrid.style.display = 'flex';
-        productsGrid.style.overflowX = 'auto';
-        productsGrid.style.scrollSnapType = 'x mandatory';
-        productsGrid.style.scrollBehavior = 'smooth';
-        productsGrid.style.webkitOverflowScrolling = 'touch';
-        productsGrid.style.gap = '1rem';
-        productsGrid.style.paddingBottom = '1rem';
-        
-        // Add scroll snap to product cards
-        const productCards = productsGrid.querySelectorAll('.product-card');
-        productCards.forEach(card => {
-            card.style.minWidth = '85vw';
-            card.style.scrollSnapAlign = 'center';
-            card.style.flexShrink = '0';
-        });
-    }
-
     // Cart swipe gesture
     const cartSidebar = document.getElementById('cartSidebar');
     const cartOverlay = document.getElementById('cartOverlay');
