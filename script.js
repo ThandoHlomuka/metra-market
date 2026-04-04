@@ -406,13 +406,6 @@ let selectedCollectionPoint = null;
 
 // Coupon/Discount System
 let appliedCoupon = null;
-const VALID_COUPONS = [
-    { code: 'WELCOME10', discount: 10, type: 'percent', minOrder: 500, description: '10% off for new customers' },
-    { code: 'SAVE50', discount: 50, type: 'fixed', minOrder: 300, description: 'R50 off on orders over R300' },
-    { code: 'SUMMER20', discount: 20, type: 'percent', minOrder: 1000, description: '20% off summer sale' },
-    { code: 'FREESHIP', discount: 0, type: 'freeship', minOrder: 0, description: 'Free shipping on any order' },
-    { code: 'METRA15', discount: 15, type: 'percent', minOrder: 750, description: '15% off for Metra members' }
-];
 
 // Newsletter Subscribers
 let newsletterSubscribers = [];
