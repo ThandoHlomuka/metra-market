@@ -1850,15 +1850,15 @@ function toggleCart() {
     }
 }
 
-// Checkout
+// Checkout - Redirect to dedicated checkout page
 function checkout() {
     if (cart.length === 0) {
         showNotification('Your cart is empty!');
         return;
     }
 
-    // Open checkout modal instead of requiring login
-    openCheckoutModal();
+    // Redirect to dedicated checkout page
+    window.location.href = 'checkout.html';
 }
 
 // Guest Checkout Modal
