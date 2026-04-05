@@ -1,7 +1,7 @@
 // Admin Credentials
 const ADMIN_CREDENTIALS = {
-    username: 'ThandoHlomuka',
-    password: 'Nozibusiso89'
+    username: process.env.ADMIN_USERNAME || 'ThandoHlomuka',
+    password: process.env.ADMIN_PASSWORD || '[CHANGE_THIS_DEFAULT_PASSWORD]'
 };
 
 // State

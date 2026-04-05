@@ -78,15 +78,15 @@ MAIL_FROM=noreply@yourdomain.com
 
 ### Required for Bobgo Shipping (Already Provided):
 ```
-BOBGO_API_KEY=5a830068eeb9431da5bf1577a9980d99
+BOBGO_API_KEY=[YOUR_BOBGO_API_KEY]
 BOBGO_API_URL=https://api.bobgo.co.za/v1
 ```
 
 ### Required for PayFast Payments:
 ```
-PAYFAST_MERCHANT_ID=13343379
-PAYFAST_MERCHANT_KEY=8jgcm78j7sqph
-PAYFAST_PASSPHRASE=ThandoHlomuka93
+PAYFAST_MERCHANT_ID=[YOUR_MERCHANT_ID]
+PAYFAST_MERCHANT_KEY=[YOUR_MERCHANT_KEY]
+PAYFAST_PASSPHRASE=[YOUR_PASSPHRASE]
 ```
 
 ### Required for Database (After Rotation):

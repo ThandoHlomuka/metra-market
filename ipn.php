@@ -27,7 +27,7 @@ foreach ($_POST as $key => $value) {
 }
 
 // Validate security signature
-$passphrase = 'ThandoHlomuka93'; // Your PayFast passphrase
+$passphrase = getenv('PAYFAST_PASSPHRASE') ?: 'YOUR_PAYFAST_PASSPHRASE'; // Your PayFast passphrase
 $signature = md5(http_build_query($postData) . '&passphrase=' . urlencode($passphrase));
 
 if (!isset($_POST['signature']) || $_POST['signature'] !== $signature) {

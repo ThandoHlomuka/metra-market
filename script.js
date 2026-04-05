@@ -1,9 +1,9 @@
 // PayFast Configuration (Production Mode)
 const PAYFAST_CONFIG = {
     sandbox: false, // Production mode
-    merchantId: '13343379',
-    merchantKey: '8jgcm78j7sqph',
-    passphrase: 'ThandoHlomuka93'
+    merchantId: process.env.PAYFAST_MERCHANT_ID || 'YOUR_MERCHANT_ID',
+    merchantKey: process.env.PAYFAST_MERCHANT_KEY || 'YOUR_MERCHANT_KEY',
+    passphrase: process.env.PAYFAST_PASSPHRASE || 'YOUR_PASSPHRASE'
 };
 
 // Product Data

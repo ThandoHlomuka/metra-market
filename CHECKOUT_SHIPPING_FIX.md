@@ -179,7 +179,7 @@ vercel env ls
 Before deploying, ensure:
 
 - [ ] Environment variables added to Vercel:
-  - `BOBGO_API_KEY` = `5a830068eeb9431da5bf1577a9980d99`
+  - `BOBGO_API_KEY` = `[YOUR_BOBGO_API_KEY]`
   - `BOBGO_API_URL` = `https://api.bobgo.co.za/v1`
 - [ ] All files saved
 - [ ] Code committed to git

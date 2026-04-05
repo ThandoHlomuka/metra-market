@@ -67,7 +67,7 @@ POST https://api.bobgo.co.za/v1/couriers
 
 ### Headers
 ```
-Authorization: Bearer 5a830068eeb9431da5bf1577a9980d99
+Authorization: Bearer [BOBGO_API_KEY from Vercel]
 Content-Type: application/json
 ```
 
@@ -103,7 +103,7 @@ Content-Type: application/json
 ### Bobgo Settings (script.js)
 ```javascript
 const BOBGO_CONFIG = {
-    apiKey: '5a830068eeb9431da5bf1577a9980d99',
+    apiKey: '[BOBGO_API_KEY]',
     apiUrl: 'https://api.bobgo.co.za/v1', // Production API
     sandbox: false, // ✅ PRODUCTION MODE
     defaultShipping: 0,

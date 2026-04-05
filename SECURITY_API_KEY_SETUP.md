@@ -22,7 +22,7 @@ The Bobgo API key has been **removed from client-side code** and is now securely
 
 | Variable Name | Value | Environments |
 |--------------|-------|--------------|
-| `BOBGO_API_KEY` | `5a830068eeb9431da5bf1577a9980d99` | ✅ Production<br>✅ Preview<br>✅ Development |
+| `BOBGO_API_KEY` | `[Get from Bobgo dashboard]` | ✅ Production<br>✅ Preview<br>✅ Development |
 | `BOBGO_API_URL` | `https://api.bobgo.co.za/v1` | ✅ Production<br>✅ Preview<br>✅ Development |
 
 5. Click **Save** for each variable
@@ -98,14 +98,14 @@ After deployment, test the shipping calculation:
 ```javascript
 // API key visible in browser source code
 const BOBGO_CONFIG = {
-    apiKey: '5a830068eeb9431da5bf1577a9980d99', // EXPOSED!
+    apiKey: '[BOBGO_API_KEY]', // EXPOSED!
     apiUrl: 'https://api.bobgo.co.za/v1'
 };
 
 // API key sent from browser with every request
 fetch('https://api.bobgo.co.za/v1/couriers', {
     headers: {
-        'Authorization': 'Bearer 5a830068eeb9431da5bf1577a9980d99' // VISIBLE!
+        'Authorization': 'Bearer [BOBGO_API_KEY]' // VISIBLE!
     }
 });
 ```
@@ -202,7 +202,7 @@ fetch('/api/bobgo-shipping', {
 
 2. **Check Source Code**:
    - View page source (Ctrl+U)
-   - Search for "5a830068eeb9431da5bf1577a9980d99"
+   - Search for "[BOBGO_API_KEY]"
    - Should find: **0 results** ✅
 
 3. **Check Console**:
@@ -247,7 +247,7 @@ vercel dev
 
 **Option 2: Create `.env.local` for testing**
 ```env
-BOBGO_API_KEY=5a830068eeb9431da5bf1577a9980d99
+BOBGO_API_KEY=[YOUR_BOBGO_API_KEY_HERE]
 BOBGO_API_URL=https://api.bobgo.co.za/v1
 ```
 ⚠️ **WARNING**: Never commit `.env.local` to git!

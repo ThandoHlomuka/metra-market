@@ -30,7 +30,7 @@
    #### Bobgo Shipping (Should already exist)
    ```
    Variable name: BOBGO_API_KEY
-   Value: 5a830068eeb9431da5bf1577a9980d99
+   Value: [Get from Bobgo dashboard - https://my.bobgo.co.za/]
    Environments: ✅ Production, ✅ Preview, ✅ Development
    ```
 
@@ -43,19 +43,19 @@
    #### PayFast Payment Gateway
    ```
    Variable name: PAYFAST_MERCHANT_ID
-   Value: 13343379
+   Value: [Get from PayFast dashboard]
    Environments: ✅ Production, ✅ Preview, ✅ Development
    ```
 
    ```
    Variable name: PAYFAST_MERCHANT_KEY
-   Value: 8jgcm78j7sqph
+   Value: [Get from PayFast dashboard]
    Environments: ✅ Production, ✅ Preview, ✅ Development
    ```
 
    ```
    Variable name: PAYFAST_PASSPHRASE
-   Value: ThandoHlomuka93
+   Value: [Get from PayFast dashboard]
    Environments: ✅ Production, ✅ Preview, ✅ Development
    ```
 
@@ -97,7 +97,7 @@ Since admin password is currently hardcoded, you need to change it:
 2. **Find lines 1-5** and update:
    ```javascript
    const ADMIN_USERNAME = 'ThandoHlomuka'; // Change this
-   const ADMIN_PASSWORD = 'Nozibusiso89';  // CHANGE THIS TO A NEW PASSWORD
+   const ADMIN_PASSWORD = '[YOUR_NEW_SECURE_PASSWORD]';  // CHANGE THIS TO A NEW PASSWORD
    ```
 
 3. **Save the file**

@@ -10,7 +10,7 @@ This guide explains how to configure real OAuth authentication for Google, Whats
 
 **Admin Dashboard:** `admin.html`
 - **Username:** `ThandoHlomuka`
-- **Password:** `Nozibusiso89`
+- **Password:** `[CHANGE_THIS_PASSWORD]`
 
 ---
 
