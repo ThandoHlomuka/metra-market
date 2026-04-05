@@ -127,6 +127,8 @@
         let shippingCalculated = false;
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🛒 Checkout page loaded');
+            
             // Load cart safely with validation
             try {
                 const saved = localStorage.getItem('metraCart');
@@ -145,18 +147,20 @@
                 }
             } catch (e) { console.error('Cart load error:', e); cart = []; }
 
-            if (cart.length === 0) { window.location.href = 'shopping.html'; return; }
+            console.log('📦 Cart items loaded:', cart.length);
 
-            // Display cart
-            document.getElementById('checkoutItemsList').innerHTML = cart.map(item =>
-                `<div class="checkout-item"><div class="checkout-item-icon">${item.icon}</div><div class="checkout-item-details"><h4>${item.name}</h4><p>Qty: ${item.quantity}</p></div><div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div></div>`
-            ).join('');
+            if (cart.length === 0) { 
+                console.warn('Cart is empty, redirecting to shopping');
+                window.location.href = 'shopping.html'; 
+                return; 
+            }
 
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            document.getElementById('checkoutSubtotal').textContent = 'R' + subtotal.toFixed(2);
-            document.getElementById('checkoutTotal').textContent = 'R' + subtotal.toFixed(2);
-            document.getElementById('cartCount').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
-
+            // Display cart items
+            renderCartItems();
+            
+            // Update order summary
+            updateOrderSummary();
+            
             // Pre-fill user data
             try {
                 const user = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
@@ -169,10 +173,47 @@
                     if (p) p.value = user.phone || '';
                 }
             } catch (e) {}
-            
+
             // Wait for products array to load from script.js
             waitForProducts();
         });
+        
+        // Render cart items to DOM
+        function renderCartItems() {
+            const container = document.getElementById('checkoutItemsList');
+            if (!container) {
+                console.error('checkoutItemsList element not found');
+                return;
+            }
+            
+            container.innerHTML = cart.map(item =>
+                `<div class="checkout-item">
+                    <div class="checkout-item-icon">${item.icon}</div>
+                    <div class="checkout-item-details">
+                        <h4>${item.name}</h4>
+                        <p>Qty: ${item.quantity}</p>
+                    </div>
+                    <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
+                </div>`
+            ).join('');
+            
+            console.log('✅ Cart items rendered');
+        }
+        
+        // Update order summary totals
+        function updateOrderSummary() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            const subtotalEl = document.getElementById('checkoutSubtotal');
+            const totalEl = document.getElementById('checkoutTotal');
+            const cartCountEl = document.getElementById('cartCount');
+            
+            if (subtotalEl) subtotalEl.textContent = 'R' + subtotal.toFixed(2);
+            if (totalEl) totalEl.textContent = 'R' + subtotal.toFixed(2);
+            if (cartCountEl) cartCountEl.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+            
+            console.log('💰 Order summary updated - Subtotal: R' + subtotal.toFixed(2));
+        }
         
         // Wait for products array to be available from script.js
         function waitForProducts() {
@@ -182,8 +223,7 @@
                 if (typeof products !== 'undefined' && Array.isArray(products) && products.length > 0) {
                     clearInterval(checkInterval);
                     console.log('✅ Products loaded:', products.length, 'products');
-                    // Products are now available, shipping will work when user selects province
-                } else if (attempts > 50) { // Give up after 5 seconds
+                } else if (attempts > 50) {
                     clearInterval(checkInterval);
                     console.error('❌ Products failed to load from script.js');
                 }
@@ -191,13 +231,19 @@
         }
 
         function calculateShipping() {
-            if (shippingCalculated) return;
             const province = document.getElementById('checkoutProvince').value;
             const container = document.getElementById('shippingOptionsContainer');
+            
+            console.log('🚚 calculateShipping called, province:', province);
+            
             if (!province) {
                 container.innerHTML = '<p style="color: var(--gray); text-align: center; padding: 1rem;"><i class="fas fa-map-marker-alt"></i> Select a province to see shipping options</p>';
+                shippingCalculated = false;
                 return;
             }
+            
+            // Reset shipping calculated flag to allow recalculation
+            shippingCalculated = false;
 
             // Check if products are loaded
             if (typeof products === 'undefined' || !products || products.length === 0) {
@@ -206,6 +252,7 @@
                 return;
             }
 
+            console.log('⏳ Calculating shipping for province:', province);
             container.innerHTML = '<div class="shipping-loading"><i class="fas fa-spinner"></i> Calculating shipping rates...</div>';
 
             // HARD TIMEOUT: Always show fallback after 3 seconds max
@@ -251,25 +298,19 @@
                 dimensions: maxL + 'x' + maxW + 'x' + height + 'cm'
             });
 
-            // Use secure Bobgo shipping proxy
-            const bobgoConfig = {
-                apiUrl: '/api/bobgo-shipping', // Secure serverless proxy
-                defaultShipping: 0
-            };
-
-            // Try Bobgo API with AbortController timeout
+            // Try DIRECT Bobgo API call (serverless proxy may not be deployed yet)
             const controller = new AbortController();
             const apiTimeout = setTimeout(() => controller.abort(), 2500);
 
-            console.log('🚚 Calling Bobgo API:', bobgoConfig.apiUrl);
+            console.log('🚚 Calling Bobgo API directly...');
 
-            fetch(bobgoConfig.apiUrl, {
+            fetch('https://api.bobgo.co.za/v1/couriers', {
                 method: 'POST',
                 headers: {
+                    'Authorization': 'Bearer 5a830068eeb9431da5bf1577a9980d99',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    endpoint: 'couriers',
                     origin: 'Johannesburg',
                     destination: province,
                     parcels: [{
@@ -294,19 +335,18 @@
             .then(data => {
                 console.log('✅ Bobgo API Response:', data);
                 
-                if (data.success && data.couriers && data.couriers.length > 0 && !shippingCalculated) {
+                if (data.couriers && data.couriers.length > 0 && !shippingCalculated) {
                     console.log('📦 Got', data.couriers.length, 'courier options');
                     
                     const options = data.couriers.map((c, i) => ({
                         id: 'bobgo_'+i,
-                        name: c.name || 'Standard Courier',
-                        time: c.delivery_time || '2-5 business days',
-                        price: parseFloat(c.price || 0)
+                        name: c.name || c.courier_name || c.partner_name || 'Standard Courier',
+                        time: c.delivery_time || c.transit_time || '2-5 business days',
+                        price: parseFloat(c.price || c.amount || 0)
                     }));
                     
                     console.log('📋 Shipping options:', options);
                     
-                    // Don't filter out zero-price options - show them as free
                     if (options.length === 0) {
                         console.log('⚠️ No valid options, using fallback');
                         showFallbackRates(province);
@@ -333,6 +373,7 @@
         }
 
         function showFallbackRates(province) {
+            console.log('🔄 Showing fallback rates for:', province);
             const local = province === 'Gauteng';
             showShippingOptions([
                 { id: 'standard', name: 'Standard Delivery', time: '3-5 business days', price: local ? 99 : 149 },
@@ -343,13 +384,22 @@
         function showShippingOptions(options) {
             console.log('🎨 Displaying shipping options:', options.length);
             const container = document.getElementById('shippingOptionsContainer');
+            if (!container) {
+                console.error('shippingOptionsContainer not found');
+                return;
+            }
+            
             container.innerHTML = options.map((o, i) =>
                 `<label class="shipping-option ${i===0?'selected':''}" onclick="selectShipping('${o.id}', ${o.price}, this)">
                     <input type="radio" name="shippingOption" value="${o.id}" ${i===0?'checked':''}>
-                    <div class="shipping-option-info"><div class="shipping-option-name">${o.name}</div><div class="shipping-option-time">${o.time}</div></div>
+                    <div class="shipping-option-info">
+                        <div class="shipping-option-name">${o.name}</div>
+                        <div class="shipping-option-time">${o.time}</div>
+                    </div>
                     <div class="shipping-option-price">R${o.price.toFixed(2)}</div>
                 </label>`
             ).join('');
+            
             if (options.length > 0) {
                 console.log('✅ Auto-selecting first option:', options[0].name, 'R' + options[0].price);
                 selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'));
@@ -362,19 +412,40 @@
             selectedShippingCost = price;
             document.querySelectorAll('.shipping-option').forEach(e => e.classList.remove('selected'));
             if (el) el.classList.add('selected');
-            const subtotal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-            document.getElementById('checkoutShipping').textContent = 'R' + price.toFixed(2);
-            document.getElementById('checkoutTotal').textContent = 'R' + (subtotal + price).toFixed(2);
-            console.log('💰 Updated totals - Subtotal: R' + subtotal.toFixed(2) + ', Shipping: R' + price.toFixed(2) + ', Total: R' + (subtotal + price).toFixed(2));
+            updateOrderSummary();
+        }
+        
+        function updateOrderSummary() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = subtotal + selectedShippingCost;
+            
+            const subtotalEl = document.getElementById('checkoutSubtotal');
+            const shippingEl = document.getElementById('checkoutShipping');
+            const totalEl = document.getElementById('checkoutTotal');
+            const cartCountEl = document.getElementById('cartCount');
+            
+            if (subtotalEl) subtotalEl.textContent = 'R' + subtotal.toFixed(2);
+            if (shippingEl) shippingEl.textContent = 'R' + selectedShippingCost.toFixed(2);
+            if (totalEl) totalEl.textContent = 'R' + total.toFixed(2);
+            if (cartCountEl) cartCountEl.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+            
+            console.log('💰 Updated totals - Subtotal: R' + subtotal.toFixed(2) + ', Shipping: R' + selectedShippingCost.toFixed(2) + ', Total: R' + total.toFixed(2));
         }
 
         function processCheckout(e) {
             e.preventDefault();
-            if (!document.getElementById('checkoutTerms').checked) { alert('Please accept Terms & Conditions'); return; }
-            if (!selectedShippingOption) { alert('Please select shipping'); return; }
+            if (!document.getElementById('checkoutTerms').checked) { 
+                alert('Please accept Terms & Conditions'); 
+                return; 
+            }
+            if (!selectedShippingOption) { 
+                alert('Please select a shipping method by selecting a province above'); 
+                return; 
+            }
 
             const order = {
-                id: 'ORD-' + Date.now(), invoiceNumber: 'INV-' + Date.now(),
+                id: 'ORD-' + Date.now(), 
+                invoiceNumber: 'INV-' + Date.now(),
                 customerName: document.getElementById('checkoutName').value.trim(),
                 customerEmail: document.getElementById('checkoutEmail').value.trim().toLowerCase(),
                 customerPhone: document.getElementById('checkoutPhone').value.trim(),
@@ -391,22 +462,34 @@
                 subtotal: cart.reduce((s, i) => s + (i.price * i.quantity), 0),
                 total: cart.reduce((s, i) => s + (i.price * i.quantity), 0) + selectedShippingCost,
                 paymentMethod: document.querySelector('input[name="checkoutPayment"]:checked').value,
-                status: 'pending_payment', date: new Date().toLocaleDateString('en-ZA'), createdAt: new Date().toISOString()
+                status: 'pending_payment', 
+                date: new Date().toLocaleDateString('en-ZA'), 
+                createdAt: new Date().toISOString()
             };
+            
+            console.log('📋 Processing order:', order);
 
             // Save order safely
             try {
                 const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
                 orders.push(order);
                 localStorage.setItem('metraOrders', JSON.stringify(orders));
-            } catch (err) { console.error('Order save error:', err); }
+                console.log('✅ Order saved to localStorage');
+            } catch (err) { 
+                console.error('Order save error:', err); 
+            }
 
             if (order.paymentMethod === 'payfast') {
+                console.log('💳 Redirecting to PayFast...');
                 const form = document.createElement('form');
-                form.method = 'POST'; form.action = 'https://www.payfast.co.za/eng/process'; form.style.display = 'none';
+                form.method = 'POST'; 
+                form.action = 'https://www.payfast.co.za/eng/process'; 
+                form.style.display = 'none';
                 const data = {
-                    merchant_id: '[PAYFAST_MERCHANT_ID]', merchant_key: '[PAYFAST_MERCHANT_KEY]',
-                    amount: order.total.toFixed(2), item_name: 'Order ' + order.id,
+                    merchant_id: '13343379', 
+                    merchant_key: '8jgcm78j7sqph',
+                    amount: order.total.toFixed(2), 
+                    item_name: 'Order ' + order.id,
                     item_description: 'Purchase from Metra Market',
                     return_url: window.location.origin + '/success.html?order_id=' + encodeURIComponent(order.id),
                     cancel_url: window.location.origin + '/cancel.html?order_id=' + encodeURIComponent(order.id),
@@ -415,9 +498,17 @@
                     name_first: order.customerName.split(' ')[0] || 'Customer',
                     name_last: order.customerName.split(' ').slice(1).join(' ') || ''
                 };
-                Object.keys(data).forEach(k => { const i = document.createElement('input'); i.type='hidden'; i.name=k; i.value=data[k]; form.appendChild(i); });
-                document.body.appendChild(form); form.submit();
+                Object.keys(data).forEach(k => { 
+                    const i = document.createElement('input'); 
+                    i.type='hidden'; 
+                    i.name=k; 
+                    i.value=data[k]; 
+                    form.appendChild(i); 
+                });
+                document.body.appendChild(form); 
+                form.submit();
             } else {
+                console.log('🏦 Bank transfer selected, redirecting to success...');
                 window.location.href = 'success.html?order_id=' + encodeURIComponent(order.id);
             }
         }
