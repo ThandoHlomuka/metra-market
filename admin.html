@@ -359,8 +359,12 @@
                             <input type="text" id="storeName" value="Metra Market">
                         </div>
                         <div class="form-group">
-                            <label>Bobgo API Key</label>
-                            <input type="text" id="bobgoApiKey" placeholder="Enter Bobgo API key" value="5a830068eeb9431da5bf1577a9980d99" readonly style="background: rgba(34, 139, 34, 0.1); border-color: #228B22;">
+                            <label>Bobgo API Status</label>
+                            <div style="padding: 0.8rem; background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); border-radius: 10px;">
+                                <i class="fas fa-shield-alt" style="color: #228B22; font-size: 1.2rem;"></i>
+                                <div style="font-weight: 600; color: #228B22;">API Key Secured</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">API key stored securely in Vercel environment variables</div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>API Mode</label>
@@ -368,7 +372,7 @@
                                 <i class="fas fa-check-circle" style="color: #228B22; font-size: 1.2rem;"></i>
                                 <div>
                                     <div style="font-weight: 600; color: #228B22;">PRODUCTION MODE</div>
-                                    <div style="font-size: 0.85rem; color: var(--gray);">Live shipping rates enabled</div>
+                                    <div style="font-size: 0.85rem; color: var(--gray);">Live shipping rates via secure serverless proxy</div>
                                 </div>
                             </div>
                         </div>

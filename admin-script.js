@@ -676,10 +676,10 @@ function deleteReview(productId, reviewIndex) {
 function saveSettings(event) {
     event.preventDefault();
 
-    // Save Bobgo configuration
+    // Save Bobgo configuration (API key now managed via Vercel env vars)
     const bobgoConfig = {
-        apiKey: document.getElementById('bobgoApiKey').value.trim() || '5a830068eeb9431da5bf1577a9980d99',
-        defaultShipping: parseFloat(document.getElementById('defaultShipping').value) || 0
+        defaultShipping: parseFloat(document.getElementById('defaultShipping').value) || 0,
+        securedViaVercel: true // API key is now in Vercel environment variables
     };
 
     localStorage.setItem('metraBobgoConfig', JSON.stringify(bobgoConfig));
@@ -693,7 +693,7 @@ function saveSettings(event) {
     // Reload Bobgo config in main window
     loadBobgoConfig();
 
-    showNotification('Bobgo shipping settings saved successfully!');
+    showNotification('Bobgo shipping settings saved successfully! API key is securely managed in Vercel dashboard.');
 }
 
 function changeAdminPassword(event) {

@@ -143,24 +143,38 @@
         function loadOrderDetails() {
             const urlParams = new URLSearchParams(window.location.search);
             const orderId = urlParams.get('order_id') || localStorage.getItem('lastOrderId');
-            
+
             if (orderId) {
                 localStorage.setItem('lastOrderId', orderId);
                 document.getElementById('orderId').textContent = orderId;
-                
+
                 // Try to get full order details from localStorage
-                const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
-                const order = orders.find(o => o.id === orderId);
+                let orders = [];
+                try {
+                    orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+                } catch (e) {
+                    console.error('Failed to parse orders:', e);
+                    orders = [];
+                }
                 
+                // Fix type mismatch: orderId from URL is string, order.id might be number
+                const order = orders.find(o => String(o.id) === String(orderId));
+
                 if (order) {
-                    document.getElementById('orderDate').textContent = order.date;
-                    document.getElementById('orderAmount').textContent = 'R' + order.total.toFixed(2);
-                    
+                    document.getElementById('orderDate').textContent = order.date || new Date().toLocaleDateString('en-ZA');
+                    const total = parseFloat(order.total) || 0;
+                    document.getElementById('orderAmount').textContent = 'R' + total.toFixed(2);
+
                     // Update order status to paid
                     order.paymentStatus = 'paid';
                     order.status = 'processing';
-                    localStorage.setItem('metraOrders', JSON.stringify(orders));
+                    try {
+                        localStorage.setItem('metraOrders', JSON.stringify(orders));
+                    } catch (e) {
+                        console.error('Failed to save order:', e);
+                    }
                 } else {
+                    console.warn('Order not found in localStorage:', orderId);
                     document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-ZA');
                     document.getElementById('orderAmount').textContent = 'Pending';
                 }
@@ -172,8 +186,12 @@
         }
 
         // Clear cart on successful payment
-        localStorage.removeItem('metraCart');
-        
+        try {
+            localStorage.removeItem('metraCart');
+        } catch (e) {
+            console.error('Failed to clear cart:', e);
+        }
+
         loadOrderDetails();
     </script>
 </body>

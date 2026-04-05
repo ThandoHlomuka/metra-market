@@ -419,8 +419,9 @@ let savedAddresses = [];
 
 // Bobgo Shipping Configuration - PRODUCTION MODE
 const BOBGO_CONFIG = {
-    apiKey: '5a830068eeb9431da5bf1577a9980d99',
-    apiUrl: 'https://api.bobgo.co.za/v1', // Production API endpoint
+    // API key removed from client-side for security
+    apiUrl: '/api/bobgo-shipping', // Use our secure serverless proxy
+    productionApiUrl: 'https://api.bobgo.co.za/v1', // For reference only
     sandbox: false, // Set to false for production
     defaultShipping: 0,
     enabled: true,
@@ -455,38 +456,71 @@ async function calculateBobgoShipping(address, cartItems = null) {
         // Calculate total weight and dimensions from cart items
         const shippingData = calculateCartShippingData(cartItems || cart);
 
-        const response = await fetch(`${getBobgoApiUrl()}/couriers`, {
+        // Validate shipping data
+        if (!shippingData || shippingData.weight <= 0) {
+            throw new Error('Invalid shipping data: weight must be greater than 0');
+        }
+
+        const requestBody = {
+            endpoint: 'couriers',
+            origin: 'Johannesburg',
+            destination: address || 'Cape Town',
+            parcels: [{
+                weight: Math.round(shippingData.weight * 1000) / 1000, // Round to 3 decimals
+                length: Math.round(shippingData.length),
+                width: Math.round(shippingData.width),
+                height: Math.round(shippingData.height)
+            }],
+            currency: 'ZAR',
+            live_rates: !BOBGO_CONFIG.sandbox
+        };
+
+        console.log('Bobgo API request:', requestBody);
+
+        const response = await fetch(BOBGO_CONFIG.apiUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                origin: 'Johannesburg',
-                destination: address || 'Cape Town',
-                parcels: [{
-                    weight: shippingData.weight,
-                    length: shippingData.length,
-                    width: shippingData.width,
-                    height: shippingData.height
-                }],
-                currency: 'ZAR',
-                live_rates: !BOBGO_CONFIG.sandbox // true for production, false for sandbox
-            })
+            body: JSON.stringify(requestBody)
         });
 
+        // Handle HTTP errors
         if (!response.ok) {
-            throw new Error(`Bobgo API error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Bobgo API HTTP error:', response.status, errorData);
+            throw new Error(errorData.message || `Bobgo API error: HTTP ${response.status}`);
         }
 
         const data = await response.json();
         console.log('Bobgo couriers response:', data);
-        
+
+        // Validate response structure
+        if (!data.success || !data.couriers || !Array.isArray(data.couriers)) {
+            console.warn('Bobgo API returned invalid response structure:', data);
+            return {
+                success: false,
+                error: data.message || 'Invalid response from Bobgo API',
+                defaultCost: BOBGO_CONFIG.defaultShipping
+            };
+        }
+
+        console.log('Valid couriers after filtering:', data.couriers);
+
+        if (data.couriers.length === 0) {
+            console.warn('No valid courier options returned from Bobgo API');
+            return {
+                success: false,
+                error: 'No courier options available',
+                defaultCost: BOBGO_CONFIG.defaultShipping
+            };
+        }
+
         // Return courier options with pricing
         return {
             success: true,
-            couriers: data.couriers || [],
-            defaultCost: data.couriers?.[0]?.price || BOBGO_CONFIG.defaultShipping
+            couriers: data.couriers,
+            defaultCost: data.defaultCost || BOBGO_CONFIG.defaultShipping
         };
     } catch (error) {
         console.error('Bobgo shipping calculation error:', error);
@@ -504,20 +538,23 @@ async function getCollectionPoints() {
     if (!BOBGO_CONFIG.enabled) return [];
 
     try {
-        const response = await fetch(`${getBobgoApiUrl()}/collection-points`, {
+        const response = await fetch('/api/bobgo-collection-points', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${BOBGO_CONFIG.apiKey}`,
                 'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error(`Bobgo API error: ${response.status}`);
+            throw new Error(`Collection points API error: HTTP ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
-        BOBGO_CONFIG.collectionPoints = data.points || [];
+        
+        // Handle different response formats
+        BOBGO_CONFIG.collectionPoints = data.points || data.collection_points || data.data || [];
+        console.log('Collection points loaded:', BOBGO_CONFIG.collectionPoints.length);
+        
         return BOBGO_CONFIG.collectionPoints;
     } catch (error) {
         console.error('Error fetching collection points:', error);
@@ -1810,19 +1847,25 @@ function setDeliveryMethod(method) {
 
 // Test Bobgo Shipping (for admin testing)
 async function testBobgoShipping() {
-    console.log('=== Testing Bobgo Shipping API ===');
-    console.log('API Key:', BOBGO_CONFIG.apiKey ? 'Configured ✓' : 'Missing ✗');
-    console.log('API URL:', BOBGO_CONFIG.apiUrl);
-    
+    console.log('=== Testing Bobgo Shipping API (Secure Proxy) ===');
+    console.log('API Endpoint:', BOBGO_CONFIG.apiUrl);
+    console.log('Production Mode:', !BOBGO_CONFIG.sandbox ? 'YES ✓' : 'NO ✗');
+
     try {
         const testAddress = 'Cape Town';
-        const cost = await calculateBobgoShipping(testAddress);
-        console.log('Test shipping cost to', testAddress, ':', 'R' + cost);
-        showNotification('Bobgo API Test: R' + cost + ' to ' + testAddress);
-        return { success: true, cost: cost };
+        const result = await calculateBobgoShipping(testAddress);
+        console.log('Test shipping cost to', testAddress, ':', result);
+        
+        if (result.success) {
+            showNotification('✓ Bobgo API Test: R' + result.defaultCost + ' to ' + testAddress);
+            return { success: true, result: result };
+        } else {
+            showNotification('⚠ Bobgo API Test: Using fallback');
+            return { success: false, result: result };
+        }
     } catch (error) {
         console.error('Bobgo test failed:', error);
-        showNotification('Bobgo API Test Failed: ' + error.message);
+        showNotification('✗ Bobgo API Test Failed: ' + error.message);
         return { success: false, error: error.message };
     }
 }

@@ -1,9 +1,10 @@
 // Vercel Serverless Function - Mailgun Email API
 // This handles all email sending through Mailgun from the server side (avoids CORS issues)
 
-const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '[MAILGUN_API_KEY]';
-const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'mg.metramarket.co.za';
-const MAILGUN_API_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}`;
+// Get Mailgun credentials from environment variables ONLY - NO HARDCODED FALLBACKS
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+const MAILGUN_API_URL = MAILGUN_DOMAIN ? `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}` : null;
 
 export default async function handler(req, res) {
     // Only allow POST requests
@@ -13,9 +14,10 @@ export default async function handler(req, res) {
 
     // Check if Mailgun is configured
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-        return res.status(500).json({ 
+        console.error('Mailgun credentials not configured');
+        return res.status(500).json({
             error: 'Mailgun not configured',
-            message: 'Please set MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables'
+            message: 'Please set MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables in Vercel dashboard'
         });
     }
 
