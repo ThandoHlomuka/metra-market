@@ -30,13 +30,13 @@ These are **REQUIRED** for full functionality. Without them, email, shipping, an
 ### 1️⃣ Email (Mailgun) - REQUIRED for order confirmations
 ```
 Variable name: MAILGUN_API_KEY
-Value: f0cc8bfa166fb23c49840d2597989c1b-d488af3b-21954a88
+Value: [Get from Mailgun dashboard]
 Environments: ✅ Production, ✅ Preview, ✅ Development
 ```
 
 ```
 Variable name: MAILGUN_DOMAIN
-Value: mg.metramarket.co.za
+Value: [Get from Mailgun dashboard]
 Environments: ✅ Production, ✅ Preview, ✅ Development
 ```
 
