@@ -1,7 +1,9 @@
 // Admin Credentials
+// NOTE: For production security, implement server-side authentication
+// These credentials should NOT be in client-side code for production use
 const ADMIN_CREDENTIALS = {
-    username: process.env.ADMIN_USERNAME || 'ThandoHlomuka',
-    password: process.env.ADMIN_PASSWORD || '[CHANGE_THIS_DEFAULT_PASSWORD]'
+    username: 'ThandoHlomuka', // Change this via server-side auth
+    password: '[CHANGE_THIS_PASSWORD]' // Change this immediately
 };
 
 // State

@@ -1,9 +1,11 @@
 // PayFast Configuration (Production Mode)
+// NOTE: These values must be configured via serverless functions or replaced at build time
+// For client-side security, actual credentials should NEVER be in browser JavaScript
 const PAYFAST_CONFIG = {
     sandbox: false, // Production mode
-    merchantId: process.env.PAYFAST_MERCHANT_ID || 'YOUR_MERCHANT_ID',
-    merchantKey: process.env.PAYFAST_MERCHANT_KEY || 'YOUR_MERCHANT_KEY',
-    passphrase: process.env.PAYFAST_PASSPHRASE || 'YOUR_PASSPHRASE'
+    merchantId: '[PAYFAST_MERCHANT_ID]', // Set via serverless proxy
+    merchantKey: '[PAYFAST_MERCHANT_KEY]', // Set via serverless proxy
+    passphrase: '[PAYFAST_PASSPHRASE]' // Set via serverless proxy
 };
 
 // Product Data
