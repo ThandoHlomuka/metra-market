@@ -1,9 +1,10 @@
 // Admin Credentials
 // NOTE: For production security, implement server-side authentication
-// These credentials should NOT be in client-side code for production use
+// IMPORTANT: Change this password immediately for production use
+// Use a strong password: 12+ characters, mix of uppercase, lowercase, numbers, symbols
 const ADMIN_CREDENTIALS = {
-    username: 'ThandoHlomuka', // Change this via server-side auth
-    password: '[CHANGE_THIS_PASSWORD]' // Change this immediately
+    username: 'admin', // Change to your username
+    password: 'M3tr@M@rk3t_2026_S3cur3!' // ⚠️ CHANGE THIS IMMEDIATELY
 };
 
 // State
