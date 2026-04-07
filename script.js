@@ -2511,8 +2511,14 @@ function createBobgoShipment(order) {
         
         // Additional
         insuranceAmount: totalValue,
-        instructions: `Order ${order.id} - Metra Market`,
-        reference: order.id
+        instructions: `Order ${order.id} - Metra Market | Status: ${order.status || 'pending_payment'}`,
+        reference: order.id,
+        metadata: {
+            payment_status: order.status || 'pending_payment',
+            order_status: order.status || 'pending_payment',
+            customer_email: order.customerEmail || '',
+            customer_phone: order.customerPhone || ''
+        }
     };
 
     // Call serverless proxy to create shipment on Bobgo

@@ -827,30 +827,46 @@ function renderFailedShipmentsTable() {
 function renderSyncedShipmentsTable() {
     const tbody = document.getElementById('syncedShipmentsTable');
     if (!tbody) return;
-    
+
     try {
         const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
-        const syncedOrders = orders.filter(o => o.bobgoTrackingNumber);
-        
+        const syncedOrders = orders.filter(o => o.bobgoTrackingNumber || o.bobgoShipmentId);
+
         if (syncedOrders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No synced shipments yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No synced shipments yet</td></tr>';
             return;
         }
-        
-        tbody.innerHTML = syncedOrders.map(order => `
+
+        tbody.innerHTML = syncedOrders.map(order => {
+            const paymentStatus = order.bobgoPaymentStatus || order.paymentStatus || order.status || 'pending';
+            const statusColor = paymentStatus === 'paid' ? '#228B22' : 
+                               paymentStatus === 'cancelled' ? '#DC143C' : 
+                               paymentStatus === 'processing' ? '#FFA500' : '#1E90FF';
+            
+            return `
             <tr>
                 <td>${order.id}</td>
                 <td>${order.customerName}</td>
-                <td style="color: #228B22; font-weight: 600;">${order.bobgoTrackingNumber}</td>
-                <td>${order.bobgoShipment?.courier || 'N/A'}</td>
-                <td><span class="status-badge" style="background: ${order.shipmentStatus === 'delivered' ? '#228B22' : order.shipmentStatus === 'in_transit' ? '#FFA500' : '#1E90FF'};">${order.shipmentStatus || 'created'}</span></td>
+                <td style="color: #228B22; font-weight: 600;">${order.bobgoTrackingNumber || 'N/A'}</td>
+                <td>${order.bobgoShipment?.courier || order.selectedCourier?.name || 'N/A'}</td>
                 <td>
+                    <span class="status-badge" style="background: ${order.shipmentStatus === 'delivered' ? '#228B22' : order.shipmentStatus === 'in_transit' ? '#FFA500' : '#1E90FF'};">
+                        ${order.shipmentStatus || 'created'}
+                    </span>
+                </td>
+                <td>
+                    <span class="status-badge" style="background: ${statusColor}; color: white; font-size: 0.75rem;">
+                        ${paymentStatus}
+                    </span>
+                </td>
+                <td>
+                    ${order.bobgoTrackingNumber ? `
                     <a href="https://track.bobgo.co.za/${order.bobgoTrackingNumber}" target="_blank" class="btn-secondary btn-sm">
                         <i class="fas fa-external-link-alt"></i> Track
-                    </a>
+                    </a>` : '-'}
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     } catch(e) {
         console.error('Error rendering synced shipments:', e);
     }

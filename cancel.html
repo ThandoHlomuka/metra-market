@@ -116,17 +116,56 @@
         // Log cancelled order if order_id is present
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('order_id');
-        
+
         if (orderId) {
             console.log('Payment cancelled for order:', orderId);
-            // Optionally update order status in localStorage
+            // Update order status in localStorage
             const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
-            const order = orders.find(o => o.id === orderId);
+            const order = orders.find(o => String(o.id) === String(orderId));
             if (order) {
                 order.paymentStatus = 'cancelled';
                 order.status = 'cancelled';
+                order.cancelledAt = new Date().toISOString();
                 localStorage.setItem('metraOrders', JSON.stringify(orders));
+
+                // Update BobGo shipment status to cancelled
+                updateBobgoShipmentStatus(order);
             }
+        }
+
+        // Update BobGo shipment status to cancelled
+        function updateBobgoShipmentStatus(order) {
+            const updateData = {
+                orderId: order.id,
+                shipmentId: order.bobgoShipmentId || '',
+                trackingNumber: order.bobgoTrackingNumber || '',
+                paymentStatus: 'cancelled',
+                orderStatus: 'cancelled',
+                notes: `Payment cancelled - Order ${order.id}`
+            };
+
+            fetch('/api/bobgo-update-shipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData),
+                keepalive: true // Fire and forget
+            })
+            .then(r => r.json())
+            .then(data => {
+                console.log('✅ BobGo shipment updated to CANCELLED:', data);
+                try {
+                    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+                    const idx = orders.findIndex(o => String(o.id) === String(order.id));
+                    if (idx !== -1) {
+                        orders[idx].bobgoPaymentStatus = 'cancelled';
+                        orders[idx].bobgoLastSynced = new Date().toISOString();
+                        localStorage.setItem('metraOrders', JSON.stringify(orders));
+                    }
+                } catch(e) { console.error('Local update error:', e); }
+            })
+            .catch(err => {
+                console.error('❌ BobGo status update failed:', err);
+            });
         }
     </script>
 </body>

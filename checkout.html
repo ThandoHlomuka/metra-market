@@ -439,8 +439,14 @@
                 serviceName: selectedShipping.courierData?.service_name || selectedShipping.courierData?.service_type || '',
                 shippingCost: order.shippingCost || 0,
                 insuranceAmount: totalValue,
-                instructions: `Order ${order.id} - Metra Market`,
-                reference: order.id
+                instructions: `Order ${order.id} - Metra Market | Status: ${order.status}`,
+                reference: order.id,
+                metadata: {
+                    payment_status: order.status || 'pending_payment',
+                    order_status: order.status || 'pending_payment',
+                    customer_email: order.customerEmail,
+                    customer_phone: order.customerPhone
+                }
             };
 
             fetch('/api/bobgo-create-shipment', {

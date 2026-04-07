@@ -168,11 +168,15 @@
                     // Update order status to paid
                     order.paymentStatus = 'paid';
                     order.status = 'processing';
+                    order.paymentDate = new Date().toISOString();
                     try {
                         localStorage.setItem('metraOrders', JSON.stringify(orders));
                     } catch (e) {
                         console.error('Failed to save order:', e);
                     }
+
+                    // Update BobGo shipment status to paid/confirmed
+                    updateBobgoShipmentStatus(order);
                 } else {
                     console.warn('Order not found in localStorage:', orderId);
                     document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-ZA');
@@ -183,6 +187,41 @@
                 document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-ZA');
                 document.getElementById('orderAmount').textContent = 'Pending';
             }
+        }
+
+        // Update BobGo shipment status to paid/confirmed
+        function updateBobgoShipmentStatus(order) {
+            const updateData = {
+                orderId: order.id,
+                shipmentId: order.bobgoShipmentId || '',
+                trackingNumber: order.bobgoTrackingNumber || '',
+                paymentStatus: 'paid',
+                orderStatus: 'processing',
+                notes: `Payment confirmed - Order ${order.id}`
+            };
+
+            fetch('/api/bobgo-update-shipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            })
+            .then(r => r.json())
+            .then(data => {
+                console.log('✅ BobGo shipment updated to PAID:', data);
+                // Update local order with latest status
+                try {
+                    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+                    const idx = orders.findIndex(o => String(o.id) === String(order.id));
+                    if (idx !== -1) {
+                        orders[idx].bobgoPaymentStatus = 'paid';
+                        orders[idx].bobgoLastSynced = new Date().toISOString();
+                        localStorage.setItem('metraOrders', JSON.stringify(orders));
+                    }
+                } catch(e) { console.error('Local update error:', e); }
+            })
+            .catch(err => {
+                console.error('❌ BobGo status update failed:', err);
+            });
         }
 
         // Clear cart on successful payment

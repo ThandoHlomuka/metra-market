@@ -143,7 +143,11 @@ export default async function handler(req, res) {
             metadata: {
                 platform: 'metra-market',
                 order_number: orderNumber || orderId || '',
-                invoice_number: invoiceNumber || ''
+                invoice_number: invoiceNumber || '',
+                payment_status: 'pending_payment',
+                order_status: 'pending_payment',
+                customer_email: recipientEmail || '',
+                customer_phone: recipientPhone || ''
             }
         };
 

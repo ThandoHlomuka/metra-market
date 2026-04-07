@@ -76,6 +76,37 @@ $transactionId = $_POST['pf_payment_id'] ?? '';
 
 logMessage("Order: $orderId, Status: $paymentStatus, Amount: R$amountGross, Transaction ID: $transactionId");
 
+// Update BobGo shipment status via serverless proxy
+// Extract clean order ID from "Order ORD-xxxxxxxxx" format
+$cleanOrderId = preg_replace('/Order\s*/', '', $orderId);
+if (empty($cleanOrderId)) {
+    $cleanOrderId = $orderId;
+}
+
+$bobgoUpdateUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
+    . '://' . $_SERVER['HTTP_HOST'] . '/api/bobgo-update-shipment';
+
+$bobgoPayload = json_encode([
+    'orderId' => $cleanOrderId,
+    'paymentStatus' => strtolower($paymentStatus),
+    'orderStatus' => $paymentStatus === 'COMPLETE' ? 'processing' : strtolower($paymentStatus),
+    'notes' => "PayFast ITN: $paymentStatus - Transaction $transactionId"
+]);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $bobgoUpdateUrl);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $bobgoPayload);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+$bobgoResponse = curl_exec($ch);
+$bobgoHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+logMessage("BobGo status update: HTTP $bobgoHttpCode - Response: $bobgoResponse");
+
 // For frontend-only apps, we can't directly update server database
 // But we can log the successful payment for manual processing
 if ($paymentStatus === 'COMPLETE') {
