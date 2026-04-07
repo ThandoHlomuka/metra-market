@@ -393,6 +393,45 @@
                 </div>
 
                 <div class="settings-card">
+                    <h4><i class="fas fa-chart-line"></i> Analytics & Tracking</h4>
+                    <p style="color: var(--gray); margin-bottom: 1rem;">Configure Google Analytics and Microsoft Clarity for visitor tracking.</p>
+                    <form onsubmit="saveTrackingSettings(event)">
+                        <div class="form-group">
+                            <label>Google Analytics Measurement ID</label>
+                            <input type="text" id="googleAnalyticsId" placeholder="G-XXXXXXXXXX">
+                            <small style="color: var(--gray); font-size: 0.8rem;">Find this in your Google Analytics 4 property settings</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Microsoft Clarity Project ID</label>
+                            <input type="text" id="clarityProjectId" placeholder="xxxxxxxxxx">
+                            <small style="color: var(--gray); font-size: 0.8rem;">Find this in your Clarity project settings at clarity.microsoft.com</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="trackingEnabled" style="width: auto;">
+                                <span>Enable Tracking</span>
+                            </label>
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" class="btn-primary">Save Tracking Settings</button>
+                            <button type="button" class="btn-secondary" onclick="testTrackingScripts()">
+                                <i class="fas fa-flask"></i> Test Tracking
+                            </button>
+                        </div>
+                        <div id="trackingStatus" style="margin-top: 1rem; display: none;"></div>
+                    </form>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(30, 144, 255, 0.1); border-radius: 8px; font-size: 0.85rem;">
+                        <p style="color: var(--light); font-weight: 600; margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> Quick Setup Guide</p>
+                        <ol style="color: var(--gray); margin-left: 1.2rem; line-height: 1.6;">
+                            <li><strong>Google Analytics:</strong> Create a GA4 property at <a href="https://analytics.google.com" target="_blank" style="color: var(--primary);">analytics.google.com</a></li>
+                            <li><strong>Microsoft Clarity:</strong> Create a project at <a href="https://clarity.microsoft.com" target="_blank" style="color: var(--primary);">clarity.microsoft.com</a></li>
+                            <li>Copy the Measurement ID / Project ID and paste above</li>
+                            <li>Enable tracking and save - scripts will load automatically</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="settings-card">
                     <h4>Admin Credentials</h4>
                     <form onsubmit="changeAdminPassword(event)">
                         <div class="form-group">
@@ -571,6 +610,40 @@
                             <option value="90">Last 90 Days</option>
                             <option value="365">Last Year</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Tracking Services Status -->
+                <div class="stats-grid" style="margin-bottom: 2rem;" id="trackingStatusCards">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4285F4, #34A853);">
+                            <i class="fab fa-google"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="gaStatus" style="font-size: 1rem;">Not Configured</h3>
+                            <p>Google Analytics</p>
+                            <span id="gaId" style="color: var(--gray); font-size: 0.8rem;">-</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #00A4EF, #7FBA00);">
+                            <i class="fas fa-mouse-pointer"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="clarityStatus" style="font-size: 1rem;">Not Configured</h3>
+                            <p>Microsoft Clarity</p>
+                            <span id="clarityId" style="color: var(--gray); font-size: 0.8rem;">-</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #228B22, #32CD32);">
+                            <i class="fas fa-broadcast-tower"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="trackingActive" style="font-size: 1rem;">Disabled</h3>
+                            <p>Tracking Status</p>
+                            <span id="trackingEvents" style="color: var(--gray); font-size: 0.8rem;">0 events</span>
+                        </div>
                     </div>
                 </div>
 

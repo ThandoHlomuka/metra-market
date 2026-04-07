@@ -217,6 +217,9 @@ function loadData() {
     // Load settings
     settings = JSON.parse(localStorage.getItem('metraSettings') || '{}');
 
+    // Load tracking settings
+    loadTrackingSettings();
+
     // Collect all reviews from products
     reviews = [];
     products.forEach(product => {
@@ -370,6 +373,7 @@ function showSection(section, element) {
     if (section === 'sessions') loadSessionsData();
     if (section === 'analytics') loadAnalytics();
     if (section === 'email') loadEmailSettings();
+    if (section === 'settings') loadTrackingSettings();
 }
 
 // Toggle Sidebar (mobile)
@@ -743,6 +747,136 @@ function saveSettings(event) {
     loadBobgoConfig();
 
     showNotification('Bobgo shipping settings saved successfully! API key is securely managed in Vercel dashboard.');
+}
+
+/**
+ * Save Analytics & Tracking Settings
+ */
+function saveTrackingSettings(event) {
+    event.preventDefault();
+
+    const trackingConfig = {
+        googleAnalyticsId: document.getElementById('googleAnalyticsId').value.trim(),
+        clarityProjectId: document.getElementById('clarityProjectId').value.trim(),
+        enabled: document.getElementById('trackingEnabled').checked
+    };
+
+    localStorage.setItem('metraTrackingConfig', JSON.stringify(trackingConfig));
+
+    showNotification('✅ Analytics tracking settings saved successfully!');
+    updateTrackingStatus();
+}
+
+/**
+ * Load Analytics & Tracking Settings
+ */
+function loadTrackingSettings() {
+    try {
+        const config = JSON.parse(localStorage.getItem('metraTrackingConfig') || '{}');
+        
+        if (document.getElementById('googleAnalyticsId')) {
+            document.getElementById('googleAnalyticsId').value = config.googleAnalyticsId || '';
+        }
+        if (document.getElementById('clarityProjectId')) {
+            document.getElementById('clarityProjectId').value = config.clarityProjectId || '';
+        }
+        if (document.getElementById('trackingEnabled')) {
+            document.getElementById('trackingEnabled').checked = config.enabled || false;
+        }
+    } catch(e) {
+        console.error('Error loading tracking settings:', e);
+    }
+}
+
+/**
+ * Update tracking status display in analytics section
+ */
+function updateTrackingStatus() {
+    try {
+        const config = JSON.parse(localStorage.getItem('metraTrackingConfig') || '{}');
+        const events = JSON.parse(localStorage.getItem('metraAnalytics') || '[]');
+        
+        // Update GA status
+        const gaStatus = document.getElementById('gaStatus');
+        const gaId = document.getElementById('gaId');
+        if (gaStatus && gaId) {
+            if (config.googleAnalyticsId) {
+                gaStatus.textContent = 'Active';
+                gaStatus.style.color = '#228B22';
+                gaId.textContent = config.googleAnalyticsId;
+            } else {
+                gaStatus.textContent = 'Not Configured';
+                gaStatus.style.color = 'var(--gray)';
+                gaId.textContent = '-';
+            }
+        }
+
+        // Update Clarity status
+        const clarityStatus = document.getElementById('clarityStatus');
+        const clarityId = document.getElementById('clarityId');
+        if (clarityStatus && clarityId) {
+            if (config.clarityProjectId) {
+                clarityStatus.textContent = 'Active';
+                clarityStatus.style.color = '#228B22';
+                clarityId.textContent = config.clarityProjectId;
+            } else {
+                clarityStatus.textContent = 'Not Configured';
+                clarityStatus.style.color = 'var(--gray)';
+                clarityId.textContent = '-';
+            }
+        }
+
+        // Update tracking active status
+        const trackingActive = document.getElementById('trackingActive');
+        const trackingEvents = document.getElementById('trackingEvents');
+        if (trackingActive && trackingEvents) {
+            if (config.enabled && (config.googleAnalyticsId || config.clarityProjectId)) {
+                trackingActive.textContent = 'Enabled';
+                trackingActive.style.color = '#228B22';
+            } else {
+                trackingActive.textContent = 'Disabled';
+                trackingActive.style.color = 'var(--gray)';
+            }
+            trackingEvents.textContent = `${events.length} events tracked`;
+        }
+    } catch(e) {
+        console.error('Error updating tracking status:', e);
+    }
+}
+
+/**
+ * Test tracking scripts
+ */
+function testTrackingScripts() {
+    const config = JSON.parse(localStorage.getItem('metraTrackingConfig') || '{}');
+    const statusDiv = document.getElementById('trackingStatus');
+    
+    if (!statusDiv) return;
+    
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<p style="color: var(--gray);"><i class="fas fa-spinner fa-spin"></i> Testing tracking scripts...</p>';
+
+    let results = [];
+    
+    if (config.googleAnalyticsId) {
+        results.push(`<p style="color: #228B22;"><i class="fas fa-check-circle"></i> Google Analytics ID: ${config.googleAnalyticsId}</p>`);
+    } else {
+        results.push('<p style="color: #FFA500;"><i class="fas fa-exclamation-circle"></i> Google Analytics not configured</p>');
+    }
+    
+    if (config.clarityProjectId) {
+        results.push(`<p style="color: #228B22;"><i class="fas fa-check-circle"></i> Microsoft Clarity ID: ${config.clarityProjectId}</p>`);
+    } else {
+        results.push('<p style="color: #FFA500;"><i class="fas fa-exclamation-circle"></i> Microsoft Clarity not configured</p>');
+    }
+    
+    if (config.enabled) {
+        results.push('<p style="color: #228B22;"><i class="fas fa-check-circle"></i> Tracking is enabled</p>');
+    } else {
+        results.push('<p style="color: #FFA500;"><i class="fas fa-exclamation-circle"></i> Tracking is disabled</p>');
+    }
+
+    statusDiv.innerHTML = results.join('');
 }
 
 function changeAdminPassword(event) {
@@ -1221,6 +1355,8 @@ let engagementChartInstance = null;
 
 // Load Analytics
 function loadAnalytics() {
+    loadTrackingSettings();
+    updateTrackingStatus();
     updateAnalytics();
 }
 

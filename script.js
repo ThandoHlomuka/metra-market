@@ -920,6 +920,11 @@ function trackEvent(eventType, metadata = {}) {
     events.push(eventData);
     localStorage.setItem('metraAnalytics', JSON.stringify(events));
 
+    // Also track with Google Analytics and Microsoft Clarity if enabled
+    if (window.metraTracking && window.metraTracking.trackEvent) {
+        window.metraTracking.trackEvent(eventType, metadata);
+    }
+
     // Also send to API if database is enabled
     if (DB_CONFIG.useDatabase) {
         fetch('/api/track', {
@@ -2421,6 +2426,11 @@ function saveOrder(order, newsletterSignup = false) {
         items: order.items.length,
         isGuest: order.isGuest
     });
+
+    // Track purchase with Google Analytics and Microsoft Clarity
+    if (window.metraTracking && window.metraTracking.trackPurchase) {
+        window.metraTracking.trackPurchase(order);
+    }
 
     // Trigger real-time admin update
     localStorage.setItem('metraRealtimeOrder', JSON.stringify({

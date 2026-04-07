@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="address-locator.js?v=1.0.0"></script>
+    <script src="tracking.js?v=1.0.0"></script>
     <style>
         .checkout-page { min-height: 100vh; padding: 6rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
         .checkout-page h1 { font-size: 2rem; margin-bottom: 2rem; text-align: center; }
@@ -375,6 +376,11 @@
                 localStorage.setItem('metraOrders', JSON.stringify(orders));
                 localStorage.removeItem('metraCart');
             } catch(e) { console.error('Order save error:', e); }
+
+            // Track purchase with Google Analytics and Microsoft Clarity
+            if (window.metraTracking && window.metraTracking.trackPurchase) {
+                window.metraTracking.trackPurchase(order);
+            }
 
             // Create shipment on Bobgo dashboard
             createBobgoShipment(order);
