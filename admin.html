@@ -1361,6 +1361,44 @@
                             <i class="fas fa-info-circle"></i> These details are used by Bobgo to calculate accurate shipping costs
                         </p>
                     </div>
+
+                    <!-- SEO Optimization Section -->
+                    <div class="form-group" style="background: rgba(30, 144, 255, 0.1); border: 1px solid rgba(30, 144, 255, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                        <label style="color: #1E90FF; font-weight: 600; margin-bottom: 0.5rem; display: block; cursor: pointer;" onclick="toggleSeoSection()">
+                            <i class="fas fa-search"></i> SEO Optimization <i class="fas fa-chevron-down" id="seoToggleIcon" style="float: right;"></i>
+                        </label>
+                        <div id="seoFields" style="display: none;">
+                            <div class="form-group">
+                                <label>URL Slug</label>
+                                <input type="text" id="productSlug" placeholder="wireless-headphones" oninput="autoGenerateSlug()">
+                                <small style="color: var(--gray); font-size: 0.8rem;">metramarket.co.za/products/<span id="slugPreview">your-slug-here</span></small>
+                            </div>
+                            <div class="form-group">
+                                <label>Meta Title (for Google)</label>
+                                <input type="text" id="productMetaTitle" placeholder="Wireless Headphones | Metra Market" maxlength="60" oninput="updateSeoPreview()">
+                                <small style="color: var(--gray); font-size: 0.8rem;"><span id="metaTitleCount">0</span>/60 characters</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Meta Description (for Google)</label>
+                                <textarea id="productMetaDesc" rows="3" placeholder="Premium wireless headphones with noise-canceling..." maxlength="160" oninput="updateSeoPreview()"></textarea>
+                                <small style="color: var(--gray); font-size: 0.8rem;"><span id="metaDescCount">0</span>/160 characters</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Meta Keywords (comma separated)</label>
+                                <input type="text" id="productMetaKeywords" placeholder="wireless, headphones, noise-canceling, bluetooth">
+                            </div>
+                            
+                            <!-- Google Preview -->
+                            <div style="background: white; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                                <h4 style="color: #333; font-size: 0.85rem; margin-bottom: 0.75rem;"><i class="fab fa-google"></i> Google Search Preview</h4>
+                                <div style="font-family: Arial, sans-serif;">
+                                    <div style="color: #1a0dab; font-size: 1.1rem; font-weight: 500; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="googlePreviewTitle">Your Product Title</div>
+                                    <div style="color: #006621; font-size: 0.85rem; margin-bottom: 0.25rem;">metramarket.co.za <span style="color: #5f6368;">› products › </span><span id="googlePreviewSlug">slug</span></div>
+                                    <div style="color: #545454; font-size: 0.85rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" id="googlePreviewDesc">Your meta description will appear here...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeProductModal()">Cancel</button>
@@ -1373,7 +1411,7 @@
     <!-- Support Chat Management Section -->
     <section class="content-section" id="supportSection">
         <div class="section-header">
-            <h3>Customer Support Chat</h3>
+            <h3><i class="fas fa-headset"></i> Customer Support Inbox</h3>
             <div class="filter-group">
                 <button class="btn-primary btn-sm" onclick="refreshChatMessages()">
                     <i class="fas fa-sync"></i> Refresh
@@ -1384,18 +1422,20 @@
         <div class="settings-card">
             <h4><i class="fas fa-inbox"></i> Support Messages</h4>
             <p style="color: var(--gray); margin-bottom: 1rem;">View and respond to customer support requests.</p>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                <div style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); padding: 1rem; border-radius: 10px;">
-                    <h4 style="color: #FFA500; margin-bottom: 0.3rem;"><i class="fas fa-envelope"></i> Unread</h4>
-                    <p style="font-size: 1.5rem; font-weight: 700;" id="unreadChatsCount">0</p>
+
+            <!-- Stats Cards -->
+            <div class="support-stats-grid">
+                <div class="support-stat-card unread">
+                    <h4 style="color: #FFA500;"><i class="fas fa-envelope"></i> Unread</h4>
+                    <p id="unreadChatsCount">0</p>
                 </div>
-                <div style="background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); padding: 1rem; border-radius: 10px;">
-                    <h4 style="color: #228B22; margin-bottom: 0.3rem;"><i class="fas fa-check-circle"></i> Total</h4>
-                    <p style="font-size: 1.5rem; font-weight: 700;" id="totalChatsCount">0</p>
+                <div class="support-stat-card total">
+                    <h4 style="color: #228B22;"><i class="fas fa-check-circle"></i> Total</h4>
+                    <p id="totalChatsCount">0</p>
                 </div>
             </div>
 
+            <!-- Messages Table -->
             <div class="table-container">
                 <table class="data-table">
                     <thead>
@@ -1414,9 +1454,10 @@
             </div>
         </div>
 
+        <!-- Reply Section -->
         <div class="settings-card" id="chatReplySection" style="display: none;">
             <h4><i class="fas fa-reply"></i> Reply to Customer</h4>
-            <div style="background: rgba(255,248,231,0.05); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <div class="customer-message-preview">
                 <p><strong>Customer:</strong> <span id="replyCustomerName"></span></p>
                 <p><strong>Email:</strong> <span id="replyCustomerEmail"></span></p>
                 <p><strong>Message:</strong> <span id="replyMessage" style="color: var(--gray);"></span></p>

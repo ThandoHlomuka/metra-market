@@ -354,15 +354,18 @@ function showSection(section, element) {
         dashboard: 'Dashboard',
         products: 'Products Management',
         orders: 'Orders Management',
+        shipments: 'BobGo Shipments',
         users: 'Users Management',
         reviews: 'Reviews Management',
         invoices: 'Invoices Management',
         settings: 'Settings',
         sessions: 'Sessions & Data Management',
         analytics: 'Analytics Dashboard',
-        email: 'Email Settings'
+        email: 'Email Settings',
+        support: 'Support Inbox',
+        shipments: 'BobGo Shipments'
     };
-    document.getElementById('pageTitle').textContent = titles[section];
+    document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
     // Refresh data for each section
     if (section === 'products') renderProductsTable();
@@ -411,10 +414,90 @@ function openProductModal() {
     document.getElementById('productForm').reset();
     document.getElementById('editProductId').value = '';
     document.getElementById('productModalOverlay').style.display = 'flex';
+    
+    // Reset SEO preview
+    if (document.getElementById('productSlug')) {
+        document.getElementById('productSlug').value = '';
+        document.getElementById('productMetaTitle').value = '';
+        document.getElementById('productMetaDesc').value = '';
+        document.getElementById('productMetaKeywords').value = '';
+        updateSeoPreview();
+    }
 }
+
+// Auto-generate slug when product name changes
+document.addEventListener('DOMContentLoaded', () => {
+    const productNameInput = document.getElementById('productName');
+    if (productNameInput) {
+        productNameInput.addEventListener('input', autoGenerateSlug);
+    }
+});
 
 function closeProductModal() {
     document.getElementById('productModalOverlay').style.display = 'none';
+}
+
+/**
+ * SEO Helper Functions
+ */
+function toggleSeoSection() {
+    const seoFields = document.getElementById('seoFields');
+    const icon = document.getElementById('seoToggleIcon');
+    if (seoFields) {
+        const isVisible = seoFields.style.display !== 'none';
+        seoFields.style.display = isVisible ? 'none' : 'block';
+        icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+    }
+}
+
+function autoGenerateSlug() {
+    const productName = document.getElementById('productName').value;
+    const slugInput = document.getElementById('productSlug');
+    const slugPreview = document.getElementById('slugPreview');
+    
+    if (slugInput && !slugInput.value && productName) {
+        const slug = productName
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+        slugPreview.textContent = slug || 'your-slug-here';
+    } else if (slugInput) {
+        slugPreview.textContent = slugInput.value || 'your-slug-here';
+    }
+}
+
+function updateSeoPreview() {
+    const metaTitle = document.getElementById('productMetaTitle')?.value || '';
+    const metaDesc = document.getElementById('productMetaDesc')?.value || '';
+    const slug = document.getElementById('productSlug')?.value || '';
+    const productName = document.getElementById('productName')?.value || '';
+    
+    // Update character counts
+    const titleCount = document.getElementById('metaTitleCount');
+    const descCount = document.getElementById('metaDescCount');
+    if (titleCount) titleCount.textContent = metaTitle.length;
+    if (descCount) descCount.textContent = metaDesc.length;
+    
+    // Color code counts
+    if (titleCount) {
+        titleCount.style.color = metaTitle.length > 60 ? '#DC143C' : '#228B22';
+    }
+    if (descCount) {
+        descCount.style.color = metaDesc.length > 160 ? '#DC143C' : '#228B22';
+    }
+    
+    // Update Google preview
+    const previewTitle = document.getElementById('googlePreviewTitle');
+    const previewSlug = document.getElementById('googlePreviewSlug');
+    const previewDesc = document.getElementById('googlePreviewDesc');
+    const slugPreview = document.getElementById('slugPreview');
+    
+    if (previewTitle) previewTitle.textContent = metaTitle || productName || 'Your Product Title';
+    if (previewSlug) previewSlug.textContent = slug || 'slug';
+    if (slugPreview) slugPreview.textContent = slug || 'your-slug-here';
+    if (previewDesc) previewDesc.textContent = metaDesc || 'Your meta description will appear here...';
 }
 
 function saveProduct(event) {
@@ -438,7 +521,12 @@ function saveProduct(event) {
         weight: parseFloat(document.getElementById('productWeight').value) || 0.5,
         length: parseFloat(document.getElementById('productLength').value) || 30,
         width: parseFloat(document.getElementById('productWidth').value) || 20,
-        height: parseFloat(document.getElementById('productHeight').value) || 15
+        height: parseFloat(document.getElementById('productHeight').value) || 15,
+        // SEO details
+        slug: document.getElementById('productSlug')?.value?.trim() || '',
+        metaTitle: document.getElementById('productMetaTitle')?.value?.trim() || '',
+        metaDesc: document.getElementById('productMetaDesc')?.value?.trim() || '',
+        metaKeywords: document.getElementById('productMetaKeywords')?.value?.trim() || ''
     };
 
     if (editId) {
@@ -486,6 +574,15 @@ function editProduct(id) {
     document.getElementById('productLength').value = product.length || 30;
     document.getElementById('productWidth').value = product.width || 20;
     document.getElementById('productHeight').value = product.height || 15;
+
+    // Load SEO details
+    if (document.getElementById('productSlug')) {
+        document.getElementById('productSlug').value = product.slug || '';
+        document.getElementById('productMetaTitle').value = product.metaTitle || '';
+        document.getElementById('productMetaDesc').value = product.metaDesc || '';
+        document.getElementById('productMetaKeywords').value = product.metaKeywords || '';
+        updateSeoPreview();
+    }
 
     document.getElementById('productModalOverlay').style.display = 'flex';
 }
@@ -2915,18 +3012,22 @@ function loadSupportChats() {
     tbody.innerHTML = sortedChats.map(chat => `
         <tr>
             <td>
-                <div>
-                    <strong>${chat.userName}</strong><br>
-                    <span style="color: var(--gray); font-size: 0.85rem;">${chat.userEmail}</span>
+                <div class="customer-info">
+                    <span class="customer-name">${chat.userName}</span>
+                    <span class="customer-email">${chat.userEmail}</span>
                 </div>
             </td>
-            <td>${chat.message.substring(0, 50)}${chat.message.length > 50 ? '...' : ''}</td>
-            <td>${new Date(chat.timestamp).toLocaleString('en-ZA')}</td>
             <td>
-                <span style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; 
+                <div class="message-preview" title="${chat.message}">
+                    ${chat.message.substring(0, 60)}${chat.message.length > 60 ? '...' : ''}
+                </div>
+            </td>
+            <td>${new Date(chat.timestamp).toLocaleDateString('en-ZA')}</td>
+            <td>
+                <span style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem;
                     background: ${chat.status === 'read' ? 'rgba(34, 139, 34, 0.2)' : 'rgba(255, 165, 0, 0.2)'};
                     color: ${chat.status === 'read' ? '#228B22' : '#FFA500'};">
-                    ${chat.status}
+                    ${chat.status === 'read' ? 'Replied' : 'Unread'}
                 </span>
             </td>
             <td>

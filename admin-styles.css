@@ -875,3 +875,159 @@ body {
     margin-bottom: 1rem;
     opacity: 0.5;
 }
+
+/* Support Inbox / Chat Section */
+#supportSection {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding-bottom: 2rem;
+}
+
+#supportSection .settings-card {
+    max-width: 100%;
+    overflow: visible;
+}
+
+#supportSection .table-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 248, 231, 0.1);
+}
+
+#supportSection .table-container table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#supportSection .table-container th:nth-child(1) { width: 20%; }
+#supportSection .table-container th:nth-child(2) { width: 35%; }
+#supportSection .table-container th:nth-child(3) { width: 15%; }
+#supportSection .table-container th:nth-child(4) { width: 12%; }
+#supportSection .table-container th:nth-child(5) { width: 18%; }
+
+#supportSection .table-container td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#supportSection .message-preview {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--gray);
+    font-size: 0.85rem;
+}
+
+#supportSection .customer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+#supportSection .customer-name {
+    font-weight: 600;
+    color: var(--light);
+    font-size: 0.9rem;
+}
+
+#supportSection .customer-email {
+    color: var(--gray);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Reply Section */
+#chatReplySection {
+    margin-top: 1.5rem;
+    border: 1px solid rgba(34, 139, 34, 0.3);
+    background: rgba(34, 139, 34, 0.05);
+}
+
+#chatReplySection .customer-message-preview {
+    background: rgba(255, 248, 231, 0.05);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--primary);
+}
+
+#chatReplySection .customer-message-preview p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+#chatReplySection #adminReplyText {
+    min-height: 120px;
+    max-height: 300px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Support Stats Cards */
+.support-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.support-stat-card {
+    padding: 1rem;
+    border-radius: 10px;
+    border: 1px solid;
+}
+
+.support-stat-card.unread {
+    background: rgba(255, 165, 0, 0.1);
+    border-color: rgba(255, 165, 0, 0.3);
+}
+
+.support-stat-card.total {
+    background: rgba(34, 139, 34, 0.1);
+    border-color: rgba(34, 139, 34, 0.3);
+}
+
+.support-stat-card h4 {
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.support-stat-card p {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Responsive adjustments for support section */
+@media (max-width: 768px) {
+    #supportSection {
+        max-height: none;
+        overflow: visible;
+    }
+
+    #supportSection .table-container {
+        max-height: none;
+        overflow: visible;
+    }
+
+    #supportSection .table-container table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .support-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #chatReplySection {
+        padding: 1rem;
+    }
+
+    #chatReplySection .customer-message-preview {
+        font-size: 0.85rem;
+    }
+}
