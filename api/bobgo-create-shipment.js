@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.BOBGO_API_KEY;
-    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v1';
+    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v2';
 
     if (!apiKey) {
         console.error('❌ BobGo API key NOT configured');
@@ -45,10 +45,11 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing parcels', message: 'At least one parcel required' });
         }
 
-        // Build request body
+        // Build request body - BobGo v2 API format
         const shipmentData = {
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
+            provider_slug: 'bobgo',
             sender: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
@@ -95,12 +96,10 @@ export default async function handler(req, res) {
         console.log('📍 Destination:', recipientCity, recipientProvince);
         console.log('📦 Parcels:', parcels.length, 'Total weight:', parcels.reduce((s, p) => s + (p.weight || 1), 0), 'kg');
 
-        // Try multiple possible BobGo API endpoints
+        // Try multiple possible BobGo v2 API endpoints
         const possibleEndpoints = [
-            { path: '/shipments', method: 'POST', label: 'POST /v1/shipments' },
-            { path: '/bookings', method: 'POST', label: 'POST /v1/bookings' },
-            { path: '/orders', method: 'POST', label: 'POST /v1/orders' },
-            { path: '/consignments', method: 'POST', label: 'POST /v1/consignments' }
+            { path: '/shipments', method: 'POST', label: 'POST /v2/shipments' },
+            { path: '/orders', method: 'POST', label: 'POST /v2/orders' }
         ];
 
         let lastError = null;

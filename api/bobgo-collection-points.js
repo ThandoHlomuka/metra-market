@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     // Get API configuration from environment variables
     const apiKey = process.env.BOBGO_API_KEY;
-    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v1';
+    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v2';
 
     // Validate API key is configured
     if (!apiKey) {

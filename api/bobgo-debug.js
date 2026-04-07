@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.BOBGO_API_KEY;
-    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v1';
+    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v2';
     const results = [];
 
     if (!apiKey) {
