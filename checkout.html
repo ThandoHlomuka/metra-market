@@ -368,7 +368,7 @@
                 createdAt: new Date().toISOString()
             };
 
-            // Save order
+            // Save order to localStorage
             try {
                 const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
                 orders.push(order);
@@ -376,12 +376,110 @@
                 localStorage.removeItem('metraCart');
             } catch(e) { console.error('Order save error:', e); }
 
+            // Create shipment on Bobgo dashboard
+            createBobgoShipment(order);
+
             // Redirect to payment
             if (order.paymentMethod === 'payfast') {
                 submitToPayFast(order);
             } else {
                 window.location.href = 'success.html?order_id=' + order.id;
             }
+        }
+
+        /**
+         * Create shipment on Bobgo dashboard via serverless proxy
+         */
+        function createBobgoShipment(order) {
+            // Calculate total parcel dimensions from cart items
+            let totalWeight = 0, maxLength = 0, maxWidth = 0, totalHeight = 0, totalValue = 0;
+            order.items.forEach(item => {
+                totalWeight += (item.weight || 0.5) * (item.quantity || 1);
+                maxLength = Math.max(maxLength, item.length || 30);
+                maxWidth = Math.max(maxWidth, item.width || 20);
+                totalHeight += (item.height || 15) * (item.quantity || 1);
+                totalValue += (item.price || 0) * (item.quantity || 1);
+            });
+
+            const shipmentData = {
+                orderId: order.id,
+                orderNumber: order.id,
+                invoiceNumber: 'INV-' + Date.now(),
+                
+                // Sender/Shop details
+                senderName: 'Metra Market',
+                senderPhone: '+27111234567',
+                senderEmail: 'support@metramarket.co.za',
+                senderAddress: '1335 Ingwayuma Street',
+                senderCity: 'Soweto',
+                senderProvince: 'Gauteng',
+                senderPostalCode: '1818',
+                
+                // Recustomer details
+                recipientName: order.customerName,
+                recipientPhone: order.customerPhone,
+                recipientEmail: order.customerEmail,
+                recipientAddress: order.shippingAddress.street,
+                recipientCity: order.shippingAddress.city,
+                recipientProvince: order.shippingAddress.province,
+                recipientPostalCode: order.shippingAddress.postalCode,
+                
+                // Parcel details
+                parcels: [{
+                    weight: totalWeight || 1,
+                    length: maxLength || 30,
+                    width: maxWidth || 20,
+                    height: totalHeight || 15,
+                    description: 'E-commerce goods',
+                    value: totalValue
+                }],
+                
+                // Courier selection
+                courierCode: order.shippingMethod || '',
+                serviceType: 'standard',
+                shippingCost: order.shippingCost || 0,
+                
+                // Additional
+                insuranceAmount: totalValue,
+                instructions: `Order ${order.id} - Metra Market`,
+                reference: order.id
+            };
+
+            // Call serverless proxy to create shipment on Bobgo
+            fetch('/api/bobgo-create-shipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(shipmentData)
+            })
+            .then(r => r.json())
+            .then(data => {
+                console.log('Bobgo shipment response:', data);
+                if (data.shipmentCreated && data.shipment) {
+                    // Update order with Bobgo tracking info
+                    order.bobgoShipment = data.shipment;
+                    order.bobgoTrackingNumber = data.shipment.tracking_number || '';
+                    order.bobgoShipmentId = data.shipment.id || '';
+                    order.shipmentStatus = data.shipment.status || 'created';
+                    
+                    // Save updated order back to localStorage
+                    try {
+                        const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+                        const orderIndex = orders.findIndex(o => o.id === order.id);
+                        if (orderIndex !== -1) {
+                            orders[orderIndex] = order;
+                            localStorage.setItem('metraOrders', JSON.stringify(orders));
+                        }
+                    } catch(e) { console.error('Order update error:', e); }
+                    
+                    console.log('✅ Shipment created on Bobgo dashboard:', data.shipment);
+                } else {
+                    console.warn('⚠️ Bobgo shipment creation failed:', data);
+                }
+            })
+            .catch(err => {
+                console.error('❌ Bobgo shipment creation error:', err);
+                // Order is still saved even if Bobgo fails
+            });
         }
 
         function submitToPayFast(order) {

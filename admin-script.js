@@ -544,13 +544,46 @@ function viewOrder(orderId) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    const itemsList = order.items.map(item => 
+    const itemsList = order.items.map(item =>
         `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0;">
             <span>${item.icon}</span>
             <span>${item.name} x ${item.quantity}</span>
             <span style="margin-left: auto;">R${(item.price * item.quantity).toFixed(2)}</span>
         </div>`
     ).join('');
+
+    // Bobgo shipment info display
+    const bobgoTrackingHTML = order.bobgoTrackingNumber ? `
+        <div style="background: rgba(34, 139, 34, 0.1); border: 1px solid rgba(34, 139, 34, 0.3); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 0.75rem; color: #228B22;"><i class="fas fa-shipping-fast"></i> Bobgo Shipment Details</h4>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Tracking Number</p>
+                    <p style="font-weight: 600; color: #228B22;">${order.bobgoTrackingNumber}</p>
+                </div>
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Shipment ID</p>
+                    <p style="font-weight: 600;">${order.bobgoShipmentId || 'N/A'}</p>
+                </div>
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Courier</p>
+                    <p style="font-weight: 600;">${order.bobgoShipment?.courier || order.selectedCourier?.name || 'N/A'}</p>
+                </div>
+                <div>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Status</p>
+                    <span class="status-badge" style="background: ${order.shipmentStatus === 'delivered' ? '#228B22' : order.shipmentStatus === 'in_transit' ? '#FFA500' : '#1E90FF'};">${order.shipmentStatus || 'created'}</span>
+                </div>
+            </div>
+            <a href="https://track.bobgo.co.za/${order.bobgoTrackingNumber}" target="_blank" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: #228B22; color: white; text-decoration: none; border-radius: 8px; font-size: 0.85rem;">
+                <i class="fas fa-external-link-alt"></i> Track on Bobgo
+            </a>
+        </div>
+    ` : order.deliveryMethod === 'bobgo' || order.shippingMethod ? `
+        <div style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 0.75rem; color: #FFA500;"><i class="fas fa-shipping-fast"></i> Bobgo Shipment Pending</h4>
+            <p style="color: var(--gray); font-size: 0.85rem;">Shipment will be created on Bobgo dashboard once payment is confirmed.</p>
+        </div>
+    ` : '';
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -564,6 +597,7 @@ function viewOrder(orderId) {
                 </button>
             </div>
             <div class="modal-body">
+                ${bobgoTrackingHTML}
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                     <div>
                         <p style="color: var(--gray); font-size: 0.85rem;">Date</p>
@@ -574,12 +608,24 @@ function viewOrder(orderId) {
                         <span class="status-badge ${order.status}">${order.status}</span>
                     </div>
                     <div>
+                        <p style="color: var(--gray); font-size: 0.85rem;">Customer</p>
+                        <p>${order.customerName}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--gray); font-size: 0.85rem;">Email</p>
+                        <p>${order.customerEmail}</p>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <p style="color: var(--gray); font-size: 0.85rem;">Shipping Address</p>
+                        <p>${order.shippingAddress?.street || 'N/A'}, ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.province || ''} ${order.shippingAddress?.postalCode || ''}</p>
+                    </div>
+                    <div>
                         <p style="color: var(--gray); font-size: 0.85rem;">Subtotal</p>
-                        <p>R${(order.total - (order.shipping || 0)).toFixed(2)}</p>
+                        <p>R${(order.subtotal || order.total - (order.shipping || 0)).toFixed(2)}</p>
                     </div>
                     <div>
                         <p style="color: var(--gray); font-size: 0.85rem;">Shipping</p>
-                        <p>R${(order.shipping || 0).toFixed(2)}</p>
+                        <p>R${(order.shipping || order.shippingCost || 0).toFixed(2)}</p>
                     </div>
                 </div>
                 <h4 style="margin-bottom: 1rem;">Items</h4>
