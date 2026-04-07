@@ -32,8 +32,11 @@ html.loaded {
 
 html {
     scroll-behavior: smooth;
-    visibility: visible !important;
-    opacity: 1 !important;
+}
+
+html.loaded {
+    visibility: visible;
+    opacity: 1;
 }
 
 body {

@@ -78,7 +78,7 @@
         ];
 
         let cart = [];
-        let selectedShipping = { id: null, cost: 0 };
+        let selectedShipping = { id: null, cost: 0, courierData: null };
 
         document.addEventListener('DOMContentLoaded', function() {
             loadCart();
@@ -114,7 +114,7 @@
 
         function renderCheckout() {
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
+
             document.getElementById('checkoutContent').innerHTML = `
                 <div class="checkout-container">
                     <div class="order-summary">
@@ -248,9 +248,7 @@
 
             fetch('/api/bobgo-shipping', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     endpoint: 'couriers',
                     origin: '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
@@ -284,8 +282,6 @@
             ]);
         }
 
-        let selectedShipping = { id: null, cost: 0, courierData: null };
-
         function showShippingOptions(couriers) {
             const container = document.getElementById('shippingOptionsContainer');
             const options = couriers.map((c, i) => ({
@@ -298,7 +294,7 @@
                 features: c.features || [],
                 trackingIncluded: c.tracking_included !== false,
                 insuranceIncluded: c.insurance_included || false,
-                rawCourier: c // Store full courier data for BobGo shipment
+                rawCourier: c
             }));
 
             container.innerHTML = options.map((o, i) => `
@@ -330,7 +326,7 @@
             selectedShipping = { 
                 id: id, 
                 cost: price, 
-                courierData: courierData // Store full courier data for BobGo
+                courierData: courierData
             };
             document.querySelectorAll('.shipping-option').forEach(el => el.classList.remove('selected'));
             if (element) element.classList.add('selected');
@@ -401,11 +397,7 @@
             }
         }
 
-        /**
-         * Create shipment on Bobgo dashboard via serverless proxy
-         */
         function createBobgoShipment(order) {
-            // Calculate total parcel dimensions from cart items
             let totalWeight = 0, maxLength = 0, maxWidth = 0, totalHeight = 0, totalValue = 0;
             order.items.forEach(item => {
                 totalWeight += (item.weight || 0.5) * (item.quantity || 1);
@@ -419,8 +411,6 @@
                 orderId: order.id,
                 orderNumber: order.id,
                 invoiceNumber: 'INV-' + Date.now(),
-                
-                // Sender/Shop details
                 senderName: 'Metra Market',
                 senderPhone: '+27111234567',
                 senderEmail: 'support@metramarket.co.za',
@@ -428,8 +418,6 @@
                 senderCity: 'Soweto',
                 senderProvince: 'Gauteng',
                 senderPostalCode: '1818',
-                
-                // Recustomer details
                 recipientName: order.customerName,
                 recipientPhone: order.customerPhone,
                 recipientEmail: order.customerEmail,
@@ -437,8 +425,6 @@
                 recipientCity: order.shippingAddress.city,
                 recipientProvince: order.shippingAddress.province,
                 recipientPostalCode: order.shippingAddress.postalCode,
-                
-                // Parcel details
                 parcels: [{
                     weight: totalWeight || 1,
                     length: maxLength || 30,
@@ -447,21 +433,16 @@
                     description: 'E-commerce goods',
                     value: totalValue
                 }],
-                
-                // Courier selection - use actual courier code from BobGo response
                 courierCode: selectedShipping.courierData?.code || selectedShipping.courierData?.courier_code || '',
                 courierName: selectedShipping.courierData?.name || selectedShipping.courierData?.courier_name || '',
                 serviceType: selectedShipping.courierData?.service_type || selectedShipping.courierData?.service || 'standard',
                 serviceName: selectedShipping.courierData?.service_name || selectedShipping.courierData?.service_type || '',
                 shippingCost: order.shippingCost || 0,
-                
-                // Additional
                 insuranceAmount: totalValue,
                 instructions: `Order ${order.id} - Metra Market`,
                 reference: order.id
             };
 
-            // Call serverless proxy to create shipment on Bobgo
             fetch('/api/bobgo-create-shipment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -471,37 +452,24 @@
             .then(data => {
                 console.log('Bobgo shipment response:', data);
                 if (data.shipmentCreated && data.shipment) {
-                    // Update order with Bobgo tracking info
                     order.bobgoShipment = data.shipment;
                     order.bobgoTrackingNumber = data.shipment.tracking_number || '';
                     order.bobgoShipmentId = data.shipment.id || '';
                     order.shipmentStatus = data.shipment.status || 'created';
-
-                    // Save updated order back to localStorage
                     try {
                         const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
-                        const orderIndex = orders.findIndex(o => o.id === order.id);
-                        if (orderIndex !== -1) {
-                            orders[orderIndex] = order;
-                            localStorage.setItem('metraOrders', JSON.stringify(orders));
-                        }
+                        const idx = orders.findIndex(o => o.id === order.id);
+                        if (idx !== -1) { orders[idx] = order; localStorage.setItem('metraOrders', JSON.stringify(orders)); }
                     } catch(e) { console.error('Order update error:', e); }
-
                     console.log('✅ Shipment created on Bobgo dashboard:', data.shipment);
                 } else {
                     console.warn('⚠️ Bobgo shipment creation failed:', data);
-                    // Add to sync queue for retry
-                    if (window.bobgoSyncQueue) {
-                        window.bobgoSyncQueue.addToQueue(shipmentData);
-                    }
+                    if (window.bobgoSyncQueue) window.bobgoSyncQueue.addToQueue(shipmentData);
                 }
             })
             .catch(err => {
                 console.error('❌ Bobgo shipment creation error:', err);
-                // Add to sync queue for automatic retry
-                if (window.bobgoSyncQueue) {
-                    window.bobgoSyncQueue.addToQueue(shipmentData);
-                }
+                if (window.bobgoSyncQueue) window.bobgoSyncQueue.addToQueue(shipmentData);
             });
         }
 
