@@ -890,9 +890,52 @@ body {
 
 #supportSection .table-container {
     max-height: 500px;
+    overflow: auto;
+    overflow-x: auto;
     overflow-y: auto;
     border-radius: 10px;
     border: 1px solid rgba(255, 248, 231, 0.1);
+    position: relative;
+}
+
+/* Bottom horizontal scroller styling */
+#supportSection .table-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+#supportSection .table-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 10px 10px;
+}
+
+#supportSection .table-container::-webkit-scrollbar-thumb {
+    background: rgba(220, 20, 60, 0.5);
+    border-radius: 5px;
+    border: 2px solid rgba(26, 10, 10, 0.5);
+}
+
+#supportSection .table-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(220, 20, 60, 0.7);
+}
+
+/* Horizontal scroll indicator at bottom */
+#supportSection .table-container::after {
+    content: '\f07e  Scroll horizontally';
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Brands';
+    font-weight: 900;
+    font-size: 0.75rem;
+    color: rgba(139, 115, 85, 0.6);
+    text-align: center;
+    padding: 0.5rem;
+    display: none;
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 248, 231, 0.05);
+}
+
+#supportSection .table-container {
+    scrollbar-color: rgba(220, 20, 60, 0.5) rgba(0, 0, 0, 0.2);
+    scrollbar-width: thin;
 }
 
 #supportSection .table-container table {
