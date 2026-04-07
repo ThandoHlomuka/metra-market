@@ -291,11 +291,20 @@
             <section class="content-section" id="shipmentsSection">
                 <div class="section-header">
                     <h3><i class="fas fa-shipping-fast"></i> BobGo Shipment Sync</h3>
-                    <div class="filter-group">
+                    <div class="filter-group" style="display: flex; gap: 0.5rem;">
                         <button class="btn-secondary btn-sm" onclick="processPendingShipments()">
                             <i class="fas fa-sync-alt"></i> Sync Now
                         </button>
+                        <button class="btn-secondary btn-sm" onclick="testBobGoAPI()" id="testBobGoBtn">
+                            <i class="fas fa-flask"></i> Test API
+                        </button>
                     </div>
+                </div>
+
+                <!-- Debug Status -->
+                <div id="bobgoDebugStatus" style="display: none; background: rgba(30, 144, 255, 0.1); border: 1px solid rgba(30, 144, 255, 0.3); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <h4 style="color: #1E90FF; margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> BobGo API Debug Info</h4>
+                    <pre id="bobgoDebugOutput" style="color: var(--light); font-size: 0.8rem; white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></pre>
                 </div>
 
                 <!-- Sync Status Cards -->

@@ -2507,7 +2507,7 @@ function createBobgoShipment(order) {
         courierName: selectedCourier?.name || selectedCourier?.courier_name || '',
         serviceType: selectedCourier?.service_type || selectedCourier?.service || 'standard',
         serviceName: selectedCourier?.service_name || selectedCourier?.service_type || '',
-        shippingCost: order.shipping || 0,
+        shippingCost: order.shippingCost || order.shipping || 0,
         
         // Additional
         insuranceAmount: totalValue,

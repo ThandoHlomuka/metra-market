@@ -1,99 +1,54 @@
 /**
- * Bobgo Shipment Creation API Proxy
- * This serverless function securely creates shipments on Bobgo's dashboard
- * without exposing the API key to the client.
- * 
- * Shop Address (Primary Collection/Origin):
- * 1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818
- * 
- * Bobgo API Documentation: https://api-docs.bob.co.za/bobgo
- * Endpoint: POST /v1/shipments
+ * BobGo Shipment Creation API Proxy
+ * Tries multiple BobGo API endpoints to create shipments
+ * Logs detailed request/response data for debugging
+ *
+ * Shop Address: 1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818
  */
 
 export default async function handler(req, res) {
-    // Only allow POST requests
     if (req.method !== 'POST') {
-        return res.status(405).json({
-            error: 'Method not allowed',
-            message: 'Only POST requests are accepted for shipment creation'
-        });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Get API configuration from environment variables
     const apiKey = process.env.BOBGO_API_KEY;
     const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v1';
 
-    // Validate API key is configured
     if (!apiKey) {
-        console.error('Bobgo API key not configured for shipment creation');
+        console.error('❌ BobGo API key NOT configured');
         return res.status(500).json({
             error: 'Shipping service unavailable',
-            message: 'Bobgo API is not properly configured'
+            message: 'BobGo API key is not configured in Vercel environment variables',
+            hint: 'Add BOBGO_API_KEY to Vercel Dashboard → Settings → Environment Variables'
         });
     }
 
     try {
         const {
-            // Order reference
-            orderId,
-            orderNumber,
-            invoiceNumber,
-            
-            // Sender/Shop details (origin)
-            senderName,
-            senderPhone,
-            senderEmail,
-            senderAddress,
-            senderCity,
-            senderProvince,
-            senderPostalCode,
-            
-            // Recipient/Customer details (destination)
-            recipientName,
-            recipientPhone,
-            recipientEmail,
-            recipientAddress,
-            recipientCity,
-            recipientProvince,
-            recipientPostalCode,
-            
-            // Parcel details
-            parcels,
-            
-            // Courier/Service selection
-            courierCode,
-            serviceType,
-            shippingCost,
-            
-            // Additional options
-            insuranceAmount,
-            instructions,
-            reference
+            orderId, orderNumber, invoiceNumber,
+            senderName, senderPhone, senderEmail, senderAddress,
+            senderCity, senderProvince, senderPostalCode,
+            recipientName, recipientPhone, recipientEmail,
+            recipientAddress, recipientCity, recipientProvince, recipientPostalCode,
+            parcels, courierCode, serviceType, shippingCost,
+            insuranceAmount, instructions, reference, metadata
         } = req.body;
 
-        // Validate required fields
+        // Validate
         if (!recipientName || !recipientAddress || !recipientPhone) {
             return res.status(400).json({
-                error: 'Invalid request',
-                message: 'Missing required recipient fields: name, address, phone are required'
+                error: 'Missing recipient info',
+                message: 'recipientName, recipientAddress, recipientPhone are required'
             });
         }
-
-        if (!parcels || !Array.isArray(parcels) || parcels.length === 0) {
-            return res.status(400).json({
-                error: 'Invalid request',
-                message: 'At least one parcel is required'
-            });
+        if (!parcels?.length) {
+            return res.status(400).json({ error: 'Missing parcels', message: 'At least one parcel required' });
         }
 
-        // Build Bobgo shipment request body
-        // Based on BobGo API structure for shipment creation
+        // Build request body
         const shipmentData = {
-            // Order reference - appears on Bobgo dashboard
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
-            
-            // Sender details (your shop)
             sender: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
@@ -105,8 +60,6 @@ export default async function handler(req, res) {
                 postal_code: senderPostalCode || '1818',
                 country: 'ZA'
             },
-            
-            // Recipient details (customer)
             recipient: {
                 name: recipientName,
                 phone: recipientPhone,
@@ -117,108 +70,124 @@ export default async function handler(req, res) {
                 postal_code: recipientPostalCode || '',
                 country: 'ZA'
             },
-            
-            // Parcel details
-            parcels: parcels.map(parcel => ({
-                weight: Math.round(parseFloat(parcel.weight) * 1000) / 1000, // kg, rounded to 3 decimals
-                length: Math.round(parseFloat(parcel.length) || 30), // cm
-                width: Math.round(parseFloat(parcel.width) || 20), // cm
-                height: Math.round(parseFloat(parcel.height) || 15), // cm
-                description: parcel.description || 'E-commerce goods',
-                value: parseFloat(parcel.value || 0) // for insurance
+            parcels: parcels.map(p => ({
+                weight: Math.round(parseFloat(p.weight || 1) * 1000) / 1000,
+                length: Math.round(parseFloat(p.length) || 30),
+                width: Math.round(parseFloat(p.width) || 20),
+                height: Math.round(parseFloat(p.height) || 15),
+                description: p.description || 'E-commerce goods',
+                value: parseFloat(p.value || 0)
             })),
-            
-            // Courier service selection (if pre-selected)
             courier_code: courierCode || '',
             service_type: serviceType || 'standard',
-            
-            // Financial
             declared_value: parseFloat(insuranceAmount || 0),
             shipping_cost: parseFloat(shippingCost || 0),
-            
-            // Additional options
             instructions: instructions || '',
-            
-            // Metadata for Bobgo dashboard
-            metadata: {
+            metadata: metadata || {
                 platform: 'metra-market',
                 order_number: orderNumber || orderId || '',
-                invoice_number: invoiceNumber || '',
                 payment_status: 'pending_payment',
-                order_status: 'pending_payment',
-                customer_email: recipientEmail || '',
-                customer_phone: recipientPhone || ''
+                order_status: 'pending_payment'
             }
         };
 
-        console.log('Creating shipment on Bobgo:', shipmentData.order_id);
+        console.log('📦 Creating shipment:', shipmentData.order_id);
+        console.log('📍 Destination:', recipientCity, recipientProvince);
+        console.log('📦 Parcels:', parcels.length, 'Total weight:', parcels.reduce((s, p) => s + (p.weight || 1), 0), 'kg');
 
-        // Make request to Bobgo API to create shipment
-        const response = await fetch(`${apiUrl}/shipments`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(shipmentData)
-        });
+        // Try multiple possible BobGo API endpoints
+        const possibleEndpoints = [
+            { path: '/shipments', method: 'POST', label: 'POST /v1/shipments' },
+            { path: '/bookings', method: 'POST', label: 'POST /v1/bookings' },
+            { path: '/orders', method: 'POST', label: 'POST /v1/orders' },
+            { path: '/consignments', method: 'POST', label: 'POST /v1/consignments' }
+        ];
 
-        // Parse response
-        let responseData;
-        try {
-            responseData = await response.json();
-        } catch (e) {
-            const errorText = await response.text();
-            console.error('Bobgo API non-JSON response:', errorText);
-            responseData = { raw_response: errorText };
+        let lastError = null;
+        let lastResponse = null;
+        let successEndpoint = null;
+
+        for (const endpoint of possibleEndpoints) {
+            try {
+                const url = `${apiUrl}${endpoint.path}`;
+                console.log(`🔄 Trying ${endpoint.label}...`);
+
+                const response = await fetch(url, {
+                    method: endpoint.method,
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MetraMarket/1.0'
+                    },
+                    body: JSON.stringify(shipmentData)
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    const text = await response.text();
+                    data = { raw: text };
+                }
+
+                console.log(`  → ${endpoint.label}: HTTP ${response.status}`, JSON.stringify(data).substring(0, 200));
+
+                if (response.ok && (data.id || data.shipment_id || data.tracking_number || data.booking_id || data.success)) {
+                    // Success!
+                    successEndpoint = endpoint.label;
+                    lastResponse = { ...data, _endpoint: endpoint.label };
+                    break;
+                }
+
+                lastError = data;
+                lastResponse = data;
+            } catch (err) {
+                console.log(`  → ${endpoint.label}: FAILED - ${err.message}`);
+                lastError = err.message;
+            }
         }
 
-        // Handle HTTP errors
-        if (!response.ok) {
-            console.error('Bobgo shipment creation error:', response.status, responseData);
-            
-            return res.status(response.status).json({
-                error: 'Bobgo API error',
-                message: responseData.message || response.statusText,
-                details: responseData,
-                // Still return success to client so order is saved even if Bobgo fails
-                shipmentCreated: false
+        if (successEndpoint && lastResponse) {
+            console.log(`✅ Shipment created via ${successEndpoint}`);
+            return res.status(200).json({
+                success: true,
+                shipmentCreated: true,
+                endpoint: successEndpoint,
+                shipment: {
+                    id: lastResponse.id || lastResponse.shipment_id || lastResponse.booking_id || lastResponse.tracking_number || '',
+                    tracking_number: lastResponse.tracking_number || lastResponse.tracking || lastResponse.consignment_number || '',
+                    status: lastResponse.status || 'created',
+                    courier: lastResponse.courier || lastResponse.courier_name || lastResponse.partner_name || '',
+                    created_at: lastResponse.created_at || new Date().toISOString()
+                },
+                bobgoResponse: lastResponse,
+                message: `Shipment created via ${successEndpoint}`
             });
         }
 
-        console.log('Shipment created successfully on Bobgo:', responseData);
-
-        // Return successful response with shipment details
+        // All endpoints failed
+        console.error('❌ All BobGo endpoints failed');
         return res.status(200).json({
-            success: true,
-            shipmentCreated: true,
-            shipment: {
-                id: responseData.id || responseData.shipment_id || responseData.tracking_number || '',
-                tracking_number: responseData.tracking_number || responseData.tracking || '',
-                status: responseData.status || 'created',
-                courier: responseData.courier || responseData.courier_name || '',
-                created_at: responseData.created_at || new Date().toISOString()
-            },
-            bobgoResponse: responseData,
-            message: 'Shipment created successfully on Bobgo dashboard'
+            success: false,
+            shipmentCreated: false,
+            error: 'All BobGo shipment endpoints failed',
+            attemptedEndpoints: possibleEndpoints.map(e => e.label),
+            lastError: lastError,
+            lastResponse: lastResponse,
+            message: 'BobGo API does not support shipment creation with known endpoints. Check BobGo dashboard for manual booking.',
+            hint: 'Shipments may need to be created manually on BobGo dashboard using order reference: ' + (orderId || 'N/A')
         });
 
     } catch (error) {
-        console.error('Bobgo shipment creation proxy error:', error);
-
+        console.error('❌ BobGo shipment creation error:', error);
         return res.status(500).json({
             error: 'Internal server error',
-            message: error.message || 'Failed to create shipment',
+            message: error.message,
             shipmentCreated: false
         });
     }
 }
 
-// Disable body size limit to allow large requests
 export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '1mb'
-        }
-    }
+    api: { bodyParser: { sizeLimit: '1mb' } }
 };

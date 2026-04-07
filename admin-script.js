@@ -903,6 +903,63 @@ function clearFailedShipments() {
     }
 }
 
+// Test BobGo API connectivity and available endpoints
+async function testBobGoAPI() {
+    const btn = document.getElementById('testBobGoBtn');
+    const statusDiv = document.getElementById('bobgoDebugStatus');
+    const output = document.getElementById('bobgoDebugOutput');
+    
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...'; }
+    if (statusDiv) statusDiv.style.display = 'block';
+    if (output) output.textContent = 'Testing BobGo API endpoints...';
+
+    try {
+        const response = await fetch('/api/bobgo-debug');
+        const data = await response.json();
+        
+        // Format results
+        let resultText = `API URL: ${data.api_url}\n`;
+        resultText += `API Key: ${data.api_key_configured ? '✅ Configured (' + data.api_key_preview + ')' : '❌ NOT CONFIGURED'}\n`;
+        resultText += `Tests Run: ${data.tests_run}\n\n`;
+        
+        if (data.working_endpoints?.length > 0) {
+            resultText += `✅ Working Endpoints:\n`;
+            data.working_endpoints.forEach(ep => resultText += `  ✓ ${ep}\n`);
+            resultText += '\n';
+        }
+        
+        if (!data.api_key_configured) {
+            resultText += `⚠️ ACTION REQUIRED: Add BOBGO_API_KEY to Vercel Dashboard\n`;
+            resultText += `   Go to: Vercel → metra-market → Settings → Environment Variables\n\n`;
+        }
+        
+        resultText += `All Results:\n`;
+        resultText += '─'.repeat(50) + '\n';
+        
+        data.results.forEach(r => {
+            const icon = r.ok ? (r.hasData ? '✅' : '⚠️') : '❌';
+            resultText += `${icon} ${r.endpoint} (${r.label})\n`;
+            resultText += `   Status: ${r.status}\n`;
+            if (r.response) resultText += `   Response: ${r.response.substring(0, 150)}...\n`;
+            if (r.error) resultText += `   Error: ${r.error}\n`;
+            resultText += '\n';
+        });
+        
+        if (output) output.textContent = resultText;
+        
+        if (data.working_endpoints?.length > 0) {
+            showNotification('✅ BobGo API test complete - ' + data.working_endpoints.length + ' endpoints working');
+        } else {
+            showNotification('⚠️ BobGo API test complete - check debug output for details');
+        }
+    } catch (err) {
+        if (output) output.textContent = `Error testing BobGo API:\n${err.message}`;
+        showNotification('❌ API test failed: ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flask"></i> Test API'; }
+    }
+}
+
 // Users Management
 function renderUsersTable() {
     const tbody = document.getElementById('usersTable');
