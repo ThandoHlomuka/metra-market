@@ -200,21 +200,6 @@
             console.log('✅ Cart items rendered');
         }
         
-        // Update order summary totals
-        function updateOrderSummary() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            const subtotalEl = document.getElementById('checkoutSubtotal');
-            const totalEl = document.getElementById('checkoutTotal');
-            const cartCountEl = document.getElementById('cartCount');
-            
-            if (subtotalEl) subtotalEl.textContent = 'R' + subtotal.toFixed(2);
-            if (totalEl) totalEl.textContent = 'R' + subtotal.toFixed(2);
-            if (cartCountEl) cartCountEl.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
-            
-            console.log('💰 Order summary updated - Subtotal: R' + subtotal.toFixed(2));
-        }
-        
         // Wait for products array to be available from script.js
         function waitForProducts() {
             let attempts = 0;
