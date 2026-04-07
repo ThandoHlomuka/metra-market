@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                origin: requestBody.origin || 'Johannesburg',
+                origin: requestBody.origin || '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
                 destination: requestBody.destination,
                 parcels: requestBody.parcels.map(parcel => ({
                     weight: Math.round(parseFloat(parcel.weight) * 1000) / 1000,
@@ -100,24 +100,64 @@ export default async function handler(req, res) {
             });
         }
 
-        // Filter and normalize courier data
-        const validCouriers = data.couriers
-            .filter(c => c && (c.price || c.amount) > 0)
-            .map(c => ({
+        // Return ALL courier data with full service details (no filtering)
+        const allCouriers = data.couriers
+            .filter(c => c) // Only remove null/undefined entries
+            .map((c, index) => ({
+                // Courier identification
+                id: c.id || c.courier_id || `courier_${index}`,
+                code: c.code || c.courier_code || '',
+                
+                // Courier/Partner name
                 name: c.name || c.courier_name || c.partner_name || 'Standard Courier',
-                price: parseFloat(c.price || c.amount || 0),
-                delivery_time: c.delivery_time || c.transit_time || '2-5 business days',
+                partner_name: c.partner_name || c.courier_name || c.name || '',
+                
+                // Service details
                 service_type: c.service_type || c.service || 'Standard',
-                code: c.code || c.courier_code || c.id || ''
+                service_name: c.service_name || c.service_type || c.service || 'Standard Delivery',
+                
+                // Pricing (service charges)
+                price: parseFloat(c.price || c.amount || 0),
+                amount: parseFloat(c.amount || c.price || 0),
+                currency: c.currency || 'ZAR',
+                base_price: parseFloat(c.base_price || c.base_amount || c.price || c.amount || 0),
+                
+                // Delivery timing
+                delivery_time: c.delivery_time || c.transit_time || '2-5 business days',
+                transit_time: c.transit_time || c.delivery_time || '',
+                estimated_delivery_days: c.estimated_delivery_days || null,
+                
+                // Additional service details
+                description: c.description || '',
+                features: c.features || [],
+                insurance_included: c.insurance_included || false,
+                tracking_included: c.tracking_included !== false, // Default true
+                signature_required: c.signature_required || false,
+                
+                // Raw data for debugging/extensibility
+                raw: c
             }));
 
-        console.log(`Returning ${validCouriers.length} valid courier options`);
+        console.log(`Returning ${allCouriers.length} courier options with full service details`);
 
-        // Return successful response
-        return res.status(200).json({ 
+        // Return successful response with ALL couriers and metadata
+        return res.status(200).json({
             success: true,
-            couriers: validCouriers,
-            defaultCost: validCouriers.length > 0 ? validCouriers[0].price : 0
+            couriers: allCouriers,
+            totalCouriers: allCouriers.length,
+            defaultCost: allCouriers.length > 0 ? allCouriers[0].price : 0,
+            origin: requestBody.origin || 'Johannesburg',
+            destination: requestBody.destination,
+            parcels: requestBody.parcels,
+            currency: 'ZAR',
+            // Include raw response for debugging if needed
+            metadata: {
+                bobgoResponse: {
+                    quoteId: data.quote_id || data.id || '',
+                    validUntil: data.valid_until || data.expires_at || '',
+                    totalOptions: data.couriers.length
+                }
+            }
         });
 
     } catch (error) {

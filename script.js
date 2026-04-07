@@ -427,7 +427,8 @@ const BOBGO_CONFIG = {
     sandbox: false, // Set to false for production
     defaultShipping: 0,
     enabled: true,
-    collectionPoints: [] // Will be populated from API
+    collectionPoints: [], // Will be populated from API
+    shopAddress: '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818' // Primary collection/origin address
 };
 
 // Load Bobgo settings
@@ -465,7 +466,7 @@ async function calculateBobgoShipping(address, cartItems = null) {
 
         const requestBody = {
             endpoint: 'couriers',
-            origin: 'Johannesburg',
+            origin: '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
             destination: address || 'Cape Town',
             parcels: [{
                 weight: Math.round(shippingData.weight * 1000) / 1000, // Round to 3 decimals
@@ -1759,23 +1760,44 @@ async function updateShipping(method) {
                     selectedCourier = result.couriers[0];
                     shippingCost = result.couriers[0].price || 0;
 
-                    // Display courier selection with partner names
+                    // Display courier selection with full courier names and service charges
                     if (shippingOptionsEl) {
                         shippingOptionsEl.innerHTML = `
-                            <h4 style="margin-bottom: 0.8rem; color: var(--cream);">Select Courier Partner</h4>
-                            ${result.couriers.map((courier, index) => `
-                                <label class="shipping-option" style="cursor: pointer; display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem; background: rgba(255,248,231,0.05); border-radius: 8px; margin-bottom: 0.5rem;">
-                                    <input type="radio" name="bobgoCourier" value="${index}" ${index === 0 ? 'checked' : ''} onchange="selectCourier(${index})" style="width: auto; accent-color: #00C853;">
+                            <h4 style="margin-bottom: 0.8rem; color: var(--cream);">
+                                <i class="fas fa-truck"></i> Available Couriers & Service Charges
+                            </h4>
+                            ${result.couriers.map((courier, index) => {
+                                const courierName = courier.name || courier.partner_name || 'Standard Courier';
+                                const serviceName = courier.service_name || courier.service_type || 'Standard Service';
+                                const deliveryTime = courier.delivery_time || courier.transit_time || '2-5 business days';
+                                const price = parseFloat(courier.price || courier.amount || 0);
+                                const code = courier.code || '';
+                                const trackingIncluded = courier.tracking_included !== false;
+                                const insuranceIncluded = courier.insurance_included || false;
+                                
+                                return `
+                                <label class="shipping-option" style="cursor: pointer; display: flex; align-items: flex-start; gap: 0.8rem; padding: 1rem; background: rgba(255,248,231,0.05); border-radius: 8px; margin-bottom: 0.75rem; border: 2px solid ${index === 0 ? '#DC143C' : 'transparent'};">
+                                    <input type="radio" name="bobgoCourier" value="${index}" ${index === 0 ? 'checked' : ''} onchange="selectCourier(${index})" style="width: auto; accent-color: #00C853; margin-top: 0.25rem;">
                                     <div style="flex: 1;">
-                                        <div style="font-weight: 600; color: var(--light);">${courier.name || 'Standard Courier'}</div>
-                                        <div style="font-size: 0.85rem; color: var(--gray);">${courier.service_type || 'Delivery'}: ${courier.delivery_time || '2-5 days'}</div>
+                                        <div style="font-weight: 600; color: var(--light); font-size: 1rem;">
+                                            ${courierName}
+                                            ${code ? `<span style="font-size: 0.75rem; color: var(--gray); margin-left: 0.5rem;">(${code})</span>` : ''}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--gray); margin-top: 0.25rem; font-style: italic;">
+                                            ${serviceName}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: var(--gray); margin-top: 0.35rem;">
+                                            <i class="fas fa-clock" style="font-size: 0.7rem;"></i> ${deliveryTime}
+                                            ${trackingIncluded ? ' <i class="fas fa-map-marker-alt" style="font-size: 0.7rem; margin-left: 0.5rem; color: #00C853;" title="Tracking included"></i>' : ''}
+                                            ${insuranceIncluded ? ' <i class="fas fa-shield-alt" style="font-size: 0.7rem; margin-left: 0.3rem; color: #FFA500;" title="Insurance included"></i>' : ''}
+                                        </div>
                                     </div>
-                                    <span class="shipping-price" style="color: #00C853; font-weight: 700; font-size: 1.1rem;">R${courier.price?.toFixed(2) || '0.00'}</span>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.7rem; color: var(--gray);">Service Charge</div>
+                                        <span class="shipping-price" style="color: #00C853; font-weight: 700; font-size: 1.2rem;">R${price.toFixed(2)}</span>
+                                    </div>
                                 </label>
-                            `).join('')}
-                            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
-                                <i class="fas fa-truck"></i> Live rates from Bobgo courier partners
-                            </p>
+                            `}).join('')}
                         `;
                     }
 
@@ -1935,6 +1957,11 @@ function openCheckoutModal() {
             if (emailEl) emailEl.value = currentUser.email || '';
             if (phoneEl) phoneEl.value = currentUser.phone || '';
         }
+        
+        // Initialize address locator after modal is rendered
+        if (typeof initCheckoutAddressLocator === 'function') {
+            setTimeout(() => initCheckoutAddressLocator(), 150);
+        }
     }
 }
 
@@ -2006,9 +2033,9 @@ function createCheckoutModal() {
                             </div>
 
                             <h3 style="margin-top: 1.5rem;"><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label for="checkoutAddress">Street Address *</label>
-                                <input type="text" id="checkoutAddress" required placeholder="123 Main Street">
+                                <input type="text" id="checkoutAddress" required placeholder="Start typing to search addresses...">
                             </div>
                             <div class="form-row">
                                 <div class="form-group">

@@ -2,6 +2,9 @@
  * Bobgo Collection Points API Proxy
  * This serverless function securely fetches collection points from Bobgo API
  * without exposing the API key to the client.
+ * 
+ * Shop Address (Primary Collection Point):
+ * 1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818
  */
 
 export default async function handler(req, res) {
