@@ -2502,9 +2502,11 @@ function createBobgoShipment(order) {
             value: totalValue
         }],
         
-        // Courier selection
-        courierCode: order.selectedCourier?.code || order.deliveryMethod || '',
-        serviceType: order.selectedCourier?.service_type || 'standard',
+        // Courier selection - use actual courier code from BobGo response
+        courierCode: selectedCourier?.code || selectedCourier?.courier_code || '',
+        courierName: selectedCourier?.name || selectedCourier?.courier_name || '',
+        serviceType: selectedCourier?.service_type || selectedCourier?.service || 'standard',
+        serviceName: selectedCourier?.service_name || selectedCourier?.service_type || '',
         shippingCost: order.shipping || 0,
         
         // Additional
@@ -2528,7 +2530,7 @@ function createBobgoShipment(order) {
             order.bobgoTrackingNumber = data.shipment.tracking_number || '';
             order.bobgoShipmentId = data.shipment.id || '';
             order.shipmentStatus = data.shipment.status || 'created';
-            
+
             // Save updated order back to localStorage
             try {
                 const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
@@ -2538,15 +2540,22 @@ function createBobgoShipment(order) {
                     localStorage.setItem('metraOrders', JSON.stringify(orders));
                 }
             } catch(e) { console.error('Order update error:', e); }
-            
+
             console.log('✅ Shipment created on Bobgo dashboard:', data.shipment);
         } else {
             console.warn('⚠️ Bobgo shipment creation failed:', data);
+            // Add to sync queue for retry
+            if (window.bobgoSyncQueue) {
+                window.bobgoSyncQueue.addToQueue(shipmentData);
+            }
         }
     })
     .catch(err => {
         console.error('❌ Bobgo shipment creation error:', err);
-        // Order is still saved even if Bobgo fails
+        // Add to sync queue for automatic retry
+        if (window.bobgoSyncQueue) {
+            window.bobgoSyncQueue.addToQueue(shipmentData);
+        }
     });
 }
 

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="address-locator.js?v=1.0.0"></script>
     <script src="tracking.js?v=1.0.0"></script>
+    <script src="bobgo-sync-queue.js?v=1.0.0"></script>
     <style>
         .checkout-page { min-height: 100vh; padding: 6rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
         .checkout-page h1 { font-size: 2rem; margin-bottom: 2rem; text-align: center; }
@@ -283,6 +284,8 @@
             ]);
         }
 
+        let selectedShipping = { id: null, cost: 0, courierData: null };
+
         function showShippingOptions(couriers) {
             const container = document.getElementById('shippingOptionsContainer');
             const options = couriers.map((c, i) => ({
@@ -294,7 +297,8 @@
                 code: c.code || '',
                 features: c.features || [],
                 trackingIncluded: c.tracking_included !== false,
-                insuranceIncluded: c.insurance_included || false
+                insuranceIncluded: c.insurance_included || false,
+                rawCourier: c // Store full courier data for BobGo shipment
             }));
 
             container.innerHTML = options.map((o, i) => `
@@ -319,11 +323,15 @@
                 </div>
             `).join('');
 
-            selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'));
+            selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'), options[0].rawCourier);
         }
 
-        function selectShipping(id, price, element) {
-            selectedShipping = { id: id, cost: price };
+        function selectShipping(id, price, element, courierData = null) {
+            selectedShipping = { 
+                id: id, 
+                cost: price, 
+                courierData: courierData // Store full courier data for BobGo
+            };
             document.querySelectorAll('.shipping-option').forEach(el => el.classList.remove('selected'));
             if (element) element.classList.add('selected');
             updateTotals();
@@ -440,9 +448,11 @@
                     value: totalValue
                 }],
                 
-                // Courier selection
-                courierCode: order.shippingMethod || '',
-                serviceType: 'standard',
+                // Courier selection - use actual courier code from BobGo response
+                courierCode: selectedShipping.courierData?.code || selectedShipping.courierData?.courier_code || '',
+                courierName: selectedShipping.courierData?.name || selectedShipping.courierData?.courier_name || '',
+                serviceType: selectedShipping.courierData?.service_type || selectedShipping.courierData?.service || 'standard',
+                serviceName: selectedShipping.courierData?.service_name || selectedShipping.courierData?.service_type || '',
                 shippingCost: order.shippingCost || 0,
                 
                 // Additional
@@ -466,7 +476,7 @@
                     order.bobgoTrackingNumber = data.shipment.tracking_number || '';
                     order.bobgoShipmentId = data.shipment.id || '';
                     order.shipmentStatus = data.shipment.status || 'created';
-                    
+
                     // Save updated order back to localStorage
                     try {
                         const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
@@ -476,15 +486,22 @@
                             localStorage.setItem('metraOrders', JSON.stringify(orders));
                         }
                     } catch(e) { console.error('Order update error:', e); }
-                    
+
                     console.log('✅ Shipment created on Bobgo dashboard:', data.shipment);
                 } else {
                     console.warn('⚠️ Bobgo shipment creation failed:', data);
+                    // Add to sync queue for retry
+                    if (window.bobgoSyncQueue) {
+                        window.bobgoSyncQueue.addToQueue(shipmentData);
+                    }
                 }
             })
             .catch(err => {
                 console.error('❌ Bobgo shipment creation error:', err);
-                // Order is still saved even if Bobgo fails
+                // Add to sync queue for automatic retry
+                if (window.bobgoSyncQueue) {
+                    window.bobgoSyncQueue.addToQueue(shipmentData);
+                }
             });
         }
 

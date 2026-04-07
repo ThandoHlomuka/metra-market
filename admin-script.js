@@ -374,6 +374,7 @@ function showSection(section, element) {
     if (section === 'analytics') loadAnalytics();
     if (section === 'email') loadEmailSettings();
     if (section === 'settings') loadTrackingSettings();
+    if (section === 'shipments') loadShipmentsData();
 }
 
 // Toggle Sidebar (mobile)
@@ -642,6 +643,151 @@ function viewOrder(orderId) {
         </div>
     `;
     document.body.appendChild(modal);
+}
+
+// BobGo Shipments Management
+function loadShipmentsData() {
+    renderPendingShipmentsTable();
+    renderFailedShipmentsTable();
+    renderSyncedShipmentsTable();
+    updateShipmentStats();
+}
+
+function updateShipmentStats() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+        const pending = window.bobgoSyncQueue?.getPending() || [];
+        const failed = window.bobgoSyncQueue?.getFailed() || [];
+        
+        const syncedCount = orders.filter(o => o.bobgoTrackingNumber).length;
+        
+        document.getElementById('syncedShipments').textContent = syncedCount;
+        document.getElementById('pendingShipments').textContent = pending.length;
+        document.getElementById('failedShipments').textContent = failed.length;
+    } catch(e) {
+        console.error('Error updating shipment stats:', e);
+    }
+}
+
+function renderPendingShipmentsTable() {
+    const tbody = document.getElementById('pendingShipmentsTable');
+    if (!tbody) return;
+    
+    try {
+        const pending = window.bobgoSyncQueue?.getPending() || [];
+        
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No pending shipments</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = pending.map(item => `
+            <tr>
+                <td>${item.shipmentData?.orderId || 'N/A'}</td>
+                <td>${item.shipmentData?.recipientName || 'N/A'}</td>
+                <td>${item.shipmentData?.courierName || item.shipmentData?.courierCode || 'Auto'}</td>
+                <td>${item.attempts}/${item.maxAttempts}</td>
+                <td><span class="status-badge" style="background: #FFA500;">${item.status}</span></td>
+                <td>${new Date(item.createdAt).toLocaleDateString('en-ZA')}</td>
+            </tr>
+        `).join('');
+    } catch(e) {
+        console.error('Error rendering pending shipments:', e);
+    }
+}
+
+function renderFailedShipmentsTable() {
+    const tbody = document.getElementById('failedShipmentsTable');
+    if (!tbody) return;
+    
+    try {
+        const failed = window.bobgoSyncQueue?.getFailed() || [];
+        
+        if (failed.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No failed shipments</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = failed.map(item => `
+            <tr>
+                <td>${item.shipmentData?.orderId || 'N/A'}</td>
+                <td>${item.shipmentData?.recipientName || 'N/A'}</td>
+                <td style="color: #DC143C; font-size: 0.85rem;">${item.error || 'Unknown'}</td>
+                <td>${item.attempts}</td>
+                <td>${new Date(item.failedAt || item.createdAt).toLocaleDateString('en-ZA')}</td>
+                <td>
+                    <button class="btn-primary btn-sm" onclick="retryFailedShipment('${item.id}')">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch(e) {
+        console.error('Error rendering failed shipments:', e);
+    }
+}
+
+function renderSyncedShipmentsTable() {
+    const tbody = document.getElementById('syncedShipmentsTable');
+    if (!tbody) return;
+    
+    try {
+        const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+        const syncedOrders = orders.filter(o => o.bobgoTrackingNumber);
+        
+        if (syncedOrders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No synced shipments yet</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = syncedOrders.map(order => `
+            <tr>
+                <td>${order.id}</td>
+                <td>${order.customerName}</td>
+                <td style="color: #228B22; font-weight: 600;">${order.bobgoTrackingNumber}</td>
+                <td>${order.bobgoShipment?.courier || 'N/A'}</td>
+                <td><span class="status-badge" style="background: ${order.shipmentStatus === 'delivered' ? '#228B22' : order.shipmentStatus === 'in_transit' ? '#FFA500' : '#1E90FF'};">${order.shipmentStatus || 'created'}</span></td>
+                <td>
+                    <a href="https://track.bobgo.co.za/${order.bobgoTrackingNumber}" target="_blank" class="btn-secondary btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Track
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    } catch(e) {
+        console.error('Error rendering synced shipments:', e);
+    }
+}
+
+function processPendingShipments() {
+    if (window.bobgoSyncQueue) {
+        window.bobgoSyncQueue.processNow().then(() => {
+            loadShipmentsData();
+            showNotification('✅ Shipment sync completed!');
+        });
+    }
+}
+
+async function retryFailedShipment(queueId) {
+    if (window.bobgoSyncQueue) {
+        const success = await window.bobgoSyncQueue.retryFailed(queueId);
+        if (success) {
+            showNotification('🔄 Retrying shipment sync...');
+            setTimeout(() => loadShipmentsData(), 2000);
+        } else {
+            showNotification('❌ Failed to retry shipment');
+        }
+    }
+}
+
+function clearFailedShipments() {
+    if (confirm('Are you sure you want to clear all failed shipments?')) {
+        if (window.bobgoSyncQueue) {
+            window.bobgoSyncQueue.clearFailed();
+            loadShipmentsData();
+            showNotification('🗑️ Failed shipments cleared');
+        }
+    }
 }
 
 // Users Management

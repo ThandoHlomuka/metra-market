@@ -57,6 +57,10 @@
                     <i class="fas fa-shopping-cart"></i>
                     <span>Orders</span>
                 </a>
+                <a href="#" class="nav-item" onclick="showSection('shipments', this)">
+                    <i class="fas fa-shipping-fast"></i>
+                    <span>BobGo Shipments</span>
+                </a>
                 <a href="#" class="nav-item" onclick="showSection('users', this)">
                     <i class="fas fa-users"></i>
                     <span>Users</span>
@@ -280,6 +284,123 @@
                             <!-- Loaded dynamically -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- BobGo Shipments Section -->
+            <section class="content-section" id="shipmentsSection">
+                <div class="section-header">
+                    <h3><i class="fas fa-shipping-fast"></i> BobGo Shipment Sync</h3>
+                    <div class="filter-group">
+                        <button class="btn-secondary btn-sm" onclick="processPendingShipments()">
+                            <i class="fas fa-sync-alt"></i> Sync Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sync Status Cards -->
+                <div class="stats-grid" style="margin-bottom: 2rem;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #228B22, #32CD32);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="syncedShipments">0</h3>
+                            <p>Synced Shipments</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #FFA500, #FFD700);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="pendingShipments">0</h3>
+                            <p>Pending Sync</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #DC143C, #B22222);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="failedShipments">0</h3>
+                            <p>Failed Sync</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Shipments -->
+                <div class="settings-card">
+                    <h4><i class="fas fa-clock"></i> Pending Shipments</h4>
+                    <p style="color: var(--gray); margin-bottom: 1rem;">Shipments waiting to sync with BobGo. These will retry automatically.</p>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Courier</th>
+                                    <th>Attempts</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingShipmentsTable">
+                                <tr><td colspan="6" class="empty-state">No pending shipments</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Failed Shipments -->
+                <div class="settings-card" style="margin-top: 1.5rem;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Failed Shipments</h4>
+                    <p style="color: var(--gray); margin-bottom: 1rem;">Shipments that failed to sync. You can retry manually.</p>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Error</th>
+                                    <th>Attempts</th>
+                                    <th>Failed At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="failedShipmentsTable">
+                                <tr><td colspan="6" class="empty-state">No failed shipments</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <button class="btn-danger btn-sm" onclick="clearFailedShipments()">
+                            <i class="fas fa-trash"></i> Clear Failed
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Synced Shipments Log -->
+                <div class="settings-card" style="margin-top: 1.5rem;">
+                    <h4><i class="fas fa-check-circle"></i> Synced Shipments Log</h4>
+                    <p style="color: var(--gray); margin-bottom: 1rem;">Successfully synced shipments with tracking numbers.</p>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Tracking Number</th>
+                                    <th>Courier</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="syncedShipmentsTable">
+                                <tr><td colspan="6" class="empty-state">No synced shipments yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -1315,6 +1436,7 @@
         </div>
     </section>
 
+    <script src="bobgo-sync-queue.js?v=1.0.0"></script>
     <script src="admin-script.js"></script>
 </body>
 </html>
