@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout | Metra Market</title>
-    <link rel="stylesheet" href="styles.css?v=5.0.0">
+    <link rel="stylesheet" href="styles.css?v=6.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -16,28 +16,31 @@
         .checkout-item-icon { font-size: 2rem; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #8B0000, #DC143C); border-radius: 8px; }
         .checkout-item-details h4 { color: var(--light); font-size: 0.95rem; margin-bottom: 0.25rem; }
         .checkout-item-details p { color: var(--gray); font-size: 0.85rem; }
-        .checkout-item-price { margin-left: auto; color: var(--primary); font-weight: 700; }
+        .checkout-item-price { margin-left: auto; color: #DC143C; font-weight: 700; }
         .checkout-totals { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 248, 231, 0.1); }
         .checkout-total-row { display: flex; justify-content: space-between; padding: 0.5rem 0; color: var(--gray); }
-        .checkout-total-row.final-total { color: var(--light); font-size: 1.25rem; font-weight: 700; border-top: 2px solid var(--primary); padding-top: 0.75rem; margin-top: 0.5rem; }
+        .checkout-total-row.final-total { color: var(--light); font-size: 1.25rem; font-weight: 700; border-top: 2px solid #DC143C; padding-top: 0.75rem; margin-top: 0.5rem; }
         .checkout-form { background: rgba(255, 248, 231, 0.03); border: 1px solid rgba(255, 248, 231, 0.1); border-radius: 12px; padding: 2rem; }
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; color: var(--light); margin-bottom: 0.5rem; font-weight: 500; }
         .form-group input, .form-group select { width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 248, 231, 0.2); border-radius: 8px; color: var(--light); font-size: 0.9rem; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .shipping-option, .payment-option { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(255, 248, 231, 0.05); border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.3s; margin-bottom: 0.5rem; }
-        .shipping-option.selected { border-color: var(--primary); background: rgba(139, 0, 0, 0.1); }
+        .shipping-option.selected { border-color: #DC143C; background: rgba(220, 20, 60, 0.1); }
         .shipping-option input, .payment-option input { width: auto; accent-color: #00C853; }
         .shipping-option-info { flex: 1; }
         .shipping-option-name { color: var(--light); font-weight: 600; font-size: 0.95rem; }
         .shipping-option-time { color: var(--gray); font-size: 0.8rem; }
         .shipping-option-price { color: #00C853; font-weight: 700; font-size: 1.1rem; }
-        .checkout-submit-btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #8B0000, #DC143C); border: none; border-radius: 12px; color: white; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 1.5rem; }
-        .checkout-submit-btn:hover { transform: translateY(-2px); }
-        .checkout-loading { text-align: center; color: var(--gray); padding: 2rem; }
-        .checkout-loading i { animation: spin 1s linear infinite; font-size: 2rem; }
+        .checkout-submit-btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #8B0000, #DC143C); border: none; border-radius: 12px; color: white; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: all 0.3s; }
+        .checkout-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4); }
+        .checkout-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .spinner { text-align: center; color: var(--gray); padding: 3rem; }
+        .spinner i { animation: spin 1s linear infinite; font-size: 2rem; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .checkout-container { grid-template-columns: 1fr; } }
+        .empty-cart { text-align: center; padding: 4rem 2rem; color: var(--gray); }
+        .empty-cart i { font-size: 4rem; margin-bottom: 1rem; color: var(--primary); }
+        @media (max-width: 768px) { .checkout-container { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -54,123 +57,134 @@
 
     <div class="checkout-page">
         <h1><i class="fas fa-lock"></i> Secure Checkout</h1>
-        <div id="checkoutLoading" class="checkout-loading">
-            <i class="fas fa-spinner"></i>
-            <p>Loading checkout...</p>
-        </div>
-        <div class="checkout-container" id="checkoutContainer" style="display:none;">
-            <div class="order-summary">
-                <h3><i class="fas fa-receipt"></i> Order Summary</h3>
-                <div id="checkoutItemsList"></div>
-                <div class="checkout-totals">
-                    <div class="checkout-total-row"><span>Subtotal:</span><span id="checkoutSubtotal">R0.00</span></div>
-                    <div class="checkout-total-row"><span>Shipping:</span><span id="checkoutShipping">R0.00</span></div>
-                    <div class="checkout-total-row final-total"><span>Total:</span><span id="checkoutTotal">R0.00</span></div>
-                </div>
-            </div>
-            <div class="checkout-form">
-                <h3><i class="fas fa-user"></i> Your Details</h3>
-                <form id="checkoutForm">
-                    <div class="form-group"><label>Full Name</label><input type="text" id="checkoutName" required></div>
-                    <div class="form-group"><label>Email</label><input type="email" id="checkoutEmail" required></div>
-                    <div class="form-group"><label>Phone</label><input type="tel" id="checkoutPhone" required></div>
-                    <h3><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
-                    <div class="form-group"><label>Street Address</label><input type="text" id="checkoutAddress" required></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>City</label><input type="text" id="checkoutCity" required></div>
-                        <div class="form-group"><label>Postal Code</label><input type="text" id="checkoutPostalCode" required></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Province</label>
-                        <select id="checkoutProvince" required onchange="window.calculateShipping()">
-                            <option value="">Select Province</option>
-                            <option value="Gauteng">Gauteng</option>
-                            <option value="Western Cape">Western Cape</option>
-                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                            <option value="Eastern Cape">Eastern Cape</option>
-                            <option value="Free State">Free State</option>
-                            <option value="Limpopo">Limpopo</option>
-                            <option value="Mpumalanga">Mpumalanga</option>
-                            <option value="North West">North West</option>
-                            <option value="Northern Cape">Northern Cape</option>
-                        </select>
-                    </div>
-                    <h3><i class="fas fa-truck"></i> Shipping</h3>
-                    <div id="shippingOptionsContainer">
-                        <p style="color:var(--gray);text-align:center;padding:1rem;">Select province to see shipping</p>
-                    </div>
-                    <h3><i class="fas fa-credit-card"></i> Payment</h3>
-                    <div class="payment-options">
-                        <label class="payment-option"><input type="radio" name="payment" value="payfast" checked> PayFast (Card)</label>
-                        <label class="payment-option"><input type="radio" name="payment" value="eft"> Bank Transfer</label>
-                    </div>
-                    <div class="form-group"><label><input type="checkbox" id="checkoutTerms" required> I agree to Terms & Conditions</label></div>
-                    <button type="submit" class="checkout-submit-btn"><i class="fas fa-lock"></i> Complete Order</button>
-                </form>
-            </div>
-        </div>
+        <div id="checkoutContent"></div>
     </div>
 
-    <script src="script.js?v=5.0.0"></script>
     <script>
-        // Cart and checkout state
+        // Product catalog with shipping dimensions
+        const products = [
+            { id: 1, name: "Wireless Headphones", price: 1199.99, icon: "🎧", weight: 0.35, length: 22, width: 20, height: 10 },
+            { id: 2, name: "Smart Watch", price: 2999.99, icon: "⌚", weight: 0.15, length: 12, width: 10, height: 8 },
+            { id: 3, name: "Laptop Stand", price: 749.99, icon: "💻", weight: 1.2, length: 28, width: 25, height: 6 },
+            { id: 4, name: "Mechanical Keyboard", price: 1949.99, icon: "⌨️", weight: 1.1, length: 44, width: 15, height: 5 },
+            { id: 5, name: "Wireless Mouse", price: 899.99, icon: "🖱️", weight: 0.25, length: 13, width: 8, height: 5 },
+            { id: 6, name: "USB-C Hub", price: 599.99, icon: "🔌", weight: 0.2, length: 12, width: 6, height: 3 },
+            { id: 7, name: "Webcam HD", price: 1299.99, icon: "📷", weight: 0.4, length: 10, width: 8, height: 8 },
+            { id: 8, name: "Desk Lamp", price: 449.99, icon: "💡", weight: 0.8, length: 20, width: 15, height: 15 }
+        ];
+
         let cart = [];
         let selectedShipping = { id: null, cost: 0 };
-        let products = [];
 
-        // Load checkout
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Checkout loading...');
             loadCart();
-            loadProducts();
         });
 
         function loadCart() {
             try {
                 const data = localStorage.getItem('metraCart');
-                if (data) {
-                    cart = JSON.parse(data);
-                    if (!Array.isArray(cart) || cart.length === 0) {
-                        window.location.href = 'shopping.html';
-                        return;
-                    }
+                if (data) cart = JSON.parse(data);
+                if (!Array.isArray(cart) || cart.length === 0) {
+                    showEmptyCart();
+                    return;
                 }
+                renderCheckout();
             } catch(e) {
                 console.error('Cart error:', e);
-                cart = [];
+                showEmptyCart();
             }
         }
 
-        function loadProducts() {
-            const checkProducts = setInterval(() => {
-                if (typeof window.products !== 'undefined') {
-                    clearInterval(checkProducts);
-                    products = window.products;
-                    renderCheckout();
-                }
-            }, 100);
-            setTimeout(() => { clearInterval(checkProducts); renderCheckout(); }, 5000);
+        function showEmptyCart() {
+            document.getElementById('checkoutContent').innerHTML = `
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h2>Your cart is empty</h2>
+                    <p>Add some products before checking out</p>
+                    <a href="shopping.html" style="display:inline-block;margin-top:1rem;padding:0.75rem 1.5rem;background:#DC143C;color:white;text-decoration:none;border-radius:8px;">
+                        <i class="fas fa-store"></i> Continue Shopping
+                    </a>
+                </div>
+            `;
         }
 
         function renderCheckout() {
-            document.getElementById('checkoutLoading').style.display = 'none';
-            document.getElementById('checkoutContainer').style.display = 'grid';
-
-            // Render cart items
-            const itemsHtml = cart.map(item => `
-                <div class="checkout-item">
-                    <div class="checkout-item-icon">${item.icon || '📦'}</div>
-                    <div class="checkout-item-details">
-                        <h4>${item.name}</h4>
-                        <p>Qty: ${item.quantity}</p>
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            document.getElementById('checkoutContent').innerHTML = `
+                <div class="checkout-container">
+                    <div class="order-summary">
+                        <h3 style="color:var(--light);margin-bottom:1rem;"><i class="fas fa-receipt"></i> Order Summary</h3>
+                        <div id="checkoutItemsList">
+                            ${cart.map(item => `
+                                <div class="checkout-item">
+                                    <div class="checkout-item-icon">${item.icon || '📦'}</div>
+                                    <div class="checkout-item-details">
+                                        <h4>${item.name}</h4>
+                                        <p>Qty: ${item.quantity}</p>
+                                    </div>
+                                    <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="checkout-totals">
+                            <div class="checkout-total-row"><span>Subtotal:</span><span id="checkoutSubtotal">R${subtotal.toFixed(2)}</span></div>
+                            <div class="checkout-total-row"><span>Shipping:</span><span id="checkoutShipping">R0.00</span></div>
+                            <div class="checkout-total-row final-total"><span>Total:</span><span id="checkoutTotal">R${subtotal.toFixed(2)}</span></div>
+                        </div>
                     </div>
-                    <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
+                    <div class="checkout-form">
+                        <h3 style="color:var(--light);margin-bottom:1rem;"><i class="fas fa-user"></i> Your Details</h3>
+                        <form id="checkoutForm">
+                            <div class="form-group"><label>Full Name *</label><input type="text" id="checkoutName" required></div>
+                            <div class="form-group"><label>Email *</label><input type="email" id="checkoutEmail" required></div>
+                            <div class="form-group"><label>Phone *</label><input type="tel" id="checkoutPhone" required></div>
+                            <h3 style="color:var(--light);margin:1.5rem 0 1rem;"><i class="fas fa-map-marker-alt"></i> Delivery Address</h3>
+                            <div class="form-group"><label>Street Address *</label><input type="text" id="checkoutAddress" required></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>City *</label><input type="text" id="checkoutCity" required></div>
+                                <div class="form-group"><label>Postal Code *</label><input type="text" id="checkoutPostalCode" required maxlength="4"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Province *</label>
+                                <select id="checkoutProvince" required onchange="calculateShipping()">
+                                    <option value="">Select Province</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Free State">Free State</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="North West">North West</option>
+                                    <option value="Northern Cape">Northern Cape</option>
+                                </select>
+                            </div>
+                            <h3 style="color:var(--light);margin:1.5rem 0 1rem;"><i class="fas fa-truck"></i> Shipping</h3>
+                            <div id="shippingOptionsContainer">
+                                <p style="color:var(--gray);text-align:center;padding:1rem;"><i class="fas fa-map-marker-alt"></i> Select province to see shipping</p>
+                            </div>
+                            <h3 style="color:var(--light);margin:1.5rem 0 1rem;"><i class="fas fa-credit-card"></i> Payment</h3>
+                            <div style="margin-bottom:1.5rem;">
+                                <label class="payment-option"><input type="radio" name="payment" value="payfast" checked> <span><i class="fas fa-lock"></i> PayFast (Credit/Debit Card)</span></label>
+                                <label class="payment-option"><input type="radio" name="payment" value="eft"> <span><i class="fas fa-university"></i> Bank Transfer (EFT)</span></label>
+                            </div>
+                            <div class="form-group" style="margin-bottom:1.5rem;">
+                                <label style="display:flex;align-items:center;gap:0.5rem;color:var(--gray);cursor:pointer;">
+                                    <input type="checkbox" id="checkoutTerms" required style="width:auto;">
+                                    I agree to the <a href="terms.html" target="_blank" style="color:#DC143C;">Terms & Conditions</a>
+                                </label>
+                            </div>
+                            <button type="submit" class="checkout-submit-btn" id="submitBtn">
+                                <i class="fas fa-lock"></i> Complete Order & Pay
+                            </button>
+                            <p style="text-align:center;color:var(--gray);font-size:0.85rem;margin-top:1rem;">
+                                <i class="fas fa-shield-alt" style="color:#00C853;"></i> Your information is secure and encrypted
+                            </p>
+                        </form>
+                    </div>
                 </div>
-            `).join('');
-            document.getElementById('checkoutItemsList').innerHTML = itemsHtml;
-
-            // Update totals
-            updateTotals();
+            `;
 
             // Fill user data
             try {
@@ -179,6 +193,9 @@
                 if (user.email) document.getElementById('checkoutEmail').value = user.email;
                 if (user.phone) document.getElementById('checkoutPhone').value = user.phone;
             } catch(e) {}
+
+            // Handle form submit
+            document.getElementById('checkoutForm').addEventListener('submit', handleSubmit);
         }
 
         function getSubtotal() {
@@ -198,9 +215,9 @@
             if (!province) return;
 
             console.log('Calculating shipping for:', province);
-            document.getElementById('shippingOptionsContainer').innerHTML = '<div class="checkout-loading"><i class="fas fa-spinner"></i></div>';
+            document.getElementById('shippingOptionsContainer').innerHTML = '<div class="spinner"><i class="fas fa-spinner"></i><p>Calculating shipping...</p></div>';
 
-            // Calculate dimensions
+            // Calculate package dimensions
             let weight = 0, length = 0, width = 0, height = 0;
             cart.forEach(item => {
                 const product = products.find(p => p.id === item.id);
@@ -211,9 +228,12 @@
                     height += (product.height || 15) * item.quantity;
                 }
             });
-            if (weight === 0) { weight = 0.5; length = 30; width = 20; height = 15; }
+            if (weight === 0) { weight = 1; length = 30; width = 20; height = 15; }
 
-            // Call Bobgo API
+            // Call Bobgo API with 3 second timeout
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+
             fetch('https://api.bobgo.co.za/v1/couriers', {
                 method: 'POST',
                 headers: {
@@ -226,9 +246,10 @@
                     parcels: [{ weight: weight, length: length, width: width, height: height }],
                     currency: 'ZAR',
                     live_rates: true
-                })
+                }),
+                signal: controller.signal
             })
-            .then(r => r.json())
+            .then(r => { clearTimeout(timeout); return r.json(); })
             .then(data => {
                 if (data.couriers && data.couriers.length > 0) {
                     showShippingOptions(data.couriers);
@@ -237,31 +258,31 @@
                 }
             })
             .catch(err => {
-                console.error('Bobgo error:', err);
+                clearTimeout(timeout);
+                console.error('Shipping error:', err);
                 showFallbackRates(province);
             });
         }
 
         function showFallbackRates(province) {
             const isGauteng = province === 'Gauteng';
-            const options = [
-                { id: 'standard', name: 'Standard Delivery', time: '3-5 days', price: isGauteng ? 99 : 149 },
-                { id: 'express', name: 'Express Delivery', time: '1-2 days', price: isGauteng ? 149 : 249 }
-            ];
-            showShippingOptions(options);
+            showShippingOptions([
+                { name: 'Standard Delivery', delivery_time: '3-5 business days', price: isGauteng ? 99 : 149 },
+                { name: 'Express Delivery', delivery_time: '1-2 business days', price: isGauteng ? 149 : 249 }
+            ]);
         }
 
         function showShippingOptions(couriers) {
             const container = document.getElementById('shippingOptionsContainer');
             const options = couriers.map((c, i) => ({
-                id: 'courier_' + i,
-                name: c.name || c.courier_name || 'Standard',
-                time: c.delivery_time || '2-5 days',
+                id: 'shipping_' + i,
+                name: c.name || c.courier_name || 'Standard Delivery',
+                time: c.delivery_time || '2-5 business days',
                 price: parseFloat(c.price || c.amount || 0)
             }));
 
             container.innerHTML = options.map((o, i) => `
-                <div class="shipping-option ${i===0?'selected':''}" onclick="window.selectShipping('${o.id}', ${o.price}, this)">
+                <div class="shipping-option ${i===0?'selected':''}" onclick="selectShipping('${o.id}', ${o.price}, this)">
                     <input type="radio" name="shipping" ${i===0?'checked':''}>
                     <div class="shipping-option-info">
                         <div class="shipping-option-name">${o.name}</div>
@@ -271,8 +292,7 @@
                 </div>
             `).join('');
 
-            // Auto-select first
-            window.selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'));
+            selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'));
         }
 
         function selectShipping(id, price, element) {
@@ -280,32 +300,34 @@
             document.querySelectorAll('.shipping-option').forEach(el => el.classList.remove('selected'));
             if (element) element.classList.add('selected');
             updateTotals();
-            console.log('Shipping selected:', id, 'R' + price);
         }
 
-        // Handle form submission
-        document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+        function handleSubmit(e) {
             e.preventDefault();
 
             if (!selectedShipping.id) {
-                alert('Please select province and shipping method');
+                alert('Please select a province to calculate shipping');
                 return;
             }
 
             if (!document.getElementById('checkoutTerms').checked) {
-                alert('Please accept Terms & Conditions');
+                alert('Please accept the Terms & Conditions');
                 return;
             }
 
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
             const order = {
                 id: 'ORD-' + Date.now(),
-                customerName: document.getElementById('checkoutName').value,
-                customerEmail: document.getElementById('checkoutEmail').value,
-                customerPhone: document.getElementById('checkoutPhone').value,
+                customerName: document.getElementById('checkoutName').value.trim(),
+                customerEmail: document.getElementById('checkoutEmail').value.trim(),
+                customerPhone: document.getElementById('checkoutPhone').value.trim(),
                 shippingAddress: {
-                    street: document.getElementById('checkoutAddress').value,
-                    city: document.getElementById('checkoutCity').value,
-                    postalCode: document.getElementById('checkoutPostalCode').value,
+                    street: document.getElementById('checkoutAddress').value.trim(),
+                    city: document.getElementById('checkoutCity').value.trim(),
+                    postalCode: document.getElementById('checkoutPostalCode').value.trim(),
                     province: document.getElementById('checkoutProvince').value,
                     country: 'South Africa'
                 },
@@ -326,17 +348,15 @@
                 orders.push(order);
                 localStorage.setItem('metraOrders', JSON.stringify(orders));
                 localStorage.removeItem('metraCart');
-            } catch(e) {
-                console.error('Order save error:', e);
-            }
+            } catch(e) { console.error('Order save error:', e); }
 
-            // Redirect to PayFast or success
+            // Redirect to payment
             if (order.paymentMethod === 'payfast') {
                 submitToPayFast(order);
             } else {
                 window.location.href = 'success.html?order_id=' + order.id;
             }
-        });
+        }
 
         function submitToPayFast(order) {
             const form = document.createElement('form');
@@ -354,8 +374,8 @@
                 cancel_url: window.location.origin + '/cancel.html?order_id=' + order.id,
                 notify_url: window.location.origin + '/ipn.php',
                 email_address: order.customerEmail,
-                name_first: order.customerName.split(' ')[0],
-                name_last: order.customerName.split(' ').slice(1).join(' ')
+                name_first: order.customerName.split(' ')[0] || 'Customer',
+                name_last: order.customerName.split(' ').slice(1).join(' ') || ''
             };
 
             Object.keys(fields).forEach(key => {
@@ -369,10 +389,6 @@
             document.body.appendChild(form);
             form.submit();
         }
-
-        // Make functions global
-        window.calculateShipping = calculateShipping;
-        window.selectShipping = selectShipping;
     </script>
 </body>
 </html>
