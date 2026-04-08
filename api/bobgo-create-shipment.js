@@ -50,8 +50,28 @@ export default async function handler(req, res) {
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
             provider_slug: 'tcg',
-            collection_address: senderAddress || '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
-            delivery_address: recipientAddress,
+            collection_address: {
+                name: senderName || 'Metra Market',
+                phone: senderPhone || '+27111234567',
+                email: senderEmail || 'support@metramarket.co.za',
+                address: senderAddress || '1335 Ingwayuma Street',
+                suburb: 'Senaoane',
+                city: senderCity || 'Soweto',
+                province: senderProvince || 'Gauteng',
+                postal_code: senderPostalCode || '1818',
+                country: 'ZA'
+            },
+            delivery_address: {
+                name: recipientName,
+                phone: recipientPhone,
+                email: recipientEmail || 'customer@example.com',
+                address: recipientAddress,
+                suburb: '',
+                city: recipientCity || '',
+                province: recipientProvince || '',
+                postal_code: recipientPostalCode || '',
+                country: 'ZA'
+            },
             sender: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
