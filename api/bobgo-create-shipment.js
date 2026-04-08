@@ -64,7 +64,7 @@ export default async function handler(req, res) {
             recipient: {
                 name: recipientName,
                 phone: recipientPhone,
-                email: recipientEmail || '',
+                email: recipientEmail || 'customer@example.com',
                 address: recipientAddress,
                 city: recipientCity || '',
                 province: recipientProvince || '',

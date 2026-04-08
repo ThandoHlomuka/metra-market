@@ -1,7 +1,7 @@
 /**
  * BobGo API Debug/Health Check Endpoint
  * Tests all possible BobGo API endpoints and reports which ones work
- * 
+ *
  * Usage: GET /api/bobgo-debug
  */
 
@@ -22,16 +22,10 @@ export default async function handler(req, res) {
         });
     }
 
-    // Test endpoints
+    // Test endpoints - v2 API format
     const tests = [
-        { method: 'POST', path: '/couriers', label: 'Courier Rates (confirmed working)', body: { origin: 'Johannesburg', destination: 'Cape Town', parcels: [{ weight: 1, length: 30, width: 20, height: 15 }], currency: 'ZAR', live_rates: false } },
-        { method: 'GET', path: '/collection-points', label: 'Collection Points', body: null },
-        { method: 'POST', path: '/shipments', label: 'Create Shipment', body: { order_id: 'TEST-001', reference: 'debug-test', sender: { name: 'Test', phone: '+27111111111', email: 'test@test.com', address: 'Test St', suburb: 'Test', city: 'Test', province: 'Gauteng', postal_code: '0001', country: 'ZA' }, recipient: { name: 'Test User', phone: '+27222222222', email: 'user@test.com', address: 'Test Ave', city: 'Test', province: 'Gauteng', postal_code: '0002', country: 'ZA' }, parcels: [{ weight: 1, length: 30, width: 20, height: 15, description: 'Test', value: 100 }], courier_code: '', service_type: 'standard', declared_value: 0, shipping_cost: 0, instructions: 'Debug test' } },
-        { method: 'POST', path: '/bookings', label: 'Create Booking', body: { reference: 'debug-test', items: [{ description: 'Test', quantity: 1, value: 100 }] } },
-        { method: 'POST', path: '/orders', label: 'Create Order', body: { reference: 'debug-test', items: [{ description: 'Test', quantity: 1 }] } },
-        { method: 'POST', path: '/consignments', label: 'Create Consignment', body: { reference: 'debug-test', parcels: [{ weight: 1 }] } },
-        { method: 'GET', path: '/health', label: 'Health Check', body: null },
-        { method: 'GET', path: '/status', label: 'Status', body: null }
+        { method: 'POST', path: '/shipments', label: 'Create Shipment (v2)', body: { order_id: 'TEST-001', reference: 'debug-test', provider_slug: 'bobgo', sender: { name: 'Metra Market', phone: '+27111234567', email: 'support@metramarket.co.za', address: '1335 Ingwayuma Street', suburb: 'Senaoane', city: 'Soweto', province: 'Gauteng', postal_code: '1818', country: 'ZA' }, recipient: { name: 'Test User', phone: '+27222222222', email: 'testuser@gmail.com', address: '123 Test Ave', city: 'Cape Town', province: 'Western Cape', postal_code: '8001', country: 'ZA' }, parcels: [{ weight: 1, length: 30, width: 20, height: 15, description: 'Test parcel', value: 100 }], courier_code: '', service_type: 'standard', declared_value: 0, shipping_cost: 99, instructions: 'Debug test' } },
+        { method: 'POST', path: '/orders', label: 'Create Order (v2)', body: { reference: 'debug-test', provider_slug: 'bobgo', customer_email: 'test@gmail.com', items: [{ description: 'Test', quantity: 1, value: 100 }] } }
     ];
 
     for (const test of tests) {
@@ -58,8 +52,8 @@ export default async function handler(req, res) {
                 label: test.label,
                 status: response.status,
                 ok: response.ok,
-                hasData: !!(data.id || data.success || data.couriers || data.points || data.tracking_number || data.shipment_id || data.booking_id),
-                response: JSON.stringify(data).substring(0, 300)
+                hasData: !!(data.id || data.success || data.tracking_number || data.shipment_id || data.booking_id || data.order_id),
+                response: JSON.stringify(data).substring(0, 500)
             });
         } catch (err) {
             results.push({
