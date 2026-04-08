@@ -11,8 +11,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = process.env.BOBGO_API_KEY;
-    const apiUrl = process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v2';
+    const apiKey = (process.env.BOBGO_API_KEY || '').trim();
+    const apiUrl = (process.env.BOBGO_API_URL || 'https://api.bobgo.co.za/v2').trim();
 
     if (!apiKey) {
         console.error('❌ BobGo API key NOT configured');
