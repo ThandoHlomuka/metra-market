@@ -50,6 +50,8 @@ export default async function handler(req, res) {
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
             provider_slug: 'tcg',
+            collection_address: senderAddress || '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
+            delivery_address: recipientAddress,
             sender: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
