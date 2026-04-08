@@ -81,6 +81,7 @@ export default async function handler(req, res) {
             })),
             courier_code: courierCode || '',
             service_type: serviceType || 'standard',
+            service_level_code: serviceType || 'standard',
             declared_value: parseFloat(insuranceAmount || 0),
             shipping_cost: parseFloat(shippingCost || 0),
             instructions: instructions || '',
