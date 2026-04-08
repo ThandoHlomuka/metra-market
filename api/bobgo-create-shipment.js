@@ -121,8 +121,8 @@ export default async function handler(req, res) {
 
         // Try multiple possible BobGo v2 API endpoints
         const possibleEndpoints = [
-            { path: '/shipments', method: 'POST', label: 'POST /v2/shipments' },
-            { path: '/orders', method: 'POST', label: 'POST /v2/orders' }
+            { path: '/orders', method: 'POST', label: 'POST /v2/orders' },
+            { path: '/shipments', method: 'POST', label: 'POST /v2/shipments' }
         ];
 
         let lastError = null;
