@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         const shipmentData = {
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
-            provider_slug: 'bobgo',
+            provider_slug: 'tcg',
             sender: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
