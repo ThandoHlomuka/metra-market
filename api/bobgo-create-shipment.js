@@ -3,8 +3,38 @@
  * Tries multiple BobGo API endpoints to create shipments
  * Logs detailed request/response data for debugging
  *
+ * Supported Courier Service Codes:
+ * - The Courier Guy (tcg): 01/DD, ECO, ECOR, LOX, L2L, XDD, SAT, HOL
+ * - Pudo (pudo): L2L, STD
+ * - Dawn Wing (dawnwing): 01/DD, ECO, SAT, STD
+ *
  * Shop Address: 1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818
  */
+
+// Service code validation map
+const VALID_SERVICE_CODES = {
+    tcg: ['01', 'DD', 'ECO', 'ECOR', 'LOX', 'L2L', 'XDD', 'SAT', 'HOL'],
+    pudo: ['L2L', 'STD'],
+    dawnwing: ['01', 'DD', 'ECO', 'SAT', 'STD']
+};
+
+/**
+ * Validate service code for a given provider
+ */
+function validateServiceCode(providerSlug, serviceCode) {
+    const provider = providerSlug?.toLowerCase();
+    if (!provider || !VALID_SERVICE_CODES[provider]) {
+        console.warn(`⚠️ Unknown provider: ${providerSlug}, allowing service code: ${serviceCode}`);
+        return true; // Allow unknown providers
+    }
+    
+    const isValid = VALID_SERVICE_CODES[provider].includes(serviceCode);
+    if (!isValid) {
+        console.warn(`⚠️ Invalid service code ${serviceCode} for provider ${providerSlug}`);
+    }
+    
+    return isValid;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -30,8 +60,9 @@ export default async function handler(req, res) {
             senderCity, senderProvince, senderPostalCode,
             recipientName, recipientPhone, recipientEmail,
             recipientAddress, recipientCity, recipientProvince, recipientPostalCode,
-            parcels, courierCode, serviceType, shippingCost,
-            insuranceAmount, instructions, reference, metadata
+            parcels, courierCode, serviceType, serviceCode, shippingCost,
+            insuranceAmount, instructions, reference, metadata,
+            provider_slug, service_type, service_level_code
         } = req.body;
 
         // Validate
@@ -45,11 +76,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing parcels', message: 'At least one parcel required' });
         }
 
+        // Determine provider and service code with proper fallbacks
+        const finalProvider = provider_slug || courierCode || 'tcg';
+        const finalServiceCode = service_level_code || serviceCode || service_type || serviceType || 'ECO';
+        
+        // Validate service code
+        validateServiceCode(finalProvider, finalServiceCode);
+
+        console.log(`📦 Creating shipment with provider: ${finalProvider}, service code: ${finalServiceCode}`);
+
         // Build request body - BobGo v2 API format
         const shipmentData = {
             order_id: orderId || orderNumber || `ORD-${Date.now()}`,
             reference: reference || invoiceNumber || orderNumber || orderId || '',
-            provider_slug: 'tcg',
+            provider_slug: finalProvider,
+            service_code: finalServiceCode,
+            service_type: finalServiceCode,
+            service_level_code: finalServiceCode,
             collection_address: {
                 name: senderName || 'Metra Market',
                 phone: senderPhone || '+27111234567',
@@ -101,9 +144,9 @@ export default async function handler(req, res) {
                 description: p.description || 'E-commerce goods',
                 value: parseFloat(p.value || 0)
             })),
-            courier_code: courierCode || '',
-            service_type: serviceType || 'standard',
-            service_level_code: serviceType || 'standard',
+            courier_code: finalProvider,
+            service_type: finalServiceCode,
+            service_level_code: finalServiceCode,
             declared_value: parseFloat(insuranceAmount || 0),
             shipping_cost: parseFloat(shippingCost || 0),
             instructions: instructions || '',
@@ -111,11 +154,14 @@ export default async function handler(req, res) {
                 platform: 'metra-market',
                 order_number: orderNumber || orderId || '',
                 payment_status: 'pending_payment',
-                order_status: 'pending_payment'
+                order_status: 'pending_payment',
+                service_code: finalServiceCode,
+                provider_slug: finalProvider
             }
         };
 
         console.log('📦 Creating shipment:', shipmentData.order_id);
+        console.log('🚚 Provider:', finalProvider, '| Service Code:', finalServiceCode);
         console.log('📍 Destination:', recipientCity, recipientProvince);
         console.log('📦 Parcels:', parcels.length, 'Total weight:', parcels.reduce((s, p) => s + (p.weight || 1), 0), 'kg');
 

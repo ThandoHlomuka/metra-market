@@ -288,12 +288,16 @@
                 id: 'shipping_' + (c.id || i),
                 name: c.name || c.courier_name || 'Standard Delivery',
                 serviceName: c.service_name || c.service_type || 'Standard Service',
+                serviceCode: c.service_code || c.service_type || '',
                 time: c.delivery_time || c.transit_time || '2-5 business days',
                 price: parseFloat(c.price || c.amount || 0),
-                code: c.code || '',
+                code: c.code || c.provider_slug || '',
+                providerSlug: c.provider_slug || c.code || '',
                 features: c.features || [],
                 trackingIncluded: c.tracking_included !== false,
                 insuranceIncluded: c.insurance_included || false,
+                serviceCategory: c.service_category || 'standard',
+                serviceDescription: c.service_description || c.description || '',
                 rawCourier: c
             }));
 
@@ -305,7 +309,11 @@
                             ${o.name}
                             ${o.code ? `<span style="font-size:0.75rem;color:var(--gray);margin-left:0.5rem;">(${o.code})</span>` : ''}
                         </div>
-                        <div class="shipping-option-service">${o.serviceName}</div>
+                        <div class="shipping-option-service">
+                            ${o.serviceName}
+                            ${o.serviceCode ? `<span style="font-size:0.7rem;margin-left:0.3rem;padding:0.1rem 0.4rem;background:rgba(220,20,60,0.2);border-radius:4px;color:#DC143C;">${o.serviceCode}</span>` : ''}
+                        </div>
+                        ${o.serviceDescription ? `<div style="font-size:0.75rem;color:var(--gray);margin-top:0.2rem;"><i class="fas fa-info-circle" style="font-size:0.65rem;"></i> ${o.serviceDescription}</div>` : ''}
                         <div class="shipping-option-time">
                             <i class="fas fa-clock" style="font-size:0.7rem;"></i> ${o.time}
                             ${o.trackingIncluded ? ' <i class="fas fa-map-marker-alt" style="font-size:0.7rem;margin-left:0.5rem;color:#00C853;" title="Tracking included"></i>' : ''}
@@ -319,7 +327,11 @@
                 </div>
             `).join('');
 
-            selectShipping(options[0].id, options[0].price, container.querySelector('.shipping-option'), options[0].rawCourier);
+            // Select first option by default with full courier data
+            if (options.length > 0) {
+                const firstOption = container.querySelector('.shipping-option');
+                selectShipping(options[0].id, options[0].price, firstOption, options[0].rawCourier);
+            }
         }
 
         function selectShipping(id, price, element, courierData = null) {
@@ -407,6 +419,11 @@
                 totalValue += (item.price || 0) * (item.quantity || 1);
             });
 
+            // Extract service code from courier data
+            const courierData = selectedShipping.courierData || {};
+            const serviceCode = courierData.service_code || courierData.service_type || courierData.service || 'standard';
+            const providerSlug = courierData.provider_slug || courierData.code || 'tcg';
+
             const shipmentData = {
                 orderId: order.id,
                 orderNumber: order.id,
@@ -433,10 +450,16 @@
                     description: 'E-commerce goods',
                     value: totalValue
                 }],
-                courierCode: selectedShipping.courierData?.code || selectedShipping.courierData?.courier_code || '',
-                courierName: selectedShipping.courierData?.name || selectedShipping.courierData?.courier_name || '',
-                serviceType: selectedShipping.courierData?.service_type || selectedShipping.courierData?.service || 'standard',
-                serviceName: selectedShipping.courierData?.service_name || selectedShipping.courierData?.service_type || '',
+                // Service code mapping for Bobgo API
+                provider_slug: providerSlug,
+                courierCode: providerSlug,
+                courierName: courierData.name || courierData.courier_name || 'The Courier Guy',
+                serviceCode: serviceCode,
+                service_type: serviceCode,
+                serviceType: serviceCode,
+                service_level_code: serviceCode,
+                serviceName: courierData.service_name || courierData.service_type || '',
+                serviceName: courierData.service_name || courierData.service_type || '',
                 shippingCost: order.shippingCost || 0,
                 insuranceAmount: totalValue,
                 instructions: `Order ${order.id} - Metra Market | Status: ${order.status}`,
@@ -445,7 +468,9 @@
                     payment_status: order.status || 'pending_payment',
                     order_status: order.status || 'pending_payment',
                     customer_email: order.customerEmail,
-                    customer_phone: order.customerPhone
+                    customer_phone: order.customerPhone,
+                    service_code: serviceCode,
+                    provider_slug: providerSlug
                 }
             };
 

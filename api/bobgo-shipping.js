@@ -2,18 +2,73 @@
  * Bobgo Shipping API Proxy
  * This serverless function securely proxies requests to Bobgo API
  * without exposing the API key to the client.
- * 
+ *
  * Environment Variables Required:
  * - BOBGO_API_KEY: Your Bobgo API key
  * - BOBGO_API_URL: Bobgo API base URL (https://api.bobgo.co.za/v1)
+ *
+ * Supported Courier Service Codes:
+ * - The Courier Guy (tcg): 01/DD, ECO, ECOR, LOX, L2L, XDD, SAT, HOL
+ * - Pudo (pudo): L2L (Locker-to-Locker)
+ * - Dawn Wing (dawnwing): 01/DD, ECO, SAT
  */
 
+// Service code mapping for all supported couriers
+const SERVICE_CODE_MAP = {
+    // The Courier Guy Service Codes
+    tcg: {
+        '01': { name: 'Door-to-Door Standard', description: '1-2 business days (major metros)', type: 'express' },
+        'DD': { name: 'Door-to-Door', description: '1-2 business days (major metros), 2-4 days (regional)', type: 'express' },
+        'ECO': { name: 'Economy Road', description: '3-5 business days', type: 'economy' },
+        'ECOR': { name: 'Economy Road Return', description: '3-5 business days (with return)', type: 'economy' },
+        'LOX': { name: 'Locker-to-Door', description: '2-4 business days', type: 'locker' },
+        'L2L': { name: 'Locker-to-Locker', description: '1-3 business days', type: 'locker' },
+        'XDD': { name: 'Cross-Border Door-to-Door', description: '3-7 business days', type: 'cross-border' },
+        'SAT': { name: 'Saturday Delivery', description: 'Next Saturday delivery', type: 'special' },
+        'HOL': { name: 'Holiday/After-Hours Delivery', description: 'Public holidays/weekends', type: 'special' }
+    },
+    // Pudo Service Codes
+    pudo: {
+        'L2L': { name: 'Locker-to-Locker', description: '1-3 business days', type: 'locker' },
+        'STD': { name: 'Standard', description: '2-5 business days', type: 'standard' }
+    },
+    // Dawn Wing Service Codes
+    dawnwing: {
+        '01': { name: 'Door-to-Door Standard', description: '1-2 business days', type: 'express' },
+        'DD': { name: 'Door-to-Door', description: '1-2 business days', type: 'express' },
+        'ECO': { name: 'Economy Road', description: '3-5 business days', type: 'economy' },
+        'SAT': { name: 'Saturday Delivery', description: 'Next Saturday', type: 'special' },
+        'STD': { name: 'Standard', description: '2-4 business days', type: 'standard' }
+    }
+};
+
+/**
+ * Get service code details for a courier
+ * @param {string} courierCode - The courier code (tcg, pudo, dawnwing)
+ * @param {string} serviceCode - The service code (01, ECO, LOX, etc.)
+ * @returns {Object} Service code details
+ */
+function getServiceCodeDetails(courierCode, serviceCode) {
+    const courier = SERVICE_CODE_MAP[courierCode?.toLowerCase()];
+    if (!courier) return null;
+    return courier[serviceCode] || null;
+}
+
 export default async function handler(req, res) {
-    // Only allow POST requests for shipping calculations
+    // Allow GET for service code map, POST for shipping calculations
+    if (req.method === 'GET') {
+        // Return service code map
+        return res.status(200).json({
+            success: true,
+            serviceCodes: SERVICE_CODE_MAP,
+            message: 'Service code mapping for all supported couriers'
+        });
+    }
+    
     if (req.method !== 'POST') {
-        return res.status(405).json({ 
+        return res.status(405).json({
             error: 'Method not allowed',
-            message: 'Only POST requests are accepted' 
+            message: 'Only POST requests are accepted'
         });
     }
 
@@ -103,40 +158,52 @@ export default async function handler(req, res) {
         // Return ALL courier data with full service details (no filtering)
         const allCouriers = data.couriers
             .filter(c => c) // Only remove null/undefined entries
-            .map((c, index) => ({
-                // Courier identification
-                id: c.id || c.courier_id || `courier_${index}`,
-                code: c.code || c.courier_code || '',
+            .map((c, index) => {
+                const courierCode = c.code || c.courier_code || c.provider_slug || '';
+                const serviceCode = c.service_code || c.service_type || c.service || '';
                 
-                // Courier/Partner name
-                name: c.name || c.courier_name || c.partner_name || 'Standard Courier',
-                partner_name: c.partner_name || c.courier_name || c.name || '',
+                // Get service code details from mapping
+                const serviceDetails = getServiceCodeDetails(courierCode, serviceCode);
                 
-                // Service details
-                service_type: c.service_type || c.service || 'Standard',
-                service_name: c.service_name || c.service_type || c.service || 'Standard Delivery',
-                
-                // Pricing (service charges)
-                price: parseFloat(c.price || c.amount || 0),
-                amount: parseFloat(c.amount || c.price || 0),
-                currency: c.currency || 'ZAR',
-                base_price: parseFloat(c.base_price || c.base_amount || c.price || c.amount || 0),
-                
-                // Delivery timing
-                delivery_time: c.delivery_time || c.transit_time || '2-5 business days',
-                transit_time: c.transit_time || c.delivery_time || '',
-                estimated_delivery_days: c.estimated_delivery_days || null,
-                
-                // Additional service details
-                description: c.description || '',
-                features: c.features || [],
-                insurance_included: c.insurance_included || false,
-                tracking_included: c.tracking_included !== false, // Default true
-                signature_required: c.signature_required || false,
-                
-                // Raw data for debugging/extensibility
-                raw: c
-            }));
+                return {
+                    // Courier identification
+                    id: c.id || c.courier_id || `courier_${index}`,
+                    code: courierCode,
+                    provider_slug: courierCode,
+
+                    // Courier/Partner name
+                    name: c.name || c.courier_name || c.partner_name || 'Standard Courier',
+                    partner_name: c.partner_name || c.courier_name || c.name || '',
+
+                    // Service details
+                    service_type: serviceCode,
+                    service_code: serviceCode,
+                    service_name: serviceDetails?.name || c.service_name || c.service_type || c.service || 'Standard Delivery',
+                    service_description: serviceDetails?.description || c.description || '',
+                    service_category: serviceDetails?.type || 'standard',
+
+                    // Pricing (service charges)
+                    price: parseFloat(c.price || c.amount || 0),
+                    amount: parseFloat(c.amount || c.price || 0),
+                    currency: c.currency || 'ZAR',
+                    base_price: parseFloat(c.base_price || c.base_amount || c.price || c.amount || 0),
+
+                    // Delivery timing
+                    delivery_time: c.delivery_time || c.transit_time || serviceDetails?.description || '2-5 business days',
+                    transit_time: c.transit_time || c.delivery_time || '',
+                    estimated_delivery_days: c.estimated_delivery_days || null,
+
+                    // Additional service details
+                    description: c.description || serviceDetails?.description || '',
+                    features: c.features || [],
+                    insurance_included: c.insurance_included || false,
+                    tracking_included: c.tracking_included !== false, // Default true
+                    signature_required: c.signature_required || false,
+
+                    // Raw data for debugging/extensibility
+                    raw: c
+                };
+            });
 
         console.log(`Returning ${allCouriers.length} courier options with full service details`);
 

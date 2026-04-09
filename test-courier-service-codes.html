@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Courier Service Codes - Metra Market</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+        .courier-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            transition: all 0.3s;
+        }
+        .courier-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        .courier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .courier-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .service-code {
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .service-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .detail-item {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 Courier Service Codes Test</h1>
+        <p class="subtitle">Test the Bobgo API integration with service code support</p>
+
+        <div class="test-section">
+            <h2>Test 1: Get Service Code Map</h2>
+            <p>Fetch the complete service code mapping from the API</p>
+            <button onclick="testServiceCodeMap()">📋 Get Service Codes</button>
+            <div id="serviceCodeResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Calculate Shipping Rates</h2>
+            <p>Get live courier options with service codes for a specific route</p>
+            <button onclick="testShippingRates('Gauteng')">📦 Gauteng</button>
+            <button onclick="testShippingRates('Western Cape')">📦 Western Cape</button>
+            <button onclick="testShippingRates('KwaZulu-Natal')">📦 KwaZulu-Natal</button>
+            <div id="shippingResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Service Code Validation</h2>
+            <p>Validate service codes for different couriers</p>
+            <button onclick="testValidation('tcg', 'ECO')">✅ TCG ECO</button>
+            <button onclick="testValidation('tcg', 'LOX')">✅ TCG LOX</button>
+            <button onclick="testValidation('pudo', 'L2L')">✅ Pudo L2L</button>
+            <button onclick="testValidation('dawnwing', 'DD')">✅ Dawn Wing DD</button>
+            <button onclick="testValidation('tcg', 'INVALID')">❌ Invalid Code</button>
+            <div id="validationResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Create Shipment with Service Code</h2>
+            <p>Test shipment creation with specific service codes</p>
+            <button onclick="testCreateShipment('tcg', 'ECO')">🚚 TCG ECO</button>
+            <button onclick="testCreateShipment('tcg', 'DD')">🚚 TCG DD</button>
+            <button onclick="testCreateShipment('pudo', 'L2L')">🚚 Pudo L2L</button>
+            <div id="shipmentResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test 1: Get Service Code Map
+        async function testServiceCodeMap() {
+            const resultDiv = document.getElementById('serviceCodeResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p class="info">⏳ Fetching service code map...</p>';
+
+            try {
+                const response = await fetch('/api/bobgo-shipping');
+                const data = await response.json();
+                
+                if (data.success && data.serviceCodes) {
+                    let html = '<p class="success">✅ Service code map fetched successfully!</p>';
+                    html += '<p><strong>Total Couriers:</strong> ' + Object.keys(data.serviceCodes).length + '</p>';
+                    
+                    Object.entries(data.serviceCodes).forEach(([courier, services]) => {
+                        html += `<div class="courier-card">`;
+                        html += `<div class="courier-name">${courier.toUpperCase()}</div>`;
+                        html += `<div class="service-details">`;
+                        Object.entries(services).forEach(([code, details]) => {
+                            html += `<div class="detail-item">`;
+                            html += `<span class="detail-label">${code}:</span> ${details.name}`;
+                            html += `</div>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p class="error">❌ Failed to fetch service codes: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Test 2: Calculate Shipping Rates
+        async function testShippingRates(province) {
+            const resultDiv = document.getElementById('shippingResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p class="info">⏳ Calculating shipping rates for ' + province + '...</p>';
+
+            try {
+                const response = await fetch('/api/bobgo-shipping', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        endpoint: 'couriers',
+                        origin: '1335 Ingwayuma Street, Senaoane, Soweto, Gauteng, 1818',
+                        destination: province,
+                        parcels: [{ weight: 1, length: 30, width: 20, height: 15 }],
+                        currency: 'ZAR',
+                        live_rates: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.couriers && data.couriers.length > 0) {
+                    let html = '<p class="success">✅ Got ' + data.couriers.length + ' courier options for ' + province + '!</p>';
+                    
+                    data.couriers.forEach(courier => {
+                        html += `<div class="courier-card">`;
+                        html += `<div class="courier-header">`;
+                        html += `<div class="courier-name">${courier.name}</div>`;
+                        html += `<div style="text-align:right;">`;
+                        html += `<div style="font-size:1.2rem;font-weight:700;color:#28a745;">R${courier.price.toFixed(2)}</div>`;
+                        if (courier.service_code) {
+                            html += `<span class="service-code">${courier.service_code}</span>`;
+                        }
+                        html += `</div></div>`;
+                        html += `<div class="service-details">`;
+                        html += `<div class="detail-item"><span class="detail-label">Provider:</span> ${courier.provider_slug || courier.code}</div>`;
+                        html += `<div class="detail-item"><span class="detail-label">Service:</span> ${courier.service_name || 'N/A'}</div>`;
+                        html += `<div class="detail-item"><span class="detail-label">Delivery:</span> ${courier.delivery_time || 'N/A'}</div>`;
+                        html += `<div class="detail-item"><span class="detail-label">Category:</span> ${courier.service_category || 'standard'}</div>`;
+                        html += `<div class="detail-item"><span class="detail-label">Tracking:</span> ${courier.tracking_included ? '✅' : '❌'}</div>`;
+                        html += `<div class="detail-item"><span class="detail-label">Insurance:</span> ${courier.insurance_included ? '✅' : '❌'}</div>`;
+                        html += `</div></div>`;
+                    });
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p class="warning">⚠️ No couriers found or invalid response</p>';
+                    resultDiv.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Test 3: Service Code Validation
+        function testValidation(provider, serviceCode) {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            
+            const VALID_SERVICE_CODES = {
+                tcg: ['01', 'DD', 'ECO', 'ECOR', 'LOX', 'L2L', 'XDD', 'SAT', 'HOL'],
+                pudo: ['L2L', 'STD'],
+                dawnwing: ['01', 'DD', 'ECO', 'SAT', 'STD']
+            };
+            
+            const providerLower = provider.toLowerCase();
+            const isValid = !VALID_SERVICE_CODES[providerLower] || VALID_SERVICE_CODES[providerLower].includes(serviceCode);
+            
+            let html = '<p class="' + (isValid ? 'success' : 'error') + '">';
+            html += isValid ? '✅' : '❌';
+            html += ` Service code validation: ${provider.toUpperCase()} / ${serviceCode}`;
+            html += isValid ? ' - VALID' : ' - INVALID';
+            html += '</p>';
+            
+            if (VALID_SERVICE_CODES[providerLower]) {
+                html += '<p><strong>Valid codes for ' + provider.toUpperCase() + ':</strong></p>';
+                html += '<div class="service-details">';
+                VALID_SERVICE_CODES[providerLower].forEach(code => {
+                    html += `<span class="service-code" style="margin:0.2rem;display:inline-block;">${code}</span>`;
+                });
+                html += '</div>';
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Test 4: Create Shipment
+        async function testCreateShipment(provider, serviceCode) {
+            const resultDiv = document.getElementById('shipmentResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p class="info">⏳ Creating test shipment...</p>';
+
+            const shipmentData = {
+                orderId: 'TEST-' + Date.now(),
+                orderNumber: 'TEST-' + Date.now(),
+                invoiceNumber: 'INV-TEST-' + Date.now(),
+                senderName: 'Metra Market Test',
+                senderPhone: '+27111234567',
+                senderEmail: 'test@metramarket.co.za',
+                senderAddress: '1335 Ingwayuma Street',
+                senderCity: 'Soweto',
+                senderProvince: 'Gauteng',
+                senderPostalCode: '1818',
+                recipientName: 'Test Customer',
+                recipientPhone: '+27821234567',
+                recipientEmail: 'customer@test.com',
+                recipientAddress: '123 Test Street',
+                recipientCity: 'Cape Town',
+                recipientProvince: 'Western Cape',
+                recipientPostalCode: '8001',
+                parcels: [{
+                    weight: 1,
+                    length: 30,
+                    width: 20,
+                    height: 15,
+                    description: 'Test parcel',
+                    value: 100
+                }],
+                provider_slug: provider,
+                courierCode: provider,
+                serviceCode: serviceCode,
+                service_type: serviceCode,
+                serviceType: serviceCode,
+                service_level_code: serviceCode,
+                shippingCost: 99,
+                insuranceAmount: 100,
+                instructions: 'Test shipment for service code validation',
+                reference: 'TEST-' + Date.now(),
+                metadata: {
+                    test: true,
+                    service_code: serviceCode,
+                    provider_slug: provider
+                }
+            };
+
+            try {
+                const response = await fetch('/api/bobgo-create-shipment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(shipmentData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.shipmentCreated || data.success) {
+                    resultDiv.innerHTML = '<p class="success">✅ Test shipment created successfully!</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                } else {
+                    resultDiv.innerHTML = '<p class="warning">⚠️ Shipment creation returned a warning</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="error">❌ Error: ' + error.message + '</p><pre>' + JSON.stringify(shipmentData, null, 2) + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>
