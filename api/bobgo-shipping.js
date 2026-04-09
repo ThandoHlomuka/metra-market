@@ -105,8 +105,9 @@ export default async function handler(req, res) {
         }
 
         // Build the Bobgo API request
-        const bobgoEndpoint = `${apiUrl}/${endpoint || 'couriers'}`;
-        
+        // Default to /rates endpoint for shipping rate calculation
+        const bobgoEndpoint = `${apiUrl}/${endpoint || 'rates'}`;
+
         console.log('Proxying request to Bobgo API:', bobgoEndpoint);
 
         // Make request to Bobgo API
