@@ -5,10 +5,13 @@
     --secondary: #DC143C;
     --accent: #B22222;
     --dark: #1a0a0a;
+    --darker: #0f0505;
     --light: #FFF8E7;
     --cream: #F5E6D3;
     --gray: #8B7355;
     --success: #228B22;
+    --danger: #DC143C;
+    --warning: #FFA500;
     --gradient: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #B22222 100%);
 }
 
@@ -274,6 +277,31 @@ body {
 .cta-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 20px 40px rgba(139, 0, 0, 0.4);
+}
+
+/* Secondary button style - global */
+.btn-secondary {
+    background: rgba(139, 0, 0, 0.1);
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background: var(--gradient);
+    color: white;
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(139, 0, 0, 0.3);
 }
 
 .hero-shapes {
@@ -2017,8 +2045,9 @@ body {
     }
 
     .products-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: 1fr;
         gap: 1.5rem;
+        overflow-x: hidden;
     }
 
     .modal-product-name {

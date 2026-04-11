@@ -1,7 +1,7 @@
 /**
  * BobGo Shipment Status Update API Proxy
  * Updates the payment/order status of an existing shipment on BobGo dashboard
- * 
+ *
  * Supports status transitions:
  * - pending_payment → paid → processing → shipped → delivered
  * - pending_payment → cancelled
@@ -63,8 +63,7 @@ export default async function handler(req, res) {
         console.log(`Updating shipment ${shipmentId || orderId} status:`, updateData);
 
         // Try to update the shipment via BobGo API
-        // BobGo may support PATCH /v1/shipments/{id} or PUT /v1/shipments/{id}
-        const bobgoUrl = shipmentId 
+        const bobgoUrl = shipmentId
             ? `${apiUrl}/shipments/${shipmentId}`
             : `${apiUrl}/shipments?order_id=${orderId}`;
 
@@ -86,14 +85,13 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             console.error('BobGo status update error:', response.status, responseData);
-            
-            // Even if BobGo API fails, we still return success for local tracking
-            return res.status(200).json({
-                success: true,
-                localUpdate: true,
-                bobgoUpdateFailed: true,
+
+            // Return proper error status instead of 200
+            return res.status(502).json({
+                success: false,
                 error: responseData.message || response.statusText,
-                message: 'Status updated locally, BobGo update failed',
+                bobgoStatus: response.status,
+                message: 'Failed to update shipment status on BobGo',
                 data: { shipmentId, orderId, paymentStatus, orderStatus }
             });
         }
@@ -102,7 +100,6 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            localUpdate: true,
             bobgoUpdate: true,
             shipment: responseData,
             data: { shipmentId, orderId, paymentStatus, orderStatus }
@@ -111,12 +108,11 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('BobGo status update proxy error:', error);
 
-        return res.status(200).json({
-            success: true,
-            localUpdate: true,
-            bobgoUpdateFailed: true,
-            error: error.message,
-            message: 'Status updated locally for tracking'
+        // Return proper 500 error instead of 200
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error',
+            message: error.message
         });
     }
 }

@@ -1,7 +1,6 @@
 /**
  * BobGo Shipment Creation API Proxy
- * Tries multiple BobGo API endpoints to create shipments
- * Logs detailed request/response data for debugging
+ * Creates shipments on BobGo dashboard with proper error handling
  *
  * Supported Courier Service Codes:
  * - The Courier Guy (tcg): 01/DD, ECO, ECOR, LOX, L2L, XDD, SAT, HOL
@@ -25,14 +24,14 @@ function validateServiceCode(providerSlug, serviceCode) {
     const provider = providerSlug?.toLowerCase();
     if (!provider || !VALID_SERVICE_CODES[provider]) {
         console.warn(`⚠️ Unknown provider: ${providerSlug}, allowing service code: ${serviceCode}`);
-        return true; // Allow unknown providers
+        return true;
     }
-    
+
     const isValid = VALID_SERVICE_CODES[provider].includes(serviceCode);
     if (!isValid) {
         console.warn(`⚠️ Invalid service code ${serviceCode} for provider ${providerSlug}`);
     }
-    
+
     return isValid;
 }
 
@@ -65,7 +64,7 @@ export default async function handler(req, res) {
             provider_slug, service_type, service_level_code
         } = req.body;
 
-        // Validate
+        // Validate required fields
         if (!recipientName || !recipientAddress || !recipientPhone) {
             return res.status(400).json({
                 error: 'Missing recipient info',
@@ -79,7 +78,7 @@ export default async function handler(req, res) {
         // Determine provider and service code with proper fallbacks
         const finalProvider = provider_slug || courierCode || 'tcg';
         const finalServiceCode = service_level_code || serviceCode || service_type || serviceType || 'ECO';
-        
+
         // Validate service code
         validateServiceCode(finalProvider, finalServiceCode);
 
@@ -165,93 +164,68 @@ export default async function handler(req, res) {
         console.log('📍 Destination:', recipientCity, recipientProvince);
         console.log('📦 Parcels:', parcels.length, 'Total weight:', parcels.reduce((s, p) => s + (p.weight || 1), 0), 'kg');
 
-        // Try multiple possible BobGo v2 API endpoints
-        const possibleEndpoints = [
-            { path: '/orders', method: 'POST', label: 'POST /v2/orders' },
-            { path: '/shipments', method: 'POST', label: 'POST /v2/shipments' }
-        ];
+        // Try ONLY the primary endpoint to avoid duplicate shipments
+        // Use /orders endpoint as primary (most commonly supported)
+        const url = `${apiUrl}/orders`;
+        console.log(`🔄 Creating shipment via POST /v2/orders...`);
 
-        let lastError = null;
-        let lastResponse = null;
-        let successEndpoint = null;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'User-Agent': 'MetraMarket/1.0'
+            },
+            body: JSON.stringify(shipmentData)
+        });
 
-        for (const endpoint of possibleEndpoints) {
-            try {
-                const url = `${apiUrl}${endpoint.path}`;
-                console.log(`🔄 Trying ${endpoint.label}...`);
-
-                const response = await fetch(url, {
-                    method: endpoint.method,
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'MetraMarket/1.0'
-                    },
-                    body: JSON.stringify(shipmentData)
-                });
-
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    const text = await response.text();
-                    data = { raw: text };
-                }
-
-                console.log(`  → ${endpoint.label}: HTTP ${response.status}`, JSON.stringify(data).substring(0, 200));
-
-                if (response.ok && (data.id || data.shipment_id || data.tracking_number || data.booking_id || data.success)) {
-                    // Success!
-                    successEndpoint = endpoint.label;
-                    lastResponse = { ...data, _endpoint: endpoint.label };
-                    break;
-                }
-
-                lastError = data;
-                lastResponse = data;
-            } catch (err) {
-                console.log(`  → ${endpoint.label}: FAILED - ${err.message}`);
-                lastError = err.message;
-            }
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            const text = await response.text();
+            data = { raw: text };
         }
 
-        if (successEndpoint && lastResponse) {
-            console.log(`✅ Shipment created via ${successEndpoint}`);
+        console.log(`  → POST /v2/orders: HTTP ${response.status}`, JSON.stringify(data).substring(0, 200));
+
+        if (response.ok && (data.id || data.shipment_id || data.tracking_number || data.booking_id || data.success)) {
+            console.log('✅ Shipment created successfully');
             return res.status(200).json({
                 success: true,
                 shipmentCreated: true,
-                endpoint: successEndpoint,
+                endpoint: 'POST /v2/orders',
                 shipment: {
-                    id: lastResponse.id || lastResponse.shipment_id || lastResponse.booking_id || lastResponse.tracking_number || '',
-                    tracking_number: lastResponse.tracking_number || lastResponse.tracking || lastResponse.consignment_number || '',
-                    status: lastResponse.status || 'created',
-                    courier: lastResponse.courier || lastResponse.courier_name || lastResponse.partner_name || '',
-                    created_at: lastResponse.created_at || new Date().toISOString()
+                    id: data.id || data.shipment_id || data.booking_id || data.tracking_number || '',
+                    tracking_number: data.tracking_number || data.tracking || data.consignment_number || '',
+                    status: data.status || 'created',
+                    courier: data.courier || data.courier_name || data.partner_name || '',
+                    created_at: data.created_at || new Date().toISOString()
                 },
-                bobgoResponse: lastResponse,
-                message: `Shipment created via ${successEndpoint}`
+                bobgoResponse: data,
+                message: 'Shipment created successfully'
             });
         }
 
-        // All endpoints failed
-        console.error('❌ All BobGo endpoints failed');
-        return res.status(200).json({
+        // If primary endpoint fails, return proper error instead of trying alternatives
+        console.error('❌ BobGo shipment creation failed:', response.status, data);
+        return res.status(502).json({
             success: false,
             shipmentCreated: false,
-            error: 'All BobGo shipment endpoints failed',
-            attemptedEndpoints: possibleEndpoints.map(e => e.label),
-            lastError: lastError,
-            lastResponse: lastResponse,
-            message: 'BobGo API does not support shipment creation with known endpoints. Check BobGo dashboard for manual booking.',
+            error: 'BobGo API rejected shipment',
+            bobgoStatus: response.status,
+            bobgoResponse: data,
+            message: 'Failed to create shipment on BobGo. Check BobGo dashboard for manual booking.',
             hint: 'Shipments may need to be created manually on BobGo dashboard using order reference: ' + (orderId || 'N/A')
         });
 
     } catch (error) {
         console.error('❌ BobGo shipment creation error:', error);
         return res.status(500).json({
+            success: false,
+            shipmentCreated: false,
             error: 'Internal server error',
-            message: error.message,
-            shipmentCreated: false
+            message: error.message
         });
     }
 }

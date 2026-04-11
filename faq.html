@@ -4,6 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ | Metra Market</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="author" content="Metra Market">
+    <meta name="robots" content="index, follow">
+    <meta name="keywords" content="online shopping, South Africa, premium products, free shipping, PayFast">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#8B0000">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.metramarket.co.za/faq.html">
+    <meta property="og:title" content="FAQ | Metra Market">
+    <meta property="og:description" content="Frequently asked questions">
+    <meta property="og:image" content="https://www.metramarket.co.za/og-image.jpg">
+    <meta property="og:site_name" content="Metra Market">
+    <meta property="og:locale" content="en_ZA">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.metramarket.co.za/faq.html">
+    <meta property="twitter:title" content="FAQ | Metra Market">
+    <meta property="twitter:description" content="Frequently asked questions">
+    <meta property="twitter:image" content="https://www.metramarket.co.za/twitter-image.jpg">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -74,6 +96,13 @@
             align-items: center;
             font-weight: 600;
             transition: background 0.3s;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
         }
         .faq-question:hover {
             background: rgba(255, 248, 231, 0.1);
@@ -139,43 +168,43 @@
 
             <div class="faq-category">
                 <h2><i class="fas fa-shopping-cart"></i> Orders & Shipping</h2>
-                
+
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-1">
                         <span>How do I track my order?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-1" role="region">
                         <p>Once your order ships, you'll receive an email with a tracking number. You can also track your order from your profile page under "Order History". Our shipping partner Bobgo provides real-time tracking updates.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-2">
                         <span>What are the shipping costs?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-2" role="region">
                         <p>Shipping costs are calculated at checkout based on your delivery address and order weight. We partner with Bobgo Delivery Services. Free shipping may be offered on orders above a certain threshold.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-3">
                         <span>How long does delivery take?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-3" role="region">
                         <p>Delivery times vary by location: Major centers (2-5 business days), Regional areas (5-10 business days), Remote areas (10-15 business days).</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-4">
                         <span>Do you ship internationally?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-4" role="region">
                         <p>Currently, we only ship within South Africa. International shipping may be available in the future.</p>
                     </div>
                 </div>
@@ -183,33 +212,33 @@
 
             <div class="faq-category">
                 <h2><i class="fas fa-undo"></i> Returns & Refunds</h2>
-                
+
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-5">
                         <span>What is your return policy?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-5" role="region">
                         <p>We offer a 30-day return policy for unused items in original packaging. Items must be returned with all tags and original receipt. See our Returns Policy page for full details.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-6">
                         <span>How long do refunds take?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-6" role="region">
                         <p>Refunds are processed within 5-10 business days after we receive and inspect your return. The refund will be issued to your original payment method.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-7">
                         <span>Can I exchange an item?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-7" role="region">
                         <p>Yes, we offer exchanges for defective items, wrong items received, or size exchanges. Contact returns@metramarket.co.za to request an exchange.</p>
                     </div>
                 </div>
@@ -217,23 +246,23 @@
 
             <div class="faq-category">
                 <h2><i class="fas fa-credit-card"></i> Payment</h2>
-                
+
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-8">
                         <span>What payment methods do you accept?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-8" role="region">
                         <p>We accept Credit/Debit Cards, Instant EFT, and Bank Transfer via our secure payment processor PayFast. All payments are encrypted and secure.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-9">
                         <span>Is my payment information secure?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-9" role="region">
                         <p>Yes! We use PayFast, a PCI DSS compliant payment processor. Your payment information is encrypted and we never store your card details.</p>
                     </div>
                 </div>
@@ -241,23 +270,23 @@
 
             <div class="faq-category">
                 <h2><i class="fas fa-user"></i> Account</h2>
-                
+
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-10">
                         <span>Do I need an account to shop?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-10" role="region">
                         <p>Yes, you need to create an account to place orders. This helps us process your orders faster and allows you to track your order history.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-11">
                         <span>How do I reset my password?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-11" role="region">
                         <p>Click on the user icon, select "Forgot Password", and enter your email. We'll send you a link to reset your password.</p>
                     </div>
                 </div>
@@ -265,23 +294,23 @@
 
             <div class="faq-category">
                 <h2><i class="fas fa-headset"></i> Customer Support</h2>
-                
+
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-12">
                         <span>How can I contact customer support?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-12" role="region">
                         <p>You can reach us at support@metramarket.co.za, call +27 11 123 4567, or use the live chat feature in your profile. We're available Monday-Friday, 9 AM - 5 PM SAST.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <div class="faq-question" onclick="toggleFAQ(this)">
+                    <button class="faq-question" onclick="toggleFAQ(this)" aria-expanded="false" aria-controls="faq-answer-13">
                         <span>Do you offer bulk/corporate orders?</span>
                         <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="faq-answer">
+                    </button>
+                    <div class="faq-answer" id="faq-answer-13" role="region">
                         <p>Yes! For bulk or corporate orders, please contact corporate@metramarket.co.za for special pricing and arrangements.</p>
                     </div>
                 </div>
@@ -293,15 +322,18 @@
         function toggleFAQ(element) {
             const item = element.parentElement;
             const wasActive = item.classList.contains('active');
-            
+
             // Close all FAQs
             document.querySelectorAll('.faq-item').forEach(faq => {
                 faq.classList.remove('active');
+                const btn = faq.querySelector('.faq-question');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
             });
-            
+
             // Open clicked FAQ if it wasn't active
             if (!wasActive) {
                 item.classList.add('active');
+                element.setAttribute('aria-expanded', 'true');
             }
         }
 
