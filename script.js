@@ -1031,61 +1031,65 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Initializing Metra Market...');
     console.log('Products array length:', products.length);
 
-    loadEmailConfig();
-    loadEmailTemplates();
-    loadCart();
-    loadWishlist();
-    loadNewsletterSubscribers();
-    loadRecentlyViewed();
-    checkUserSession();
-    
-    // Load addresses if user is logged in
-    if (currentUser) {
-        loadAddresses();
-    }
-    
-    // Load applied coupon
-    const savedCoupon = localStorage.getItem('metraAppliedCoupon');
-    if (savedCoupon) {
-        appliedCoupon = JSON.parse(savedCoupon);
-    }
-
-    // Render products with error handling
     try {
+        loadEmailConfig();
+        loadEmailTemplates();
+        loadCart();
+        loadWishlist();
+        loadNewsletterSubscribers();
+        loadRecentlyViewed();
+        checkUserSession();
+
+        // Load addresses if user is logged in
+        if (currentUser) {
+            loadAddresses();
+        }
+
+        // Load applied coupon
+        const savedCoupon = localStorage.getItem('metraAppliedCoupon');
+        if (savedCoupon) {
+            appliedCoupon = JSON.parse(savedCoupon);
+        }
+
+        // Render products with error handling
         renderProducts();
         console.log('Products rendered successfully');
+
+        updateCart();
+        updateWishlistCount();
+        setupMobileNav();
+        initTouchGestures();
+        showRandomSalesNotification();
+        initFacebookSDK();
+
+        // Track page view
+        trackEvent('page_view', { page: window.location.pathname });
+
+        // Update user activity every minute
+        setInterval(updateUserActivity, 60000);
+
+        // Process email queue every 30 seconds
+        setInterval(processEmailQueue, 30000);
+
+        // Load chat messages if user is logged in
+        if (currentUser) {
+            loadChatMessages();
+        }
+
+        // Track visitor activity for admin dashboard
+        trackVisitorActivity();
+
+        // Listen for storage events (real-time updates from other tabs)
+        window.addEventListener('storage', handleStorageEvent);
+
+        console.log('Metra Market initialization complete');
     } catch (error) {
-        console.error('Error rendering products:', error);
+        console.error('Critical initialization error:', error);
+        // Ensure page is visible even if there's an error
+        document.documentElement.classList.add('loaded');
+        document.body.style.visibility = 'visible';
+        document.body.style.opacity = '1';
     }
-
-    updateCart();
-    updateWishlistCount();
-    setupMobileNav();
-    initTouchGestures();
-    showRandomSalesNotification();
-    initFacebookSDK();
-
-    // Track page view
-    trackEvent('page_view', { page: window.location.pathname });
-
-    // Update user activity every minute
-    setInterval(updateUserActivity, 60000);
-
-    // Process email queue every 30 seconds
-    setInterval(processEmailQueue, 30000);
-
-    // Load chat messages if user is logged in
-    if (currentUser) {
-        loadChatMessages();
-    }
-
-    // Track visitor activity for admin dashboard
-    trackVisitorActivity();
-
-    // Listen for storage events (real-time updates from other tabs)
-    window.addEventListener('storage', handleStorageEvent);
-
-    console.log('Metra Market initialization complete');
 });
 
 // ==================== REAL-TIME ACTIVITY TRACKING ====================

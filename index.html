@@ -587,7 +587,12 @@
 <body>
     <script>
         // Show page immediately when DOM is ready
-        document.documentElement.classList.add('loaded');
+        try {
+            document.documentElement.classList.add('loaded');
+        } catch(e) {
+            // If classList is not supported, use className
+            document.documentElement.className = 'loaded';
+        }
     </script>
     <!-- Header -->
     <header class="header">
@@ -1087,29 +1092,31 @@
     </div>
     <div class="auth-overlay" id="forgotPasswordOverlay" onclick="closeForgotPasswordModal()"></div>
 
-    <script src="script.js?v=5.0.0"></script>
+    <script src="script.js?v=5.0.0" defer></script>
     <script>
-        // Fallback: render products immediately after script loads
-        (function() {
-            var grid = document.getElementById('productsGrid');
-            if (grid && typeof products !== 'undefined' && products.length > 0) {
-                var items = products.slice(0, 8);
-                grid.innerHTML = items.map(function(p) {
-                    return '<div class="product-card" onclick="openProductModal(' + p.id + ')">' +
-                        '<div class="product-image">' + p.icon + '</div>' +
-                        '<div class="product-info">' +
-                        '<h3 class="product-name">' + p.name + '</h3>' +
-                        '<p class="product-desc">' + p.desc + '</p>' +
-                        '<div class="product-footer">' +
-                        '<span class="product-price">R' + p.price.toFixed(2) + '</span>' +
-                        '<button class="add-to-cart" onclick="event.stopPropagation(); addToCart(' + p.id + ')">Add to Cart</button>' +
-                        '</div></div></div>';
-                }).join('');
-                var countEl = document.getElementById('productCount');
-                if (countEl) countEl.textContent = items.length + ' of ' + products.length + ' products';
-                console.log('✅ Inline render: ' + items.length + ' products rendered');
-            }
-        })();
+        // Fallback: render products as soon as script.js loads
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var grid = document.getElementById('productsGrid');
+                if (grid && typeof products !== 'undefined' && products.length > 0 && !grid.innerHTML) {
+                    var items = products.slice(0, 8);
+                    grid.innerHTML = items.map(function(p) {
+                        return '<div class="product-card" onclick="openProductModal(' + p.id + ')">' +
+                            '<div class="product-image">' + p.icon + '</div>' +
+                            '<div class="product-info">' +
+                            '<h3 class="product-name">' + p.name + '</h3>' +
+                            '<p class="product-desc">' + p.desc + '</p>' +
+                            '<div class="product-footer">' +
+                            '<span class="product-price">R' + p.price.toFixed(2) + '</span>' +
+                            '<button class="add-to-cart" onclick="event.stopPropagation(); addToCart(' + p.id + ')">Add to Cart</button>' +
+                            '</div></div></div>';
+                    }).join('');
+                    var countEl = document.getElementById('productCount');
+                    if (countEl) countEl.textContent = items.length + ' of ' + products.length + ' products';
+                    console.log('✅ Fallback render: ' + items.length + ' products rendered');
+                }
+            }, 100);
+        });
     </script>
 <div class="sales-notification" id="salesNotification"><div class="sales-notification-content"><div class="sales-notification-icon"><i class="fas fa-shopping-bag"></i></div><div class="sales-notification-text"><p class="sales-notification-message" id="salesNotificationMessage">Someone just purchased a product!</p><p class="sales-notification-time">Just now</p></div></div></div>
 
