@@ -6,9 +6,77 @@ const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
 const MAILGUN_API_URL = MAILGUN_DOMAIN ? `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}` : null;
 
+// Rate limiter for batch emails
+const batchRateLimitMap = new Map();
+const BATCH_RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_BATCH_REQUESTS_PER_WINDOW = 5; // 5 batch requests per minute
+
+function getClientIP(req) {
+    return req.headers['x-forwarded-for'] || 
+           req.headers['x-real-ip'] || 
+           req.connection.remoteAddress || 
+           'unknown';
+}
+
+function checkBatchRateLimit(ip) {
+    const now = Date.now();
+    const windowStart = batchRateLimitMap.has(ip) ? batchRateLimitMap.get(ip) : now;
+    
+    if (now - windowStart > BATCH_RATE_LIMIT_WINDOW) {
+        batchRateLimitMap.set(ip, now);
+        batchRateLimitMap.set(`${ip}:count`, 0);
+        return { allowed: true, remaining: MAX_BATCH_REQUESTS_PER_WINDOW };
+    }
+    
+    const count = batchRateLimitMap.get(`${ip}:count`) || 0;
+    if (count >= MAX_BATCH_REQUESTS_PER_WINDOW) {
+        return { allowed: false, retryAfter: Math.ceil((windowStart + BATCH_RATE_LIMIT_WINDOW - now) / 1000) };
+    }
+    
+    batchRateLimitMap.set(`${ip}:count`, count + 1);
+    return { allowed: true, remaining: MAX_BATCH_REQUESTS_PER_WINDOW - count - 1 };
+}
+
+function sanitizeHtml(html) {
+    if (!html) return '';
+    return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/on\w+\s*=\s*\S+/gi, '');
+}
+
 export default async function handler(req, res) {
+    // Set CORS headers
+    const allowedOrigins = [
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+        'http://localhost:3000',
+        'http://localhost:8080'
+    ].filter(Boolean);
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const rateLimit = checkBatchRateLimit(clientIP);
+    if (!rateLimit.allowed) {
+        console.warn(`⚠️ Batch email rate limit exceeded for IP: ${clientIP}`);
+        return res.status(429).json({
+            error: 'Rate limit exceeded',
+            message: `Too many batch requests. Try again in ${rateLimit.retryAfter} seconds`
+        });
     }
 
     // Check if Mailgun is configured

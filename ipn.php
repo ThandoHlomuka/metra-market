@@ -27,7 +27,13 @@ foreach ($_POST as $key => $value) {
 }
 
 // Validate security signature
-$passphrase = getenv('PAYFAST_PASSPHRASE') ?: 'YOUR_PAYFAST_PASSPHRASE'; // Your PayFast passphrase
+$passphrase = getenv('PAYFAST_PASSPHRASE');
+if (empty($passphrase)) {
+    logMessage('ERROR: PAYFAST_PASSPHRASE environment variable not set');
+    http_response_code(500);
+    echo 'Server configuration error';
+    exit;
+}
 $signature = md5(http_build_query($postData) . '&passphrase=' . urlencode($passphrase));
 
 if (!isset($_POST['signature']) || $_POST['signature'] !== $signature) {
@@ -50,7 +56,8 @@ curl_setopt($ch, CURLOPT_URL, $verifyUrl);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
 $response = curl_exec($ch);
@@ -100,7 +107,8 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, $bobgoPayload);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 $bobgoResponse = curl_exec($ch);
 $bobgoHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);

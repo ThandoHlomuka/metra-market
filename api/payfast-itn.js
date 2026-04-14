@@ -173,10 +173,10 @@ async function verifyPayFastSignature(itnData) {
         return isValid;
     } catch (error) {
         console.error('⚠️ Could not validate with PayFast:', error.message);
-        // In case validation endpoint is unavailable, accept the ITN
-        // but log a warning for manual review
-        console.warn('⚠️ ITN accepted without validation - manual review recommended');
-        return true;
+        // CRITICAL: Never accept ITN without validation
+        // Return error to force manual review or retry
+        console.error('❌ ITN REJECTED - signature validation failed');
+        return false;
     }
 }
 
