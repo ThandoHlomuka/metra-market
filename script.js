@@ -1090,6 +1090,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.visibility = 'visible';
         document.body.style.opacity = '1';
     }
+
+    // Safety net: ensure products render even if earlier init steps failed
+    setTimeout(function() {
+        var grid = document.getElementById('productsGrid');
+        if (grid && !grid.innerHTML) {
+            console.warn('⚠️ Products grid empty after init — running safety render');
+            renderProducts();
+        }
+    }, 500);
 });
 
 // ==================== REAL-TIME ACTIVITY TRACKING ====================
