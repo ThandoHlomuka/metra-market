@@ -3,8 +3,8 @@
 // IMPORTANT: Change this password immediately for production use
 // Use a strong password: 12+ characters, mix of uppercase, lowercase, numbers, symbols
 const ADMIN_CREDENTIALS = {
-    username: 'admin', // Change to your username
-    password: 'M3tr@M@rk3t_2026_S3cur3!' // ⚠️ CHANGE THIS IMMEDIATELY
+    username: 'ThandoHlomuka',
+    password: 'Nozibusiso89'
 };
 
 // State
@@ -36,7 +36,7 @@ function checkAdminSession() {
 function adminLogin(event) {
     event.preventDefault();
     const username = document.getElementById('adminUsername').value.trim();
-    const password = document.getElementById('adminPassword').value;
+    const password = document.getElementById('adminPassword').value.trim();
     const errorEl = document.getElementById('loginError');
 
     // Get stored password and validate it
