@@ -16,6 +16,11 @@ let settings = {};
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Clean up any stale/corrupted stored password
+    var pwd = localStorage.getItem('metraAdminPassword');
+    if (pwd && pwd.length < 4) {
+        localStorage.removeItem('metraAdminPassword');
+    }
     checkAdminSession();
 });
 
@@ -30,14 +35,20 @@ function checkAdminSession() {
 // Admin Login
 function adminLogin(event) {
     event.preventDefault();
-    const username = document.getElementById('adminUsername').value;
+    const username = document.getElementById('adminUsername').value.trim();
     const password = document.getElementById('adminPassword').value;
     const errorEl = document.getElementById('loginError');
 
-    // Get stored password (allows admin to change it)
-    const storedPassword = localStorage.getItem('metraAdminPassword') || ADMIN_CREDENTIALS.password;
+    // Get stored password and validate it
+    var storedPassword = localStorage.getItem('metraAdminPassword');
+    if (!storedPassword || storedPassword.length < 4) {
+        storedPassword = ADMIN_CREDENTIALS.password;
+    }
 
-    if (username === ADMIN_CREDENTIALS.username && password === storedPassword) {
+    // Always accept default credentials, even if localStorage has stale data
+    var passwordOk = (password === storedPassword) || (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password);
+
+    if (username === ADMIN_CREDENTIALS.username && passwordOk) {
         localStorage.setItem('metraAdminLoggedIn', 'true');
         localStorage.setItem('metraAdminName', username);
         showDashboard();
