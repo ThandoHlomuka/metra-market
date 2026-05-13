@@ -578,22 +578,11 @@
     <link rel="stylesheet" href="styles.css?v=7.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="address-locator.js?v=1.0.0"></script>
-    <script src="tracking.js?v=1.0.0"></script>
-    <script src="bobgo-sync-queue.js?v=1.0.0"></script>
-</head>
-<body>
-    <script>
-        // Show page immediately when DOM is ready
-        try {
-            document.documentElement.classList.add('loaded');
-        } catch(e) {
-            // If classList is not supported, use className
-            document.documentElement.className = 'loaded';
-        }
-    </script>
+    <script src="address-locator.js?v=1.0.0" defer></script>
+    <script src="tracking.js?v=1.0.0" defer></script>
+    <script src="bobgo-sync-queue.js?v=1.0.0" defer></script>
     <!-- Header -->
     <header class="header">
         <nav class="navbar">
@@ -1092,7 +1081,7 @@
     </div>
     <div class="auth-overlay" id="forgotPasswordOverlay" onclick="closeForgotPasswordModal()"></div>
 
-    <script src="script.js?v=5.0.0" defer></script>
+    <script src="script.js?v=7.0.0" defer></script>
     <script>
         // Fallback: render products as soon as script.js loads
         window.addEventListener('DOMContentLoaded', function() {
@@ -1101,8 +1090,9 @@
                 if (grid && typeof products !== 'undefined' && products.length > 0 && !grid.innerHTML) {
                     var items = products.slice(0, 8);
                     grid.innerHTML = items.map(function(p) {
+                        var imgHtml = p.image ? '<img src="' + p.image + '" alt="' + p.name + '">' : p.icon;
                         return '<div class="product-card" onclick="openProductModal(' + p.id + ')">' +
-                            '<div class="product-image">' + p.icon + '</div>' +
+                            '<div class="product-image">' + imgHtml + '</div>' +
                             '<div class="product-info">' +
                             '<h3 class="product-name">' + p.name + '</h3>' +
                             '<p class="product-desc">' + p.desc + '</p>' +
@@ -1118,6 +1108,7 @@
             }, 100);
         });
     </script>
+
 <div class="sales-notification" id="salesNotification"><div class="sales-notification-content"><div class="sales-notification-icon"><i class="fas fa-shopping-bag"></i></div><div class="sales-notification-text"><p class="sales-notification-message" id="salesNotificationMessage">Someone just purchased a product!</p><p class="sales-notification-time">Just now</p></div></div></div>
 
     <!-- Mobile Bottom Navigation -->

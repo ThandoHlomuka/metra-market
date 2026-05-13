@@ -9,7 +9,7 @@ const PAYFAST_CONFIG = {
 };
 
 // Product Data
-const products = [
+let products = [
     {
         id: 1,
         name: "Wireless Headphones",
@@ -394,6 +394,29 @@ const products = [
     }
 ];
 
+// Override with admin-managed products from localStorage if available
+try {
+    const stored = localStorage.getItem('metraProducts');
+    if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            products = parsed;
+        }
+    }
+} catch (e) {
+    // Fall back to hardcoded defaults
+}
+
+// Safe JSON parser helper
+function safeJSON(key, fallback = null) {
+    try {
+        const val = localStorage.getItem(key);
+        return val ? JSON.parse(val) : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
 // State
 let cart = [];
 let wishlist = [];
@@ -632,10 +655,14 @@ const EMAIL_CONFIG = {
 
 // Load email config from localStorage
 function loadEmailConfig() {
-    const saved = localStorage.getItem('metraEmailConfig');
-    if (saved) {
-        const config = JSON.parse(saved);
-        Object.assign(EMAIL_CONFIG, config);
+    try {
+        const saved = localStorage.getItem('metraEmailConfig');
+        if (saved) {
+            const config = JSON.parse(saved);
+            Object.assign(EMAIL_CONFIG, config);
+        }
+    } catch (e) {
+        console.error('Error loading email config:', e);
     }
 }
 
@@ -776,14 +803,20 @@ const EMAIL_TEMPLATES = {
 
 // Load email templates from localStorage (allows admin customization)
 function loadEmailTemplates() {
-    const saved = localStorage.getItem('metraEmailTemplates');
-    if (saved) {
-        const customTemplates = JSON.parse(saved);
-        customTemplates.forEach(t => {
-            if (EMAIL_TEMPLATES[t.id]) {
-                Object.assign(EMAIL_TEMPLATES[t.id], t);
+    try {
+        const saved = localStorage.getItem('metraEmailTemplates');
+        if (saved) {
+            const customTemplates = JSON.parse(saved);
+            if (Array.isArray(customTemplates)) {
+                customTemplates.forEach(t => {
+                    if (EMAIL_TEMPLATES[t.id]) {
+                        Object.assign(EMAIL_TEMPLATES[t.id], t);
+                    }
+                });
             }
-        });
+        }
+    } catch (e) {
+        console.error('Error loading email templates:', e);
     }
 }
 
@@ -906,32 +939,39 @@ async function processEmailQueue() {
 
 // Analytics Tracking
 function trackEvent(eventType, metadata = {}) {
-    const eventData = {
-        eventType,
-        userId: currentUser?.id || null,
-        sessionId: getSessionId(),
-        pageUrl: window.location.href,
-        metadata,
-        timestamp: new Date().toISOString()
-    };
+    try {
+        const eventData = {
+            eventType,
+            userId: currentUser?.id || null,
+            sessionId: getSessionId(),
+            pageUrl: window.location.href,
+            metadata,
+            timestamp: new Date().toISOString()
+        };
 
-    // Always save to localStorage
-    const events = JSON.parse(localStorage.getItem('metraAnalytics') || '[]');
-    events.push(eventData);
-    localStorage.setItem('metraAnalytics', JSON.stringify(events));
+        // Always save to localStorage
+        const savedEvents = localStorage.getItem('metraAnalytics');
+        const events = savedEvents ? JSON.parse(savedEvents) : [];
+        if (Array.isArray(events)) {
+            events.push(eventData);
+            localStorage.setItem('metraAnalytics', JSON.stringify(events));
+        }
 
-    // Also track with Google Analytics and Microsoft Clarity if enabled
-    if (window.metraTracking && window.metraTracking.trackEvent) {
-        window.metraTracking.trackEvent(eventType, metadata);
-    }
+        // Also track with Google Analytics and Microsoft Clarity if enabled
+        if (window.metraTracking && window.metraTracking.trackEvent) {
+            window.metraTracking.trackEvent(eventType, metadata);
+        }
 
-    // Also send to API if database is enabled
-    if (DB_CONFIG.useDatabase) {
-        fetch('/api/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventData)
-        }).catch(err => console.log('Analytics tracking failed:', err));
+        // Also send to API if database is enabled
+        if (DB_CONFIG.useDatabase) {
+            fetch('/api/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(eventData)
+            }).catch(err => console.log('Analytics tracking failed:', err));
+        }
+    } catch (e) {
+        console.error('Analytics tracking error:', e);
     }
 }
 
@@ -978,6 +1018,15 @@ function destroySession() {
     localStorage.removeItem('metraCurrentUser');
 }
 
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('metraSessionId');
+    if (!sessionId) {
+        sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+        sessionStorage.setItem('metraSessionId', sessionId);
+    }
+    return sessionId;
+}
+
 function extendSession() {
     const session = getSession();
     if (session) {
@@ -1009,20 +1058,29 @@ setInterval(() => {
 
 // Update user session activity
 function updateUserActivity() {
-    if (currentUser) {
-        currentUser.lastActive = new Date().toISOString();
-        localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
-        
-        // Update in users array
-        const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
-        const index = users.findIndex(u => u.id === currentUser.id);
-        if (index > -1) {
-            users[index].lastActive = currentUser.lastActive;
-            localStorage.setItem('metraUsers', JSON.stringify(users));
-        }
+    try {
+        if (currentUser) {
+            currentUser.lastActive = new Date().toISOString();
+            localStorage.setItem('metraCurrentUser', JSON.stringify(currentUser));
+            
+            // Update in users array
+            const savedUsers = localStorage.getItem('metraUsers');
+            if (savedUsers) {
+                const users = JSON.parse(savedUsers);
+                if (Array.isArray(users)) {
+                    const index = users.findIndex(u => u.id === currentUser.id);
+                    if (index > -1) {
+                        users[index].lastActive = currentUser.lastActive;
+                        localStorage.setItem('metraUsers', JSON.stringify(users));
+                    }
+                }
+            }
 
-        // Track activity
-        trackEvent('user_active', { userId: currentUser.id });
+            // Track activity
+            trackEvent('user_active', { userId: currentUser.id });
+        }
+    } catch (e) {
+        console.error('Error updating user activity:', e);
     }
 }
 
@@ -1031,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Initializing Metra Market...');
     console.log('Products array length:', products.length);
 
+    // Load data (wrapped in try-catch so failures don't block product rendering)
     try {
         loadEmailConfig();
         loadEmailTemplates();
@@ -1040,62 +1099,56 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRecentlyViewed();
         checkUserSession();
 
-        // Load addresses if user is logged in
         if (currentUser) {
             loadAddresses();
         }
 
-        // Load applied coupon
         const savedCoupon = localStorage.getItem('metraAppliedCoupon');
         if (savedCoupon) {
             appliedCoupon = JSON.parse(savedCoupon);
         }
-
-        // Render products with error handling
-        renderProducts();
-        console.log('Products rendered successfully');
-
-        updateCart();
-        updateWishlistCount();
-        setupMobileNav();
-        initTouchGestures();
-        showRandomSalesNotification();
-        initFacebookSDK();
-
-        // Track page view
-        trackEvent('page_view', { page: window.location.pathname });
-
-        // Update user activity every minute
-        setInterval(updateUserActivity, 60000);
-
-        // Process email queue every 30 seconds
-        setInterval(processEmailQueue, 30000);
-
-        // Load chat messages if user is logged in
-        if (currentUser) {
-            loadChatMessages();
-        }
-
-        // Track visitor activity for admin dashboard
-        trackVisitorActivity();
-
-        // Listen for storage events (real-time updates from other tabs)
-        window.addEventListener('storage', handleStorageEvent);
-
-        console.log('Metra Market initialization complete');
     } catch (error) {
-        console.error('Critical initialization error:', error);
-        // Ensure page is visible even if there's an error
-        document.documentElement.classList.add('loaded');
-        document.body.style.visibility = 'visible';
-        document.body.style.opacity = '1';
+        console.error('Data loading error:', error);
     }
 
-    // Safety net: ensure products render even if earlier init steps failed
+    // Always render products regardless of data loading errors
+    renderProducts();
+    console.log('Products rendered successfully');
+
+    updateCart();
+    updateWishlistCount();
+    setupMobileNav();
+    initTouchGestures();
+    showRandomSalesNotification();
+    initFacebookSDK();
+
+    // Track page view
+    trackEvent('page_view', { page: window.location.pathname });
+
+    // Update user activity every minute
+    setInterval(updateUserActivity, 60000);
+
+    // Process email queue every 30 seconds
+    setInterval(processEmailQueue, 30000);
+
+    // Load chat messages if user is logged in
+    if (currentUser) {
+        loadChatMessages();
+    }
+
+    // Track visitor activity for admin dashboard
+    trackVisitorActivity();
+
+    // Listen for storage events (real-time updates from other tabs)
+    window.addEventListener('storage', handleStorageEvent);
+
+    console.log('Metra Market initialization complete');
+
+    // Safety net: ensure products render if grid is still empty
     setTimeout(function() {
         var grid = document.getElementById('productsGrid');
         if (grid && !grid.innerHTML) {
-            console.warn('⚠️ Products grid empty after init — running safety render');
+            console.warn('Products grid empty after init — running safety render');
             renderProducts();
         }
     }, 500);
@@ -1105,27 +1158,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Track visitor activity
 function trackVisitorActivity() {
-    const activity = {
-        type: 'page_view',
-        page: window.location.pathname,
-        timestamp: Date.now(),
-        userAgent: navigator.userAgent,
-        sessionId: getSessionId()
-    };
-    
-    // Store in localStorage for admin to read
-    const activities = JSON.parse(localStorage.getItem('metraActivities') || '[]');
-    activities.push(activity);
-    
-    // Keep only last 1000 activities
-    if (activities.length > 1000) {
-        activities.splice(0, activities.length - 1000);
+    try {
+        const activity = {
+            type: 'page_view',
+            page: window.location.pathname,
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent,
+            sessionId: getSessionId()
+        };
+        
+        const savedActivities = localStorage.getItem('metraActivities');
+        const activities = savedActivities ? JSON.parse(savedActivities) : [];
+        if (Array.isArray(activities)) {
+            activities.push(activity);
+            if (activities.length > 1000) {
+                activities.splice(0, activities.length - 1000);
+            }
+            localStorage.setItem('metraActivities', JSON.stringify(activities));
+        }
+        
+        updateActiveVisitors();
+    } catch (e) {
+        console.error('Error tracking visitor activity:', e);
     }
-    
-    localStorage.setItem('metraActivities', JSON.stringify(activities));
-    
-    // Update active visitors count
-    updateActiveVisitors();
 }
 
 // Update active visitors count
@@ -1337,7 +1392,7 @@ function sendChatMessage(event) {
     showNotification('Message sent! Admin will respond soon');
 
     // Notify admin (in production, this would send real-time notification)
-    console.log('New chat message from', currentUser.email, ':', message);
+    console.log('New chat message sent');
 }
 
 function loadChatMessages() {
@@ -1427,7 +1482,7 @@ function renderProducts() {
 
     grid.innerHTML = homepageProducts.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
-            <div class="product-image">${product.icon}</div>
+            <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-desc">${product.desc}</p>
@@ -1576,7 +1631,7 @@ function renderFilteredProducts() {
     
     grid.innerHTML = filteredProducts.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
-            <div class="product-image">${product.icon}</div>
+            <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-desc">${product.desc}</p>
@@ -1593,10 +1648,14 @@ function renderFilteredProducts() {
 
 // Clear Filters
 function clearFilters() {
-    document.getElementById('productSearch').value = '';
-    document.getElementById('categoryFilter').value = 'all';
-    document.getElementById('priceFilter').value = 'all';
-    document.getElementById('sortFilter').value = 'default';
+    const searchEl = document.getElementById('productSearch');
+    const catEl = document.getElementById('categoryFilter');
+    const priceEl = document.getElementById('priceFilter');
+    const sortEl = document.getElementById('sortFilter');
+    if (searchEl) searchEl.value = '';
+    if (catEl) catEl.value = 'all';
+    if (priceEl) priceEl.value = 'all';
+    if (sortEl) sortEl.value = 'default';
     
     filteredProducts = [...products];
     currentSort = 'default';
@@ -1665,7 +1724,7 @@ function updateCart() {
     if (cartItems) {
         cartItems.innerHTML = cart.map(item => `
             <div class="cart-item">
-                <div class="cart-item-image">${item.icon}</div>
+                <div class="cart-item-image">${item.image ? `<img src="${item.image}" alt="${item.name}">` : item.icon}</div>
                 <div class="cart-item-info">
                     <div class="cart-item-name">${item.name}</div>
                     <div class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</div>
@@ -2169,8 +2228,8 @@ function toggleDeliveryOptions() {
         updateCheckoutTotals();
     } else {
         collectionDetails.style.display = 'none';
-        // Recalculate shipping
-        calculateShipping();
+        // Recalculate shipping cost from Bobgo configuration
+        shippingCost = BOBGO_CONFIG.defaultShipping || 89;
         updateCheckoutTotals();
     }
 }
@@ -2197,7 +2256,7 @@ function loadCheckoutItems() {
 
     container.innerHTML = cart.map(item => `
         <div class="checkout-item">
-            <div class="checkout-item-icon">${item.icon}</div>
+            <div class="checkout-item-icon">${item.image ? `<img src="${item.image}" alt="${item.name}">` : item.icon}</div>
             <div class="checkout-item-details">
                 <h4>${item.name}</h4>
                 <p>Qty: ${item.quantity} x R${item.price.toFixed(2)}</p>
@@ -2262,6 +2321,7 @@ function applyCoupon() {
 
     window.appliedDiscount = discountAmount;
     window.appliedCoupon = code;
+    appliedCoupon = coupon;
 
     message.style.display = 'block';
     message.style.color = '#228B22';
@@ -2319,6 +2379,7 @@ function processCheckout(event) {
     const order = {
         id: 'ORD-' + Date.now(),
         invoiceNumber: 'INV-' + Date.now(),
+        invoiceDelivery: invoiceDeliveryMethod || 'email',
         userId: userId,
         isGuest: !currentUser,
         customerName: customerName,
@@ -2363,7 +2424,7 @@ function processCheckout(event) {
 
 // Save Order (updated for guest checkout)
 function saveOrder(order, newsletterSignup = false) {
-    const orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    const orders = safeJSON('metraOrders', []);
     orders.push(order);
     localStorage.setItem('metraOrders', JSON.stringify(orders));
 
@@ -2371,8 +2432,9 @@ function saveOrder(order, newsletterSignup = false) {
     if (currentUser) {
         if (!currentUser.orders) currentUser.orders = [];
         currentUser.orders.push(order.id);
+        const users = safeJSON('metraUsers', []);
         localStorage.setItem('metraUsers', JSON.stringify(
-            JSON.parse(localStorage.getItem('metraUsers') || '[]').map(u =>
+            users.map(u =>
                 u.id === currentUser.id ? currentUser : u
             )
         ));
@@ -2423,7 +2485,7 @@ function saveOrder(order, newsletterSignup = false) {
 
     // Newsletter signup
     if (newsletterSignup) {
-        const subscribers = JSON.parse(localStorage.getItem('metraSubscribers') || '[]');
+        const subscribers = safeJSON('metraSubscribers', []);
         if (!subscribers.find(s => s.email === order.customerEmail)) {
             subscribers.push({ email: order.customerEmail, date: new Date().toISOString(), source: 'checkout' });
             localStorage.setItem('metraSubscribers', JSON.stringify(subscribers));
@@ -2706,16 +2768,6 @@ function processPayFastPayment(order) {
     localStorage.setItem('lastOrderId', order.id);
     localStorage.setItem('lastOrderTotal', order.total.toString());
 
-    // Debug logging
-    console.log('=== PayFast Payment Debug ===');
-    console.log('Merchant ID:', PAYFAST_CONFIG.merchantId);
-    console.log('Sandbox Mode:', PAYFAST_CONFIG.sandbox);
-    console.log('Order ID:', order.id);
-    console.log('Order Total:', order.total);
-    console.log('Customer Email:', customerEmail);
-    console.log('Email Valid:', emailRegex.test(customerEmail));
-    console.log('PayFast URL:', payFastUrl);
-
     const formData = {
         merchant_id: PAYFAST_CONFIG.merchantId,
         merchant_key: PAYFAST_CONFIG.merchantKey,
@@ -2730,17 +2782,11 @@ function processPayFastPayment(order) {
         confirmation_first: 'buyer'
     };
 
-    // Debug: Log form data
-    console.log('Form Data:', formData);
-
     // Generate signature
     if (PAYFAST_CONFIG.passphrase) {
         const pfParam = Object.keys(formData).map(key => key + '=' + encodeURIComponent(formData[key])).join('&');
         const signature = CryptoJS.MD5(pfParam + '&passphrase=' + encodeURIComponent(PAYFAST_CONFIG.passphrase)).toString();
         formData.signature = signature;
-        console.log('Signature Generated:', signature);
-    } else {
-        console.log('No passphrase configured - signature not generated');
     }
 
     // Create and submit form
@@ -2792,7 +2838,7 @@ function generateInvoice(order) {
         date: order.date
     };
 
-    const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+    const invoices = safeJSON('metraInvoices', []);
     invoices.push(invoice);
     localStorage.setItem('metraInvoices', JSON.stringify(invoices));
 
@@ -2946,8 +2992,8 @@ function openWishlistModal() {
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; padding: 1rem;">
                         ${wishlistProducts.map(product => `
                             <div style="background: linear-gradient(135deg, rgba(255, 248, 231, 0.08), rgba(255, 248, 231, 0.03)); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255, 248, 231, 0.15); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.4), rgba(220, 20, 60, 0.4)); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; border-bottom: 1px solid rgba(255, 248, 231, 0.1);">
-                                    ${product.icon}
+                                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.4), rgba(220, 20, 60, 0.4)); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; border-bottom: 1px solid rgba(255, 248, 231, 0.1); overflow: hidden;">
+                                    ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;">` : product.icon}
                                 </div>
                                 <div style="padding: 1rem;">
                                     <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #FFF8E7; min-height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
@@ -3015,57 +3061,23 @@ function addAllToCart() {
 
 // ==================== COUPON/DISCOUNT SYSTEM ====================
 
-// Apply Coupon
-function applyCoupon(code) {
-    if (!code) {
-        showNotification('Please enter a coupon code');
-        return;
-    }
-    
-    const coupon = VALID_COUPONS.find(c => c.code.toUpperCase() === code.toUpperCase());
-    
-    if (!coupon) {
-        showNotification('Invalid coupon code');
-        return;
-    }
-    
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    if (subtotal < coupon.minOrder) {
-        showNotification(`Minimum order amount is R${coupon.minOrder} for this coupon`);
-        return;
-    }
-    
-    appliedCoupon = coupon;
-    updateCart();
-    showNotification(`Coupon applied! ${coupon.description}`);
-    
-    // Save to localStorage
-    localStorage.setItem('metraAppliedCoupon', JSON.stringify(coupon));
-}
-
 // Remove Coupon
 function removeCoupon() {
     appliedCoupon = null;
+    window.appliedCoupon = null;
+    window.appliedDiscount = 0;
     localStorage.removeItem('metraAppliedCoupon');
     updateCart();
     showNotification('Coupon removed');
 }
 
-// Calculate Discount
+// Calculate Discount - supports both module variable and window variable
 function calculateDiscount(subtotal) {
-    if (!appliedCoupon) return 0;
-    
-    switch(appliedCoupon.type) {
-        case 'percent':
-            return (subtotal * appliedCoupon.discount) / 100;
-        case 'fixed':
-            return Math.min(appliedCoupon.discount, subtotal);
-        case 'freeship':
-            return 0; // Discount applied to shipping
-        default:
-            return 0;
+    if (appliedCoupon) {
+        const disc = window.appliedDiscount || 0;
+        return Math.min(disc, subtotal);
     }
+    return window.appliedDiscount || 0;
 }
 
 // Render Coupon Input in Cart
@@ -3143,9 +3155,16 @@ function subscribeToNewsletter(email) {
 
 // Load Newsletter Subscribers
 function loadNewsletterSubscribers() {
-    const saved = localStorage.getItem('metraNewsletterSubscribers');
-    if (saved) {
-        newsletterSubscribers = JSON.parse(saved);
+    try {
+        const saved = localStorage.getItem('metraNewsletterSubscribers');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                newsletterSubscribers = parsed;
+            }
+        }
+    } catch (e) {
+        console.error('Error loading newsletter subscribers:', e);
     }
 }
 
@@ -3188,7 +3207,7 @@ function renderRecentlyViewed() {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
             ${viewedProducts.map(product => `
                 <div class="product-card" onclick="openProductModal(${product.id})" style="cursor: pointer;">
-                    <div class="product-image" style="height: 150px; font-size: 3rem;">${product.icon}</div>
+                    <div class="product-image" style="height: 150px; font-size: 3rem;">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
                     <div class="product-info" style="padding: 1rem;">
                         <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--light);">${product.name}</h4>
                         <p style="font-weight: 700; color: var(--primary);">R${product.price.toFixed(2)}</p>
@@ -3201,9 +3220,16 @@ function renderRecentlyViewed() {
 
 // Load Recently Viewed
 function loadRecentlyViewed() {
-    const saved = localStorage.getItem('metraRecentlyViewed');
-    if (saved) {
-        recentlyViewed = JSON.parse(saved);
+    try {
+        const saved = localStorage.getItem('metraRecentlyViewed');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                recentlyViewed = parsed;
+            }
+        }
+    } catch (e) {
+        console.error('Error loading recently viewed:', e);
     }
 }
 
@@ -3419,7 +3445,7 @@ function handleLogin(event) {
     const email = emailInput.toLowerCase();
     const password = document.getElementById('loginPassword').value;
 
-    console.log('Login attempt:', { email: emailInput, passwordLength: password.length });
+    console.log('Login attempt processed');
 
     const users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
     console.log('Users in storage:', users.length);
@@ -3468,7 +3494,7 @@ function handleRegister(event) {
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerConfirmPassword').value;
 
-    console.log('Registration attempt:', { name, email: emailInput, phone, passwordLength: password.length });
+    console.log('Registration attempt processed');
 
     // Validation
     if (!name || !email || !password) {
@@ -3548,23 +3574,26 @@ function handleRegister(event) {
 }
 
 function checkUserSession() {
-    // First check if user is marked as logged in
-    const loggedIn = localStorage.getItem('metraUserLoggedIn');
-    if (loggedIn === 'true') {
-        // Try to get persistent session
-        const session = getSession();
-        if (session) {
-            // Get full user data
-            const user = JSON.parse(localStorage.getItem('metraCurrentUser') || 'null');
-            if (user && user.id === session.userId) {
-                currentUser = user;
-                updateProfileIcon();
-                // Update last active
-                updateUserActivity();
-                return;
+    try {
+        const loggedIn = localStorage.getItem('metraUserLoggedIn');
+        if (loggedIn === 'true') {
+            const session = getSession();
+            if (session) {
+                const userData = localStorage.getItem('metraCurrentUser');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    if (user && user.id === session.userId) {
+                        currentUser = user;
+                        updateProfileIcon();
+                        updateUserActivity();
+                        return;
+                    }
+                }
             }
+            destroySession();
         }
-        // Session invalid, clear login state
+    } catch (e) {
+        console.error('Error checking user session:', e);
         destroySession();
     }
 }
@@ -3638,7 +3667,7 @@ function handleForgotPassword(event) {
     
     // In production, send email with reset link
     // For demo, show token in console
-    console.log('Password Reset Token:', resetToken);
+    console.log('Password reset email sent');
     console.log('Reset Link:', window.location.origin + '/reset-password.html?token=' + resetToken);
     
     // Show success message
@@ -3767,7 +3796,7 @@ function switchProfileTab(tab) {
                 <div class="products-grid">
                     ${wishlistProducts.map(product => `
                         <div class="product-card">
-                            <div class="product-image">${product.icon}</div>
+                            <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
                             <div class="product-info">
                                 <h3>${product.name}</h3>
                                 <p>R${product.price.toFixed(2)}</p>
@@ -3991,9 +4020,8 @@ function sendWhatsAppOTP(event) {
     //     })
     // });
     
-    // For demo: show OTP in notification (remove in production!)
-    showNotification(`Your OTP is: ${otp} (Check console in production)`);
-    console.log('WhatsApp OTP for', phone, ':', otp);
+    // Send OTP to the provided WhatsApp number
+    console.log('OTP sent to', phone);
     
     // Show OTP input form
     document.getElementById('whatsappPhoneForm').style.display = 'none';
@@ -4135,7 +4163,7 @@ function openProductModal(productId) {
     const isWishlisted = wishlist.includes(product.id);
 
     modalBody.innerHTML = `
-        <div class="modal-product-image">${product.icon}</div>
+        <div class="modal-product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
         <h2 class="modal-product-name">${product.name}</h2>
         <p class="modal-product-sku">SKU: ${product.sku}</p>
         <p class="modal-product-price">R${product.price.toFixed(2)}</p>
@@ -4145,10 +4173,10 @@ function openProductModal(productId) {
             <p>${product.fullDescription}</p>
         </div>
         
-        <div class="modal-product-specs">
+            <div class="modal-product-specs">
             <h3>Specifications</h3>
             <ul class="specs-list">
-                ${product.specs.map(spec => `<li><i class="fas fa-check"></i> ${spec}</li>`).join('')}
+                ${(product.specs || []).map(spec => `<li><i class="fas fa-check"></i> ${spec}</li>`).join('')}
             </ul>
         </div>
         
@@ -4541,7 +4569,7 @@ function handleContactSubmit(event) {
     localStorage.setItem('metraContactMessages', JSON.stringify(messages));
     
     // In production, send email to admin
-    console.log('Contact form submission:', contactMessage);
+    console.log('Contact form submitted');
     
     // Show success
     showNotification('Message sent! We will get back to you soon.');

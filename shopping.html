@@ -31,11 +31,11 @@
     <link rel="stylesheet" href="styles.css?v=7.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="address-locator.js?v=1.0.0"></script>
-    <script src="tracking.js?v=1.0.0"></script>
-    <script src="bobgo-sync-queue.js?v=1.0.0"></script>
+    <script src="address-locator.js?v=1.0.0" defer></script>
+    <script src="tracking.js?v=1.0.0" defer></script>
+    <script src="bobgo-sync-queue.js?v=1.0.0" defer></script>
     
     <style>
         .shopping-hero {
@@ -375,7 +375,7 @@
     </div>
 
     <!-- Include main script -->
-    <script src="script.js?v=5.0.0"></script>
+    <script src="script.js?v=7.0.0" defer></script>
 
     <!-- Product Detail Modal -->
     <div class="product-modal" id="productModal">
@@ -458,10 +458,11 @@
             grid.innerHTML = filteredProducts.map(product => {
                 const stockStatus = product.stock > 20 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock';
                 const stockClass = product.stock > 20 ? 'stock-in-stock' : product.stock > 0 ? 'stock-low' : 'stock-out';
+                const imageHtml = product.image ? '<img src="' + product.image + '" alt="' + product.name + '">' : product.icon;
                 
                 return `
                 <div class="product-card" onclick="openProductModal(${product.id})" style="cursor: pointer;">
-                    <div class="product-image">${product.icon}</div>
+                    <div class="product-image">${imageHtml}</div>
                     <div class="product-info">
                         <h3 class="product-name">${product.name}</h3>
                         <p class="product-desc">${product.desc}</p>

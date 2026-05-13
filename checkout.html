@@ -29,10 +29,11 @@
     <link rel="stylesheet" href="styles.css?v=7.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="address-locator.js?v=1.0.0"></script>
-    <script src="tracking.js?v=1.0.0"></script>
-    <script src="bobgo-sync-queue.js?v=1.0.0"></script>
-    <script src="script.js?v=7.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
+    <script src="address-locator.js?v=1.0.0" defer></script>
+    <script src="tracking.js?v=1.0.0" defer></script>
+    <script src="bobgo-sync-queue.js?v=1.0.0" defer></script>
+    <script src="script.js?v=7.0.0" defer></script>
     <style>
         .checkout-page { min-height: 100vh; padding: 6rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
         .checkout-page h1 { font-size: 2rem; margin-bottom: 2rem; text-align: center; }
@@ -145,7 +146,7 @@
                         <div id="checkoutItemsList">
                             ${cart.map(item => `
                                 <div class="checkout-item">
-                                    <div class="checkout-item-icon">${item.icon || '📦'}</div>
+                                    <div class="checkout-item-icon">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;">` : (item.icon || '📦')}</div>
                                     <div class="checkout-item-details">
                                         <h4>${item.name}</h4>
                                         <p>Qty: ${item.quantity}</p>
@@ -481,7 +482,6 @@
                 service_type: serviceCode,
                 serviceType: serviceCode,
                 service_level_code: serviceCode,
-                serviceName: courierData.service_name || courierData.service_type || '',
                 serviceName: courierData.service_name || courierData.service_type || '',
                 shippingCost: order.shippingCost || 0,
                 insuranceAmount: totalValue,

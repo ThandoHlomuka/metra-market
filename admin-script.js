@@ -220,13 +220,13 @@ function loadData() {
     }
 
     // Load orders
-    orders = JSON.parse(localStorage.getItem('metraOrders') || '[]');
+    orders = safeJSON('metraOrders', []);
 
     // Load users
-    users = JSON.parse(localStorage.getItem('metraUsers') || '[]');
+    users = safeJSON('metraUsers', []);
 
     // Load settings
-    settings = JSON.parse(localStorage.getItem('metraSettings') || '{}');
+    settings = safeJSON('metraSettings', {});
 
     // Load tracking settings
     loadTrackingSettings();
@@ -321,7 +321,7 @@ function updateDashboard() {
             const product = products.find(p => p.id == id);
             return product ? `
                 <div class="top-product-item">
-                    <div class="top-product-icon">${product.icon}</div>
+                    <div class="top-product-icon">${product.image ? `<img src="${product.image}" alt="${product.name}" style="width:100%;height:100%;object-fit:cover;">` : product.icon}</div>
                     <div class="top-product-info">
                         <div class="top-product-name">${product.name}</div>
                         <div class="top-product-sales">${sales} sold</div>
@@ -401,7 +401,12 @@ function renderProductsTable() {
     const tbody = document.getElementById('productsTable');
     tbody.innerHTML = products.map(product => `
         <tr>
-            <td class="product-icon-cell">${product.icon}</td>
+            <td class="product-icon-cell">
+                ${product.image
+                    ? `<img src="${product.image}" alt="${product.name}" class="product-thumb">`
+                    : product.icon
+                }
+            </td>
             <td>${product.name}</td>
             <td>${product.sku}</td>
             <td>R${product.price.toFixed(2)}</td>
@@ -434,6 +439,9 @@ function openProductModal() {
         document.getElementById('productMetaKeywords').value = '';
         updateSeoPreview();
     }
+
+    // Reset image
+    resetImageUpload();
 }
 
 // Auto-generate slug when product name changes
@@ -511,20 +519,74 @@ function updateSeoPreview() {
     if (previewDesc) previewDesc.textContent = metaDesc || 'Your meta description will appear here...';
 }
 
+// ==================== PRODUCT IMAGE UPLOAD ====================
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('Image must be less than 5MB');
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageUrl = e.target.result;
+        const preview = document.getElementById('imagePreview');
+        const removeBtn = document.getElementById('removeImageBtn');
+        const input = document.getElementById('productImageInput');
+
+        input.dataset.imageUrl = imageUrl;
+        preview.innerHTML = `<img src="${imageUrl}" alt="Product image">`;
+        removeBtn.style.display = 'inline-flex';
+    };
+    reader.onerror = function() {
+        showNotification('Failed to read image file');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeProductImage() {
+    const input = document.getElementById('productImageInput');
+    const preview = document.getElementById('imagePreview');
+    const removeBtn = document.getElementById('removeImageBtn');
+
+    input.value = '';
+    delete input.dataset.imageUrl;
+    removeBtn.style.display = 'none';
+    preview.innerHTML = '<i class="fas fa-image"></i><span>No image selected</span>';
+}
+
+function resetImageUpload() {
+    const input = document.getElementById('productImageInput');
+    const preview = document.getElementById('imagePreview');
+    const removeBtn = document.getElementById('removeImageBtn');
+
+    input.value = '';
+    delete input.dataset.imageUrl;
+    removeBtn.style.display = 'none';
+    preview.innerHTML = '<i class="fas fa-image"></i><span>No image selected</span>';
+}
+
 function saveProduct(event) {
     event.preventDefault();
 
     const editId = document.getElementById('editProductId').value;
     const specsInput = document.getElementById('productSpecs').value;
     const tagsInput = document.getElementById('productTags').value;
+    const imageInput = document.getElementById('productImageInput');
 
     const productData = {
         name: document.getElementById('productName').value,
         sku: document.getElementById('productSku').value,
         price: parseFloat(document.getElementById('productPrice').value),
         icon: document.getElementById('productIcon').value,
+        image: imageInput.dataset.imageUrl || '',
         desc: document.getElementById('productDesc').value,
         fullDescription: document.getElementById('productFullDesc').value,
+        stock: parseInt(document.getElementById('productStock').value) || 0,
         specs: specsInput ? specsInput.split(',').map(s => s.trim()) : [],
         tags: tagsInput ? tagsInput.split(',').map(t => t.trim()) : [],
         reviews: [],
@@ -544,9 +606,26 @@ function saveProduct(event) {
         // Edit existing
         const index = products.findIndex(p => p.id == editId);
         if (index > -1) {
-            productData.id = parseInt(editId);
-            productData.reviews = products[index].reviews || [];
-            products[index] = productData;
+            const existing = products[index];
+            existing.name = productData.name;
+            existing.sku = productData.sku;
+            existing.price = productData.price;
+            existing.icon = productData.icon;
+            existing.image = productData.image;
+            existing.desc = productData.desc;
+            existing.fullDescription = productData.fullDescription;
+            existing.stock = productData.stock;
+            existing.specs = productData.specs;
+            existing.tags = productData.tags;
+            existing.weight = productData.weight;
+            existing.length = productData.length;
+            existing.width = productData.width;
+            existing.height = productData.height;
+            existing.slug = productData.slug;
+            existing.metaTitle = productData.metaTitle;
+            existing.metaDesc = productData.metaDesc;
+            existing.metaKeywords = productData.metaKeywords;
+            products[index] = existing;
         }
     } else {
         // Add new
@@ -577,6 +656,7 @@ function editProduct(id) {
     document.getElementById('productIcon').value = product.icon;
     document.getElementById('productDesc').value = product.desc;
     document.getElementById('productFullDesc').value = product.fullDescription || '';
+    document.getElementById('productStock').value = product.stock || '';
     document.getElementById('productSpecs').value = product.specs ? product.specs.join(', ') : '';
     document.getElementById('productTags').value = product.tags ? product.tags.join(', ') : '';
     
@@ -593,6 +673,18 @@ function editProduct(id) {
         document.getElementById('productMetaDesc').value = product.metaDesc || '';
         document.getElementById('productMetaKeywords').value = product.metaKeywords || '';
         updateSeoPreview();
+    }
+
+    // Load product image
+    const imageInput = document.getElementById('productImageInput');
+    const preview = document.getElementById('imagePreview');
+    const removeBtn = document.getElementById('removeImageBtn');
+    if (product.image) {
+        imageInput.dataset.imageUrl = product.image;
+        preview.innerHTML = `<img src="${product.image}" alt="${product.name}">`;
+        removeBtn.style.display = 'inline-flex';
+    } else {
+        resetImageUpload();
     }
 
     document.getElementById('productModalOverlay').style.display = 'flex';
@@ -718,7 +810,7 @@ function viewOrder(orderId) {
                     </div>
                     <div>
                         <p style="color: var(--gray); font-size: 0.85rem;">Status</p>
-                        <span class="status-badge ${order.status}">${order.status}</span>
+                <span class="status-badge ${order.status || 'pending'}">${order.status || 'pending'}</span>
                     </div>
                     <div>
                         <p style="color: var(--gray); font-size: 0.85rem;">Customer</p>
@@ -1030,8 +1122,8 @@ function renderReviews() {
                 <span class="review-product">${review.productName}</span>
                 <div class="review-rating">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>
             </div>
-            <p class="review-user">${review.user} - ${review.date}</p>
-            <p class="review-comment">${review.comment}</p>
+            <p class="review-user">${review.user || 'Anonymous'} - ${review.date || ''}</p>
+            <p class="review-comment">${(review.comment || '').substring(0, 200)}</p>
             <button class="btn-danger btn-sm" onclick="deleteReview(${review.productId}, ${index})">
                 <i class="fas fa-trash"></i> Delete Review
             </button>
@@ -1039,17 +1131,30 @@ function renderReviews() {
     `).join('') : '<div class="empty-state" style="grid-column: 1/-1;"><i class="fas fa-star"></i><p>No reviews yet</p></div>';
 }
 
-function deleteReview(productId, reviewIndex) {
+function deleteReview(productId, flatIndex) {
     if (confirm('Delete this review?')) {
         const product = products.find(p => p.id === productId);
-        if (product && product.reviews) {
-            product.reviews.splice(reviewIndex, 1);
+        const reviewToDelete = reviews[flatIndex];
+        if (product && product.reviews && reviewToDelete) {
+            const productReviewIndex = product.reviews.findIndex(r =>
+                r.user === reviewToDelete.user &&
+                r.date === reviewToDelete.date &&
+                r.comment === reviewToDelete.comment
+            );
+            if (productReviewIndex > -1) {
+                product.reviews.splice(productReviewIndex, 1);
+            }
             saveProducts();
             renderReviews();
             updateDashboard();
             showNotification('Review deleted successfully!');
         }
     }
+}
+
+// Test Bobgo Shipping (available in admin page)
+function testBobgoShipping() {
+    showNotification('Open the storefront to test Bobgo shipping with live rates');
 }
 
 // Settings
@@ -1070,8 +1175,8 @@ function saveSettings(event) {
     };
     localStorage.setItem('metraSettings', JSON.stringify(settings));
 
-    // Reload Bobgo config in main window
-    loadBobgoConfig();
+    // Reload Bobgo config in main window (if script.js is loaded)
+    if (typeof loadBobgoConfig === 'function') loadBobgoConfig();
 
     showNotification('Bobgo shipping settings saved successfully! API key is securely managed in Vercel dashboard.');
 }
@@ -1306,8 +1411,8 @@ function renderInvoices() {
             <td><strong>${invoice.invoiceNumber}</strong></td>
             <td>${invoice.orderId}</td>
             <td>
-                ${invoice.customer.name}<br>
-                <small style="color: var(--gray);">${invoice.customer.email}</small>
+                ${invoice.customerName || (invoice.customer && invoice.customer.name) || 'N/A'}<br>
+                <small style="color: var(--gray);">${invoice.customerEmail || (invoice.customer && invoice.customer.email) || ''}</small>
             </td>
             <td>${invoice.date}</td>
             <td><strong>R${invoice.total.toFixed(2)}</strong></td>
@@ -1388,11 +1493,11 @@ function viewInvoice(orderId) {
                 <div style="border-top: 2px solid var(--primary); padding-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <span>Subtotal:</span>
-                        <span>R${order.subtotal.toFixed(2)}</span>
+                        <span>R${(order.subtotal || 0).toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <span>Shipping:</span>
-                        <span>R${order.shipping.toFixed(2)}</span>
+                        <span>R${(order.shipping || 0).toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; color: var(--primary);">
                         <span>Total:</span>
@@ -1451,6 +1556,25 @@ function exportAllInvoices() {
     a.click();
     URL.revokeObjectURL(url);
     showNotification('Invoices exported! 📄');
+}
+
+// Download Invoice
+function downloadInvoice(orderId) {
+    const invoices = JSON.parse(localStorage.getItem('metraInvoices') || '[]');
+    const invoice = invoices.find(i => i.orderId === orderId || i.id === orderId);
+    if (!invoice) {
+        showNotification('Invoice not found');
+        return;
+    }
+    const text = `INVOICE ${invoice.invoiceNumber || orderId}\nDate: ${invoice.date || ''}\nCustomer: ${invoice.customerName || ''}\nTotal: R${(invoice.total || 0).toFixed(2)}`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice-${invoice.invoiceNumber || orderId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('Invoice downloaded');
 }
 
 // Add animation styles if not exists
@@ -2017,7 +2141,7 @@ function generateTopProductsTable(products, orders) {
                 <td>#${index + 1}</td>
                 <td>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.5rem;">${stat.product.icon}</span>
+                        <span style="font-size: 1.5rem;">${stat.product.image ? `<img src="${stat.product.image}" alt="${stat.product.name}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;vertical-align:middle;">` : stat.product.icon}</span>
                         <span>${stat.product.name}</span>
                     </div>
                 </td>
@@ -2032,6 +2156,16 @@ function generateTopProductsTable(products, orders) {
             </tr>
         `;
     }).join('');
+}
+
+// Safe JSON parser helper
+function safeJSON(key, fallback = null) {
+    try {
+        const val = localStorage.getItem(key);
+        return val ? JSON.parse(val) : fallback;
+    } catch {
+        return fallback;
+    }
 }
 
 // ==================== EMAIL MANAGEMENT ====================
@@ -2536,14 +2670,16 @@ function editTemplate(templateId) {
 }
 
 // Select Layout
-function selectLayout(layout) {
+function selectLayout(layout, event) {
     currentLayout = layout;
     
     // Highlight selected layout
     document.querySelectorAll('.layout-option').forEach(el => {
         el.style.borderColor = 'rgba(255,248,231,0.1)';
     });
-    event.currentTarget.style.borderColor = 'var(--primary)';
+    if (event && event.currentTarget) {
+        event.currentTarget.style.borderColor = 'var(--primary)';
+    }
     
     // Update template with selected layout
     if (currentEditingTemplate && PREDESIGNED_TEMPLATES[currentEditingTemplate]) {
@@ -2965,102 +3101,7 @@ function testEmailConnection() {
     }, 1500);
 }
 
-// Edit Template
-function editTemplate(templateId) {
-    currentEditingTemplate = templateId;
-    
-    const savedTemplates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
-    const savedTemplate = savedTemplates.find(t => t.id === templateId);
-    
-    const templateNames = {
-        order_confirmation: 'Order Confirmation',
-        invoice: 'Invoice',
-        admin_new_order: 'Admin - New Order Alert',
-        password_reset: 'Password Reset'
-    };
 
-    document.getElementById('templateName').value = templateNames[templateId] || templateId;
-    document.getElementById('templateSubject').value = savedTemplate?.subject || '';
-    document.getElementById('templateHtml').value = savedTemplate?.html || '';
-    document.getElementById('templateEditor').style.display = 'block';
-}
-
-// Save Template
-function saveTemplate() {
-    if (!currentEditingTemplate) return;
-
-    const subject = document.getElementById('templateSubject').value;
-    const html = document.getElementById('templateHtml').value;
-
-    const templates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
-    const index = templates.findIndex(t => t.id === currentEditingTemplate);
-    
-    if (index > -1) {
-        templates[index].subject = subject;
-        templates[index].html = html;
-    } else {
-        templates.push({
-            id: currentEditingTemplate,
-            subject: subject,
-            html: html
-        });
-    }
-
-    localStorage.setItem('metraEmailTemplates', JSON.stringify(templates));
-    showNotification('Template saved successfully!');
-    document.getElementById('templateEditor').style.display = 'none';
-}
-
-// Reset Template
-function resetTemplate() {
-    if (!currentEditingTemplate) return;
-
-    if (confirm('Reset this template to default? Your customizations will be lost.')) {
-        const templates = JSON.parse(localStorage.getItem('metraEmailTemplates') || '[]');
-        const filtered = templates.filter(t => t.id !== currentEditingTemplate);
-        localStorage.setItem('metraEmailTemplates', JSON.stringify(filtered));
-        
-        document.getElementById('templateSubject').value = '';
-        document.getElementById('templateHtml').value = '';
-        showNotification('Template reset to default');
-    }
-}
-
-// Load Email Queue
-function loadEmailQueue() {
-    const tbody = document.getElementById('emailQueueTable');
-    const queue = JSON.parse(localStorage.getItem('metraEmailQueue') || '[]');
-
-    if (queue.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No emails in queue</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = queue.map(email => `
-        <tr>
-            <td>${email.to}</td>
-            <td>${email.subject?.substring(0, 40) || ''}${(email.subject?.length || 0) > 40 ? '...' : ''}</td>
-            <td>${email.templateId || 'Custom'}</td>
-            <td>
-                <span style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; 
-                    background: ${email.status === 'sent' ? 'rgba(34, 139, 34, 0.2)' : 'rgba(255, 165, 0, 0.2)'};
-                    color: ${email.status === 'sent' ? '#228B22' : '#FFA500'};">
-                    ${email.status || 'pending'}
-                </span>
-            </td>
-            <td>${new Date(email.createdAt).toLocaleString('en-ZA')}</td>
-        </tr>
-    `).reverse().join('');
-}
-
-// Clear Email Queue
-function clearEmailQueue() {
-    if (confirm('Clear all emails from queue?')) {
-        localStorage.removeItem('metraEmailQueue');
-        loadEmailQueue();
-        showNotification('Email queue cleared');
-    }
-}
 
 // ==================== SUPPORT CHAT MANAGEMENT ====================
 
