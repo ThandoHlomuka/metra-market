@@ -482,6 +482,11 @@ function openProductModal() {
     // Reset image and gallery
     resetImageUpload();
     resetGallery();
+    // Reset variants
+    currentVariants = [];
+    renderVariantsTable();
+    document.querySelectorAll('#variantAttrs .variant-attr-row').forEach(el => el.remove());
+    document.getElementById('clearVariantsBtn').style.display = 'none';
 }
 
 // Auto-generate slug when product name changes
@@ -676,6 +681,169 @@ function resetGallery() {
     }
 }
 
+// ==================== PRODUCT VARIANTS ====================
+
+let currentVariants = [];
+
+function addVariantAttr() {
+    const container = document.getElementById('variantAttrs');
+    const row = document.createElement('div');
+    row.className = 'variant-attr-row';
+    row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+    row.innerHTML = `
+        <input type="text" class="variant-attr-name" placeholder="Attribute name (e.g. Size)"
+               style="flex: 1; padding: 0.5rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(255,255,255,0.05); color: var(--text);">
+        <input type="text" class="variant-attr-values" placeholder="Values (e.g. Small, Medium, Large)"
+               style="flex: 2; padding: 0.5rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(255,255,255,0.05); color: var(--text);">
+        <button type="button" class="btn-danger btn-sm" onclick="this.parentElement.remove(); updateClearBtn()" style="padding: 0.4rem 0.6rem;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    container.appendChild(row);
+    updateClearBtn();
+}
+
+function getVariantAttrs() {
+    const rows = document.querySelectorAll('#variantAttrs .variant-attr-row');
+    const attrs = [];
+    rows.forEach(row => {
+        const name = row.querySelector('.variant-attr-name').value.trim();
+        const values = row.querySelector('.variant-attr-values').value.split(',').map(v => v.trim()).filter(Boolean);
+        if (name && values.length > 0) {
+            attrs.push({ name, values });
+        }
+    });
+    return attrs;
+}
+
+function cartesianProduct(arrays) {
+    if (arrays.length === 0) return [[]];
+    const [first, ...rest] = arrays;
+    const restProduct = cartesianProduct(rest);
+    const result = [];
+    first.values.forEach(val => {
+        restProduct.forEach(combo => {
+            result.push([{ ...combo, [first.name]: val }]);
+        });
+    });
+    return result.flat(Infinity);
+}
+
+function generateVariants() {
+    const attrs = getVariantAttrs();
+    if (attrs.length === 0) {
+        showNotification('Add at least one attribute with values first!');
+        return;
+    }
+
+    const valuesArrays = attrs.map(a => a.values.map(v => ({ name: a.name, value: v })));
+
+    function combine(arrs) {
+        if (arrs.length === 0) return [];
+        if (arrs.length === 1) return arrs[0].map(v => [v]);
+        const [first, ...rest] = arrs;
+        const restCombo = combine(rest);
+        const result = [];
+        first.forEach(v => {
+            restCombo.forEach(combo => {
+                result.push([v, ...combo]);
+            });
+        });
+        return result;
+    }
+
+    const combinations = combine(valuesArrays);
+    const basePrice = parseFloat(document.getElementById('productPrice').value) || 0;
+
+    currentVariants = combinations.map((combo, i) => {
+        const labels = combo.map(c => c.value);
+        return {
+            label: labels.join(' / '),
+            price: basePrice,
+            stock: parseInt(document.getElementById('productStock').value) || 0,
+            skuSuffix: labels.map(l => l.substring(0, 2).toUpperCase()).join('')
+        };
+    });
+
+    renderVariantsTable();
+    document.getElementById('clearVariantsBtn').style.display = 'inline-flex';
+    showNotification(`${currentVariants.length} variants generated!`);
+}
+
+function renderVariantsTable() {
+    const container = document.getElementById('variantsTable');
+    const tbody = document.getElementById('variantsTbody');
+    if (!container || !tbody) return;
+
+    if (currentVariants.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    tbody.innerHTML = currentVariants.map((v, i) => `
+        <tr>
+            <td><strong>${v.label}</strong></td>
+            <td><input type="number" step="0.01" class="variant-price" value="${v.price}" data-index="${i}"
+                       style="width: 100px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+            <td><input type="number" class="variant-stock" value="${v.stock}" data-index="${i}"
+                       style="width: 80px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+            <td><input type="text" class="variant-sku" value="${v.skuSuffix}" data-index="${i}"
+                       style="width: 100px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+            <td><button type="button" class="btn-danger btn-sm" onclick="removeVariant(${i})"><i class="fas fa-times"></i></button></td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.variant-price, .variant-stock, .variant-sku').forEach(input => {
+        input.addEventListener('input', syncVariantInput);
+    });
+}
+
+function syncVariantInput(e) {
+    const index = parseInt(e.target.dataset.index);
+    if (isNaN(index) || !currentVariants[index]) return;
+    if (e.target.classList.contains('variant-price')) {
+        currentVariants[index].price = parseFloat(e.target.value) || 0;
+    } else if (e.target.classList.contains('variant-stock')) {
+        currentVariants[index].stock = parseInt(e.target.value) || 0;
+    } else if (e.target.classList.contains('variant-sku')) {
+        currentVariants[index].skuSuffix = e.target.value.trim();
+    }
+}
+
+function removeVariant(index) {
+    currentVariants.splice(index, 1);
+    renderVariantsTable();
+    updateClearBtn();
+}
+
+function clearVariants() {
+    if (confirm('Clear all variants?')) {
+        currentVariants = [];
+        renderVariantsTable();
+        document.getElementById('clearVariantsBtn').style.display = 'none';
+        document.querySelectorAll('#variantAttrs .variant-attr-row').forEach(el => el.remove());
+    }
+}
+
+function updateClearBtn() {
+    const hasAttrs = document.querySelectorAll('#variantAttrs .variant-attr-row').length > 0;
+    const hasVariants = currentVariants.length > 0;
+    document.getElementById('clearVariantsBtn').style.display = (hasAttrs || hasVariants) ? 'inline-flex' : 'none';
+}
+
+function collectVariants() {
+    return currentVariants.length > 0 ? currentVariants : null;
+}
+
+function loadVariants(variants) {
+    currentVariants = variants && Array.isArray(variants) ? variants : [];
+    if (currentVariants.length > 0) {
+        renderVariantsTable();
+        document.getElementById('clearVariantsBtn').style.display = 'inline-flex';
+    }
+}
+
 function saveProduct(event) {
     event.preventDefault();
 
@@ -683,6 +851,9 @@ function saveProduct(event) {
     const specsInput = document.getElementById('productSpecs').value;
     const tagsInput = document.getElementById('productTags').value;
     const imageInput = document.getElementById('productImageInput');
+
+    // Sync variant input fields before saving
+    document.querySelectorAll('#variantsTbody .variant-price, #variantsTbody .variant-stock, #variantsTbody .variant-sku').forEach(syncVariantInput);
 
     const productData = {
         name: document.getElementById('productName').value,
@@ -697,6 +868,7 @@ function saveProduct(event) {
         specs: specsInput ? specsInput.split(',').map(s => s.trim()) : [],
         tags: tagsInput ? tagsInput.split(',').map(t => t.trim()) : [],
         reviews: [],
+        variants: collectVariants(),
         // Shipping details for Bobgo
         weight: parseFloat(document.getElementById('productWeight').value) || 0.5,
         length: parseFloat(document.getElementById('productLength').value) || 30,
@@ -725,6 +897,7 @@ function saveProduct(event) {
             existing.stock = productData.stock;
             existing.specs = productData.specs;
             existing.tags = productData.tags;
+            existing.variants = productData.variants;
             existing.weight = productData.weight;
             existing.length = productData.length;
             existing.width = productData.width;
@@ -799,6 +972,9 @@ function editProduct(id) {
         renderGalleryPreview();
     }
 
+    // Load product variants
+    loadVariants(product.variants);
+
     document.getElementById('productModalOverlay').style.display = 'flex';
 }
 
@@ -864,7 +1040,7 @@ function viewOrder(orderId) {
     const itemsList = order.items.map(item =>
         `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0;">
             <span>${item.icon}</span>
-            <span>${item.name} x ${item.quantity}</span>
+            <span>${item.name}${item._variantLabel ? ' <span style="color: var(--gray); font-size: 0.8rem;">(' + item._variantLabel + ')</span>' : ''} x ${item.quantity}</span>
             <span style="margin-left: auto;">R${(item.price * item.quantity).toFixed(2)}</span>
         </div>`
     ).join('');

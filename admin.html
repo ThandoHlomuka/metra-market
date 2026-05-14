@@ -1391,7 +1391,48 @@
                         <label>Tags (comma separated)</label>
                         <input type="text" id="productTags" placeholder="Tag1, Tag2, Tag3">
                     </div>
-                    
+
+                    <!-- Product Variants -->
+                    <div class="form-group" style="background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                        <label style="color: #8A2BE2; font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                            <i class="fas fa-tags"></i> Product Variants
+                        </label>
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Define variant options like Size, Color, etc. Variants override the base price and stock.
+                        </p>
+                        <div id="variantAttrs">
+                            <!-- Attribute rows added dynamically -->
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <button type="button" class="btn-secondary btn-sm" onclick="addVariantAttr()">
+                                <i class="fas fa-plus"></i> Add Attribute
+                            </button>
+                            <button type="button" class="btn-primary btn-sm" onclick="generateVariants()">
+                                <i class="fas fa-sync"></i> Generate Variants
+                            </button>
+                            <button type="button" class="btn-danger btn-sm" onclick="clearVariants()" style="display:none" id="clearVariantsBtn">
+                                <i class="fas fa-trash"></i> Clear Variants
+                            </button>
+                        </div>
+                        <div id="variantsTable" style="display: none;">
+                            <h4 style="color: #8A2BE2; margin-bottom: 0.5rem;">Variant Options</h4>
+                            <div style="overflow-x: auto;">
+                                <table class="data-table" id="variantsDataTable" style="width: 100%; font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Variant</th>
+                                            <th>Price (R)</th>
+                                            <th>Stock</th>
+                                            <th>SKU Suffix</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="variantsTbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group" style="background: rgba(0, 200, 83, 0.1); border: 1px solid rgba(0, 200, 83, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
                         <label style="color: #00C853; font-weight: 600; margin-bottom: 0.5rem; display: block;">
                             <i class="fas fa-shipping-fast"></i> Shipping Details (Bobgo)

@@ -1295,23 +1295,43 @@ function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    const existingItem = cart.find(item => item.id === productId);
+    const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
+    const variant = getSelectedVariant(productId);
+
+    if (hasVariants && !variant) {
+        showNotification('Please select all variant options first!');
+        return;
+    }
+
+    const variantLabel = variant ? variant.label : null;
+    const cartId = variant ? productId + '-' + variant.skuSuffix : productId;
+    const cartPrice = variant ? variant.price : product.price;
+    const displayName = variant ? product.name + ' (' + variant.label + ')' : product.name;
+
+    const existingItem = cart.find(item => item.cartId === cartId);
     if (existingItem) {
         existingItem.quantity += 1;
     } else {
-        cart.push({ ...product, quantity: 1 });
+        cart.push({
+            ...product,
+            cartId: cartId,
+            quantity: 1,
+            _variantLabel: variantLabel,
+            _variantSkuSuffix: variant ? variant.skuSuffix : '',
+            price: cartPrice
+        });
     }
 
     updateCart();
     saveCart();
-    showNotification(`${product.name} added to cart!`);
+    showNotification(displayName + ' added to cart!');
 
     // Track event
-    trackEvent('add_to_cart', { productId, productName: product.name, price: product.price });
+    trackEvent('add_to_cart', { productId, variant: variantLabel, productName: displayName, price: cartPrice });
 }
 
-function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
+function removeFromCart(cartId) {
+    cart = cart.filter(item => (item.cartId || item.id) != cartId);
     updateCart();
     saveCart();
 }
@@ -1350,18 +1370,21 @@ function updateCart() {
     const total = subtotal + finalShipping - discount;
 
     if (cartItems) {
-        cartItems.innerHTML = cart.map(item => `
+        cartItems.innerHTML = cart.map(item => {
+            const cartId = item.cartId || item.id;
+            const displayName = item._variantLabel ? item.name + ' <span style="color: var(--gray); font-size: 0.8rem;">(' + item._variantLabel + ')</span>' : item.name;
+            return `
             <div class="cart-item">
                 <div class="cart-item-image">${item.image ? `<img src="${item.image}" alt="${item.name}">` : item.icon}</div>
                 <div class="cart-item-info">
-                    <div class="cart-item-name">${item.name}</div>
+                    <div class="cart-item-name">${displayName}</div>
                     <div class="cart-item-price">R${item.price.toFixed(2)} x ${item.quantity}</div>
                 </div>
-                <button class="cart-item-remove" onclick="removeFromCart(${item.id})">
+                <button class="cart-item-remove" onclick="removeFromCart('${cartId}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     if (cartSubtotal) cartSubtotal.textContent = `R${subtotal.toFixed(2)}`;
@@ -1886,7 +1909,7 @@ function loadCheckoutItems() {
         <div class="checkout-item">
             <div class="checkout-item-icon">${item.image ? `<img src="${item.image}" alt="${item.name}">` : item.icon}</div>
             <div class="checkout-item-details">
-                <h4>${item.name}</h4>
+                <h4>${item.name}${item._variantLabel ? ' <span style="font-weight: normal; color: var(--gray); font-size: 0.85rem;">(' + item._variantLabel + ')</span>' : ''}</h4>
                 <p>Qty: ${item.quantity} x R${item.price.toFixed(2)}</p>
             </div>
             <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
@@ -2082,7 +2105,7 @@ function saveOrder(order, newsletterSignup = false) {
     // Send order confirmation email to customer
     const itemsList = order.items.map(item =>
         `<tr>
-            <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}${item._variantLabel ? ' (' + item._variantLabel + ')' : ''}</td>
             <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
             <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">R${(item.price * item.quantity).toFixed(2)}</td>
         </tr>`
@@ -3822,11 +3845,51 @@ function openProductModal(productId) {
         galleryHTML = `<div class="modal-product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>`;
     }
 
+    const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
+
+    let variantHTML = '';
+    let variantPrice = product.price;
+    if (hasVariants) {
+        const attrNames = [...new Set(product.variants.flatMap(v => {
+            const parts = v.label.split(' / ');
+            return parts.length > 1 ? parts.map((_, i) => `Option ${i + 1}`) : ['Option'];
+        }))];
+
+        const attrSets = product.variants.map(v => v.label.split(' / '));
+        const numAttrs = attrSets[0] ? attrSets[0].length : 1;
+        const attrValues = [];
+        for (let a = 0; a < numAttrs; a++) {
+            const vals = [...new Set(attrSets.map(s => s[a]))];
+            attrValues.push(vals);
+        }
+
+        variantHTML = `<div class="product-variants" data-product-id="${product.id}">`;
+        attrValues.forEach((vals, ai) => {
+            variantHTML += `
+                <div class="variant-group">
+                    <label class="variant-label">${attrNames[ai] || 'Option ' + (ai + 1)}</label>
+                    <div class="variant-options">
+                        ${vals.map(v => `
+                            <button type="button" class="variant-btn" data-value="${v}" onclick="selectVariant(${product.id}, this)">
+                                ${v}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        variantHTML += `<p class="variant-sku-display">SKU: ${product.sku}</p>`;
+        variantHTML += `<p class="variant-stock-display">In Stock</p>`;
+        variantHTML += `</div>`;
+    }
+
     modalBody.innerHTML = `
         ${galleryHTML}
         <h2 class="modal-product-name">${product.name}</h2>
         <p class="modal-product-sku">SKU: ${product.sku}</p>
-        <p class="modal-product-price">R${product.price.toFixed(2)}</p>
+        <p class="modal-product-price" id="modalProductPrice">R${product.price.toFixed(2)}</p>
+        
+        ${variantHTML}
         
         <div class="modal-product-description">
             <h3>Description</h3>
@@ -3889,9 +3952,11 @@ function openProductModal(productId) {
         </div>
     `;
 
-    // Store carousel images globally for this modal
+    // Store carousel images and product data for this modal
     window._carouselImages = allImages;
     window._carouselIndex = 0;
+    window._currentProductId = product.id;
+    window._currentVariants = hasVariants ? product.variants : null;
 
     modal.classList.add('active');
     overlay.classList.add('active');
@@ -3906,6 +3971,66 @@ function closeProductModal() {
     }
     window._carouselImages = null;
     window._carouselIndex = 0;
+    window._currentProductId = null;
+    window._currentVariants = null;
+}
+
+// Variant selection
+function selectVariant(productId, btn) {
+    const group = btn.closest('.variant-group');
+    if (group) {
+        group.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('selected'));
+    }
+    btn.classList.add('selected');
+
+    const modalVariants = window._currentVariants;
+    if (!modalVariants) return;
+
+    const variantContainer = document.querySelector('.product-variants[data-product-id="' + productId + '"]');
+    if (!variantContainer) return;
+
+    const selectedBtns = variantContainer.querySelectorAll('.variant-btn.selected');
+    const selectedLabels = Array.from(selectedBtns).map(b => b.dataset.value);
+
+    const match = modalVariants.find(v => {
+        const vLabels = v.label.split(' / ');
+        return selectedLabels.length === vLabels.length && selectedLabels.every((l, i) => vLabels[i] === l);
+    });
+
+    const priceEl = document.getElementById('modalProductPrice');
+    const skuEl = variantContainer.querySelector('.variant-sku-display');
+    const stockEl = variantContainer.querySelector('.variant-stock-display');
+
+    if (match) {
+        if (priceEl) priceEl.textContent = 'R' + match.price.toFixed(2);
+        if (skuEl) skuEl.textContent = 'SKU: ' + (match.skuSuffix ? productId + '-' + match.skuSuffix : '');
+        if (stockEl) {
+            stockEl.textContent = match.stock > 0 ? 'In Stock (' + match.stock + ' available)' : 'Out of Stock';
+            stockEl.style.color = match.stock > 0 ? '#4CAF50' : '#f44336';
+        }
+        variantContainer.dataset.selectedVariant = match.label;
+    } else if (selectedLabels.length > 0 && selectedLabels.length < (modalVariants[0]?.label.split(' / ').length || 1)) {
+        if (priceEl) priceEl.textContent = 'R' + (products.find(p => p.id === productId)?.price || 0).toFixed(2);
+        if (skuEl) skuEl.textContent = '';
+        if (stockEl) {
+            stockEl.textContent = 'Select all options';
+            stockEl.style.color = 'var(--gray)';
+        }
+        variantContainer.dataset.selectedVariant = '';
+    }
+}
+
+function getSelectedVariant(productId) {
+    const variants = window._currentVariants;
+    if (!variants) return null;
+
+    const variantContainer = document.querySelector('.product-variants[data-product-id="' + productId + '"]');
+    if (!variantContainer) return null;
+
+    const selectedLabel = variantContainer.dataset.selectedVariant;
+    if (!selectedLabel) return null;
+
+    return variants.find(v => v.label === selectedLabel) || null;
 }
 
 // Carousel navigation

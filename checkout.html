@@ -148,8 +148,8 @@
                                 <div class="checkout-item">
                                     <div class="checkout-item-icon">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;">` : (item.icon || '📦')}</div>
                                     <div class="checkout-item-details">
-                                        <h4>${item.name}</h4>
-                                        <p>Qty: ${item.quantity}</p>
+                                        <h4>${item.name}${item._variantLabel ? ' <span style="font-weight:normal;color:var(--gray);font-size:0.85rem;">(' + item._variantLabel + ')</span>' : ''}</h4>
+                                        <p>Qty: ${item.quantity} x R${item.price.toFixed(2)}</p>
                                     </div>
                                     <div class="checkout-item-price">R${(item.price * item.quantity).toFixed(2)}</div>
                                 </div>

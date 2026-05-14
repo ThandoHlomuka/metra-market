@@ -1247,3 +1247,28 @@ body {
         font-size: 0.85rem;
     }
 }
+
+/* Admin Variants */
+.variant-attr-row input {
+    font-size: 0.85rem;
+}
+
+#variantsDataTable th,
+#variantsDataTable td {
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#variantsDataTable th {
+    background: rgba(138, 43, 226, 0.15);
+    color: #8A2BE2;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#variantsDataTable td input {
+    font-size: 0.85rem;
+}
