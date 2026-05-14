@@ -205,18 +205,7 @@ function loadData() {
     if (storedProducts) {
         products = JSON.parse(storedProducts);
     } else {
-        // Default products if none exist
-        products = [
-            { id: 1, name: "Wireless Headphones", price: 1199.99, desc: "Premium noise-canceling wireless headphones", icon: "🎧", sku: "WH-001", tags: ["Audio", "Wireless", "Premium"], fullDescription: "Experience superior sound quality", specs: ["40mm drivers", "Bluetooth 5.2", "40hr battery"], reviews: [], weight: 0.3, length: 20, width: 18, height: 8 },
-            { id: 2, name: "Smart Watch", price: 2999.99, desc: "Feature-rich smartwatch with health tracking", icon: "⌚", sku: "SW-002", tags: ["Wearables", "Fitness"], fullDescription: "Stay connected and track fitness", specs: ["1.4 AMOLED", "Heart rate", "GPS"], reviews: [], weight: 0.15, length: 10, width: 8, height: 5 },
-            { id: 3, name: "Laptop Stand", price: 749.99, desc: "Ergonomic aluminum laptop stand", icon: "💻", sku: "LS-003", tags: ["Office", "Ergonomic"], fullDescription: "Improve your posture", specs: ["Aluminum", "6 heights", "17 inch"], reviews: [], weight: 1.2, length: 28, width: 22, height: 5 },
-            { id: 4, name: "Mechanical Keyboard", price: 1949.99, desc: "RGB mechanical gaming keyboard", icon: "⌨️", sku: "MK-004", tags: ["Gaming", "RGB"], fullDescription: "Dominate your games", specs: ["Cherry MX", "RGB", "Aluminum"], reviews: [], weight: 1.0, length: 44, width: 14, height: 4 },
-            { id: 5, name: "Wireless Mouse", price: 899.99, desc: "Precision wireless gaming mouse", icon: "🖱️", sku: "WM-005", tags: ["Gaming", "Wireless"], fullDescription: "Pixel-perfect precision", specs: ["25K DPI", "68g", "80hr"], reviews: [], weight: 0.07, length: 12, width: 7, height: 4 },
-            { id: 6, name: "USB-C Hub", price: 599.99, desc: "7-in-1 USB-C hub with HDMI", icon: "🔌", sku: "UH-006", tags: ["Connectivity", "USB-C"], fullDescription: "Expand your connectivity", specs: ["4K HDMI", "3x USB", "SD"], reviews: [], weight: 0.1, length: 11, width: 5, height: 2 },
-            { id: 7, name: "Portable Speaker", price: 1349.99, desc: "Waterproof Bluetooth speaker", icon: "🔊", sku: "PS-007", tags: ["Audio", "Portable"], fullDescription: "Take music anywhere", specs: ["360 sound", "24hr", "IPX7"], reviews: [], weight: 0.5, length: 15, width: 8, height: 8 },
-            { id: 8, name: "Phone Case", price: 374.99, desc: "Premium leather phone case", icon: "📱", sku: "PC-008", tags: ["Accessories", "Leather"], fullDescription: "Protect in style", specs: ["Leather", "Card slot", "Magnetic"], reviews: [], weight: 0.05, length: 16, width: 9, height: 2 }
-        ];
-        saveProducts();
+        products = [];
     }
 
     // Load orders
