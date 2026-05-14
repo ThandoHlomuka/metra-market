@@ -266,7 +266,7 @@
         </div>
         
         <!-- Products Grid -->
-        <div class="products-grid" id="productsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+        <div class="products-grid" id="productsGrid">
             <!-- Products loaded dynamically -->
         </div>
         
@@ -485,6 +485,9 @@
         
         // Initialize shopping page
         document.addEventListener('DOMContentLoaded', () => {
+            // Set default grid view
+            setView('grid');
+            
             // Render all products
             filteredProducts = [...products];
             renderFilteredProducts();
