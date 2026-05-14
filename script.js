@@ -688,7 +688,7 @@ function updateUserActivity() {
     }
 }
 
-// Load products from localStorage
+// Load products from localStorage (instant), then refresh from DB in background
 function loadProducts() {
     try {
         const stored = localStorage.getItem('metraProducts');
@@ -701,6 +701,14 @@ function loadProducts() {
     } catch (e) {
         console.warn('Failed to load products from localStorage');
     }
+    fetch(window.location.origin + '/api/products').then(r => r.ok ? r.json() : null).then(data => {
+        if (data && data.products && Array.isArray(data.products) && data.products.length > 0) {
+            products = data.products;
+            localStorage.setItem('metraProducts', JSON.stringify(products));
+            if (typeof renderProducts === 'function') renderProducts();
+            if (typeof renderFilteredProducts === 'function') renderFilteredProducts();
+        }
+    }).catch(() => {});
 }
 
 // Initialize

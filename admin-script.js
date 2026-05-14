@@ -51,6 +51,8 @@ function adminLogin(event) {
     if (username === ADMIN_CREDENTIALS.username && passwordOk) {
         localStorage.setItem('metraAdminLoggedIn', 'true');
         localStorage.setItem('metraAdminName', username);
+        // Store auth for API calls (tab-only, cleared on close)
+        sessionStorage.setItem('metraAdminAuth', btoa(username + ':' + password));
         showDashboard();
     } else {
         errorEl.textContent = 'Invalid username or password';
@@ -65,12 +67,12 @@ function adminLogout() {
 }
 
 // Show Dashboard
-function showDashboard() {
+async function showDashboard() {
     document.getElementById('adminLogin').style.display = 'none';
     document.getElementById('adminDashboard').style.display = 'flex';
 
     // Load data
-    loadData();
+    await loadData();
     updateDashboard();
     
     // Start real-time updates
@@ -198,14 +200,61 @@ function showAdminNotification(message) {
     }, 3000);
 }
 
+// API helpers for product persistence
+function getApiBaseUrl() {
+    return window.location.origin;
+}
+
+function getAuthToken() {
+    return sessionStorage.getItem('metraAdminAuth') || '';
+}
+
+async function syncProductsToDB(productArray) {
+    try {
+        const token = getAuthToken();
+        if (!token) return;
+        const resp = await fetch(getApiBaseUrl() + '/api/products', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + token
+            },
+            body: JSON.stringify({ products: productArray })
+        });
+        if (!resp.ok) console.warn('DB sync failed:', resp.status, (await resp.json()).error);
+    } catch (e) {
+        // DB sync is best-effort; localStorage always works
+    }
+}
+
+async function loadProductsFromDB() {
+    try {
+        const resp = await fetch(getApiBaseUrl() + '/api/products');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.products && Array.isArray(data.products) && data.products.length > 0) {
+                products = data.products;
+                localStorage.setItem('metraProducts', JSON.stringify(products));
+                return true;
+            }
+        }
+    } catch (e) {
+        // Fall through to localStorage
+    }
+    return false;
+}
+
 // Load All Data
-function loadData() {
-    // Load products
-    const storedProducts = localStorage.getItem('metraProducts');
-    if (storedProducts) {
-        products = JSON.parse(storedProducts);
-    } else {
-        products = [];
+async function loadData() {
+    // Load products — try DB first, fall back to localStorage
+    const dbLoaded = await loadProductsFromDB();
+    if (!dbLoaded) {
+        const storedProducts = localStorage.getItem('metraProducts');
+        if (storedProducts) {
+            products = JSON.parse(storedProducts);
+        } else {
+            products = [];
+        }
     }
 
     // Load orders
@@ -238,6 +287,7 @@ function loadData() {
 // Save Products
 function saveProducts() {
     localStorage.setItem('metraProducts', JSON.stringify(products));
+    syncProductsToDB(products);
 }
 
 // Update Dashboard
