@@ -586,6 +586,8 @@ function handleImageUpload(event) {
         input.dataset.imageUrl = imageUrl;
         preview.innerHTML = `<img src="${imageUrl}" alt="Product image">`;
         removeBtn.style.display = 'inline-flex';
+        const bgBtn = document.getElementById('removeBgBtn');
+        if (bgBtn) bgBtn.style.display = 'inline-flex';
     };
     reader.onerror = function() {
         showNotification('Failed to read image file');
@@ -608,13 +610,79 @@ function resetImageUpload() {
     const input = document.getElementById('productImageInput');
     const preview = document.getElementById('imagePreview');
     const removeBtn = document.getElementById('removeImageBtn');
+    const bgBtn = document.getElementById('removeBgBtn');
 
     input.value = '';
     delete input.dataset.imageUrl;
     removeBtn.style.display = 'none';
+    if (bgBtn) bgBtn.style.display = 'none';
     preview.innerHTML = '<i class="fas fa-image"></i><span>No image selected</span>';
 
     resetGallery();
+}
+
+function removeImageBackground() {
+    const imageUrl = document.getElementById('productImageInput')?.dataset?.imageUrl;
+    if (!imageUrl) return;
+
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const threshold = 240;
+
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] > threshold && data[i + 1] > threshold && data[i + 2] > threshold) {
+                data[i + 3] = 0;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        const transparentUrl = canvas.toDataURL('image/png');
+
+        const preview = document.getElementById('imagePreview');
+        const input = document.getElementById('productImageInput');
+        input.dataset.imageUrl = transparentUrl;
+        preview.innerHTML = `<img src="${transparentUrl}" alt="Product image">`;
+        showNotification('Background removed!');
+    };
+    img.src = imageUrl;
+}
+
+function removeGalleryImageBackground(index) {
+    const url = galleryUploadData[index];
+    if (!url) return;
+
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const threshold = 240;
+
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] > threshold && data[i + 1] > threshold && data[i + 2] > threshold) {
+                data[i + 3] = 0;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        galleryUploadData[index] = canvas.toDataURL('image/png');
+        renderGalleryPreview();
+        showNotification('Gallery image background removed!');
+    };
+    img.src = url;
 }
 
 // ==================== PRODUCT GALLERY (MULTIPLE IMAGES) ====================
@@ -666,9 +734,14 @@ function renderGalleryPreview() {
                 <span class="gallery-item-index">${index + 1}</span>
                 ${index === 0 ? '<span class="gallery-item-main">Main</span>' : ''}
             </div>
-            <button type="button" class="gallery-item-remove" onclick="removeGalleryImage(${index})" title="Remove image">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; gap: 4px;">
+                <button type="button" class="gallery-item-bg" onclick="removeGalleryImageBackground(${index})" title="Remove white background">
+                    <i class="fas fa-magic"></i>
+                </button>
+                <button type="button" class="gallery-item-remove" onclick="removeGalleryImage(${index})" title="Remove image">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
     `).join('');
 }
@@ -957,10 +1030,12 @@ function editProduct(id) {
     const imageInput = document.getElementById('productImageInput');
     const preview = document.getElementById('imagePreview');
     const removeBtn = document.getElementById('removeImageBtn');
+    const bgBtn = document.getElementById('removeBgBtn');
     if (product.image) {
         imageInput.dataset.imageUrl = product.image;
         preview.innerHTML = `<img src="${product.image}" alt="${product.name}">`;
         removeBtn.style.display = 'inline-flex';
+        if (bgBtn) bgBtn.style.display = 'inline-flex';
     } else {
         resetImageUpload();
     }
