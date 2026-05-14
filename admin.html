@@ -1349,6 +1349,26 @@
                             </small>
                         </div>
                     </div>
+
+                    <!-- Product Gallery -->
+                    <div class="form-group">
+                        <label>Product Gallery (Multiple Images)</label>
+                        <div class="gallery-upload-wrapper">
+                            <div class="gallery-grid" id="galleryPreview">
+                                <!-- Gallery thumbnails rendered here -->
+                            </div>
+                            <div class="gallery-upload-actions">
+                                <input type="file" id="productGalleryInput" accept="image/*" multiple style="display: none;" onchange="handleGalleryUpload(event)">
+                                <button type="button" class="btn-secondary btn-sm" onclick="document.getElementById('productGalleryInput').click()">
+                                    <i class="fas fa-images"></i> Add Gallery Images
+                                </button>
+                                <small style="color: var(--gray); font-size: 0.8rem; margin-left: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i> Upload multiple images. First image will be the main product image.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>Short Description</label>
                         <input type="text" id="productDesc" required>

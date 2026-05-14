@@ -440,8 +440,9 @@ function openProductModal() {
         updateSeoPreview();
     }
 
-    // Reset image
+    // Reset image and gallery
     resetImageUpload();
+    resetGallery();
 }
 
 // Auto-generate slug when product name changes
@@ -568,6 +569,72 @@ function resetImageUpload() {
     delete input.dataset.imageUrl;
     removeBtn.style.display = 'none';
     preview.innerHTML = '<i class="fas fa-image"></i><span>No image selected</span>';
+
+    resetGallery();
+}
+
+// ==================== PRODUCT GALLERY (MULTIPLE IMAGES) ====================
+
+let galleryUploadData = [];
+
+function handleGalleryUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification(`Image ${file.name} must be less than 5MB`);
+            continue;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            galleryUploadData.push(e.target.result);
+            renderGalleryPreview();
+        };
+        reader.onerror = function() {
+            showNotification(`Failed to read image: ${file.name}`);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    event.target.value = '';
+}
+
+function removeGalleryImage(index) {
+    galleryUploadData.splice(index, 1);
+    renderGalleryPreview();
+}
+
+function renderGalleryPreview() {
+    const container = document.getElementById('galleryPreview');
+    if (!container) return;
+
+    if (galleryUploadData.length === 0) {
+        container.innerHTML = '<div class="gallery-empty"><i class="fas fa-images"></i><span>No gallery images</span></div>';
+        return;
+    }
+
+    container.innerHTML = galleryUploadData.map((url, index) => `
+        <div class="gallery-item">
+            <img src="${url}" alt="Gallery image ${index + 1}">
+            <div class="gallery-item-overlay">
+                <span class="gallery-item-index">${index + 1}</span>
+                ${index === 0 ? '<span class="gallery-item-main">Main</span>' : ''}
+            </div>
+            <button type="button" class="gallery-item-remove" onclick="removeGalleryImage(${index})" title="Remove image">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function resetGallery() {
+    galleryUploadData = [];
+    const container = document.getElementById('galleryPreview');
+    if (container) {
+        container.innerHTML = '<div class="gallery-empty"><i class="fas fa-images"></i><span>No gallery images</span></div>';
+    }
 }
 
 function saveProduct(event) {
@@ -583,7 +650,8 @@ function saveProduct(event) {
         sku: document.getElementById('productSku').value,
         price: parseFloat(document.getElementById('productPrice').value),
         icon: document.getElementById('productIcon').value,
-        image: imageInput.dataset.imageUrl || '',
+        image: imageInput.dataset.imageUrl || (galleryUploadData.length > 0 ? galleryUploadData[0] : ''),
+        gallery: galleryUploadData.length > 0 ? galleryUploadData.slice() : [],
         desc: document.getElementById('productDesc').value,
         fullDescription: document.getElementById('productFullDesc').value,
         stock: parseInt(document.getElementById('productStock').value) || 0,
@@ -612,6 +680,7 @@ function saveProduct(event) {
             existing.price = productData.price;
             existing.icon = productData.icon;
             existing.image = productData.image;
+            existing.gallery = productData.gallery;
             existing.desc = productData.desc;
             existing.fullDescription = productData.fullDescription;
             existing.stock = productData.stock;
@@ -685,6 +754,13 @@ function editProduct(id) {
         removeBtn.style.display = 'inline-flex';
     } else {
         resetImageUpload();
+    }
+
+    // Load product gallery
+    resetGallery();
+    if (product.gallery && product.gallery.length > 0) {
+        galleryUploadData = [...product.gallery];
+        renderGalleryPreview();
     }
 
     document.getElementById('productModalOverlay').style.display = 'flex';

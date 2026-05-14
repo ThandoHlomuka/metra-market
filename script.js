@@ -4162,8 +4162,40 @@ function openProductModal(productId) {
 
     const isWishlisted = wishlist.includes(product.id);
 
+    const allImages = [];
+    if (product.gallery && product.gallery.length > 0) {
+        allImages.push(...product.gallery);
+    } else if (product.image) {
+        allImages.push(product.image);
+    }
+
+    let galleryHTML = '';
+    if (allImages.length > 1) {
+        galleryHTML = `
+            <div class="product-gallery-carousel">
+                <div class="carousel-main">
+                    <img src="${allImages[0]}" alt="${product.name}" class="carousel-main-img" id="carouselMainImg">
+                    <button class="carousel-nav carousel-prev" onclick="changeCarouselSlide(-1)" type="button"><i class="fas fa-chevron-left"></i></button>
+                    <button class="carousel-nav carousel-next" onclick="changeCarouselSlide(1)" type="button"><i class="fas fa-chevron-right"></i></button>
+                    <div class="carousel-dots">
+                        ${allImages.map((_, i) => `<span class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="jumpCarouselSlide(${i})"></span>`).join('')}
+                    </div>
+                </div>
+                <div class="carousel-thumbnails">
+                    ${allImages.map((url, i) => `
+                        <div class="carousel-thumb ${i === 0 ? 'active' : ''}" onclick="jumpCarouselSlide(${i})">
+                            <img src="${url}" alt="${product.name} ${i + 1}">
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        galleryHTML = `<div class="modal-product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>`;
+    }
+
     modalBody.innerHTML = `
-        <div class="modal-product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
+        ${galleryHTML}
         <h2 class="modal-product-name">${product.name}</h2>
         <p class="modal-product-sku">SKU: ${product.sku}</p>
         <p class="modal-product-price">R${product.price.toFixed(2)}</p>
@@ -4229,6 +4261,10 @@ function openProductModal(productId) {
         </div>
     `;
 
+    // Store carousel images globally for this modal
+    window._carouselImages = allImages;
+    window._carouselIndex = 0;
+
     modal.classList.add('active');
     overlay.classList.add('active');
 }
@@ -4240,6 +4276,38 @@ function closeProductModal() {
         modal.classList.remove('active');
         overlay.classList.remove('active');
     }
+    window._carouselImages = null;
+    window._carouselIndex = 0;
+}
+
+// Carousel navigation
+function changeCarouselSlide(direction) {
+    const images = window._carouselImages;
+    if (!images || images.length < 2) return;
+    window._carouselIndex = (window._carouselIndex + direction + images.length) % images.length;
+    updateCarousel();
+}
+
+function jumpCarouselSlide(index) {
+    const images = window._carouselImages;
+    if (!images) return;
+    window._carouselIndex = index;
+    updateCarousel();
+}
+
+function updateCarousel() {
+    const images = window._carouselImages;
+    if (!images) return;
+    const mainImg = document.getElementById('carouselMainImg');
+    if (mainImg) {
+        mainImg.src = images[window._carouselIndex];
+    }
+    document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === window._carouselIndex);
+    });
+    document.querySelectorAll('.carousel-thumb').forEach((thumb, i) => {
+        thumb.classList.toggle('active', i === window._carouselIndex);
+    });
 }
 
 // ==================== TOUCH & SWIPE GESTURES ====================
