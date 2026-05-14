@@ -10,7 +10,7 @@ function getClientIP(req) {
 const FALLBACK_ADMIN = { username: 'ThandoHlomuka', password: 'Nozibusiso89' };
 
 function authorize(req) {
-    const auth = req.headers.get('authorization') || req.headers['authorization'] || '';
+    const auth = req.headers['authorization'] || '';
 
     if (!auth.startsWith('Basic ')) {
         return { authorized: false, error: 'Missing or invalid authorization' };
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
                 return res.status(401).json({ error: auth.error || 'Unauthorized' });
             }
 
-            const id = req.query?.id || new URL(req.url, 'http://localhost').searchParams.get('id');
+            const id = req.query?.id;
             if (!id) {
                 return res.status(400).json({ error: 'Product id is required' });
             }

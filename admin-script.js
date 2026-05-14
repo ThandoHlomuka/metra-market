@@ -746,9 +746,6 @@ function saveProduct(event) {
     renderProductsTable();
     updateDashboard();
 
-    // Also update the main store products
-    localStorage.setItem('metraProducts', JSON.stringify(products));
-
     showNotification('Product saved successfully!');
 }
 
@@ -1476,13 +1473,13 @@ function clearData(type) {
     }
 }
 
-function resetProducts() {
-    if (confirm('Reset products to default? Custom products will be lost.')) {
+async function resetProducts() {
+    if (confirm('Remove all locally cached products and reload from database?')) {
         localStorage.removeItem('metraProducts');
-        loadData();
+        await loadData();
         renderProductsTable();
         updateDashboard();
-        showNotification('Products reset to default!');
+        showNotification('Products reloaded from database!');
     }
 }
 

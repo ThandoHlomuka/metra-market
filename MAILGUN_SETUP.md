@@ -110,7 +110,6 @@ MAILGUN_DOMAIN=mg.metramarket.co.za
 ### New Files
 - `/api/send-email.js` - Single email endpoint
 - `/api/send-batch-email.js` - Batch email endpoint
-- `/api/email-service.js` - Email service utilities
 
 ### Modified Files
 - `/script.js` - Updated sendEmail and processEmailQueue
