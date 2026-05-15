@@ -21,6 +21,108 @@ function safeJSON(key, fallback = null) {
     }
 }
 
+// ==================== SECURITY MEASURES ====================
+
+(function securePage() {
+    // 1. Block developer tools shortcuts
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+            (e.ctrlKey && (e.key === 'U' || e.key === 'u'))) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 2. Block right-click on images and product content
+    document.addEventListener('contextmenu', function (e) {
+        const t = e.target;
+        if (t.tagName === 'IMG' || t.closest('.product-image') || t.closest('.product-card') ||
+            t.closest('.gallery-item') || t.closest('.modal-product-image') || t.closest('.carousel-main')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 3. Block dragging images to save
+    document.addEventListener('dragstart', function (e) {
+        if (e.target.tagName === 'IMG') {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 4. Make all product images non-draggable (including dynamically added ones)
+    function protectImages() {
+        document.querySelectorAll('.product-image img, .gallery-item img, .modal-product-image img, .carousel-main img, .carousel-thumb img, .checkout-item-icon img').forEach(function (img) {
+            if (img.getAttribute('draggable') !== 'false') {
+                img.setAttribute('draggable', 'false');
+            }
+        });
+    }
+    protectImages();
+    if (window.MutationObserver) {
+        new MutationObserver(protectImages).observe(document.body, { childList: true, subtree: true });
+    }
+
+    // 5. Console copyright warning
+    console.log('%c⚠️ PROTECTED CONTENT',
+        'font-size:28px;font-weight:bold;color:#d32f2f;');
+    console.log('%cThis website and its source code are protected by copyright law. Unauthorized copying, distribution, or reproduction is prohibited.',
+        'font-size:13px;color:#555;');
+
+    // 6. Devtools detection (lightweight — uses debugger halt)
+    function detectDevtools() {
+        var start = performance.now();
+        debugger;
+        var end = performance.now();
+        if (end - start > 200) {
+            document.body.style.outline = '4px solid red';
+            document.body.style.outlineOffset = '-4px';
+            setTimeout(function () { document.body.style.outline = 'none'; }, 5000);
+        }
+    }
+    setInterval(detectDevtools, 4000);
+})();
+
+// ==================== XSS SAFE RENDER UTILITY ====================
+
+function esc(str) {
+    if (str == null) return '';
+    var d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
+
+// Sanitize all string fields on a product object to prevent stored XSS
+function sanitizeProduct(p) {
+    if (!p) return p;
+    var out = {};
+    for (var k in p) {
+        if (Object.prototype.hasOwnProperty.call(p, k)) {
+            var v = p[k];
+            if (typeof v === 'string') {
+                // Strip HTML tags from user-editable fields
+                out[k] = v.replace(/<[^>]*>/g, '');
+            } else if (Array.isArray(v)) {
+                out[k] = v.map(function (item) {
+                    return typeof item === 'string' ? item.replace(/<[^>]*>/g, '') : item;
+                });
+            } else {
+                out[k] = v;
+            }
+        }
+    }
+    return out;
+}
+
+// Sanitize entire products array in-place
+function sanitizeAllProducts() {
+    if (Array.isArray(products)) {
+        products = products.map(sanitizeProduct);
+    }
+}
+
 // State
 let cart = [];
 let wishlist = [];
@@ -696,6 +798,7 @@ function loadProducts() {
             const parsed = JSON.parse(stored);
             if (Array.isArray(parsed)) {
                 products = parsed;
+                sanitizeAllProducts();
             }
         }
     } catch (e) {
@@ -704,6 +807,7 @@ function loadProducts() {
     fetch(window.location.origin + '/api/products').then(r => r.ok ? r.json() : null).then(data => {
         if (data && data.products && Array.isArray(data.products) && data.products.length > 0) {
             products = data.products;
+            sanitizeAllProducts();
             localStorage.setItem('metraProducts', JSON.stringify(products));
             if (typeof renderProducts === 'function') renderProducts();
             if (typeof renderFilteredProducts === 'function') renderFilteredProducts();
@@ -1113,6 +1217,7 @@ function renderProducts() {
             <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
+                <p class="product-sku" style="font-size:0.8rem;color:var(--gray);margin-bottom:0.3rem;">SKU: ${product.sku}</p>
                 <p class="product-desc">${product.desc}</p>
                 <div class="product-footer">
                     <span class="product-price">R${product.price.toFixed(2)}</span>
@@ -1262,6 +1367,7 @@ function renderFilteredProducts() {
             <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
+                <p class="product-sku" style="font-size:0.8rem;color:var(--gray);margin-bottom:0.3rem;">SKU: ${product.sku}</p>
                 <p class="product-desc">${product.desc}</p>
                 <div class="product-footer">
                     <span class="product-price">R${product.price.toFixed(2)}</span>
@@ -1318,7 +1424,16 @@ function addToCart(productId) {
             quantity: 1,
             _variantLabel: variantLabel,
             _variantSkuSuffix: variant ? variant.skuSuffix : '',
-            price: cartPrice
+            price: cartPrice,
+            // Override dimensions with variant-specific values if set
+            prodWeight: variant && variant.prodWeight != null ? variant.prodWeight : product.prodWeight,
+            prodLength: variant && variant.prodLength != null ? variant.prodLength : product.prodLength,
+            prodWidth: variant && variant.prodWidth != null ? variant.prodWidth : product.prodWidth,
+            prodHeight: variant && variant.prodHeight != null ? variant.prodHeight : product.prodHeight,
+            weight: variant && variant.weight != null ? variant.weight : product.weight,
+            length: variant && variant.length != null ? variant.length : product.length,
+            width: variant && variant.width != null ? variant.width : product.width,
+            height: variant && variant.height != null ? variant.height : product.height
         });
     }
 
@@ -2861,6 +2976,7 @@ function renderRecentlyViewed() {
                     <div class="product-image" style="height: 150px; font-size: 3rem;">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
                     <div class="product-info" style="padding: 1rem;">
                         <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--light);">${product.name}</h4>
+                        <p style="font-size:0.75rem;color:var(--gray);margin-bottom:0.3rem;">SKU: ${product.sku}</p>
                         <p style="font-weight: 700; color: var(--primary);">R${product.price.toFixed(2)}</p>
                     </div>
                 </div>
@@ -3450,6 +3566,7 @@ function switchProfileTab(tab) {
                             <div class="product-image">${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.icon}</div>
                             <div class="product-info">
                                 <h3>${product.name}</h3>
+                                <p style="font-size:0.8rem;color:var(--gray);">SKU: ${product.sku}</p>
                                 <p>R${product.price.toFixed(2)}</p>
                                 <button class="add-to-cart" onclick="addToCart(${product.id})">Add to Cart</button>
                             </div>
@@ -3903,20 +4020,34 @@ function openProductModal(productId) {
             </ul>
         </div>
         
+        <div class="modal-product-dimensions" style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.3); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0;">
+            <h3 style="color: #007BFF; margin-bottom: 1rem;"><i class="fas fa-ruler-combined"></i> Product Dimensions</h3>
+            <div class="variant-dims-prod" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div id="variantProdWeight">
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p>
+                    <p style="font-weight: 600;">${product.prodWeight || '-'} kg</p>
+                </div>
+                <div id="variantProdDims">
+                    <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p>
+                    <p style="font-weight: 600;">${product.prodLength || '-'} × ${product.prodWidth || '-'} × ${product.prodHeight || '-'} cm</p>
+                </div>
+            </div>
+        </div>
+        
         <div class="modal-product-shipping" style="background: rgba(0, 200, 83, 0.1); border: 1px solid rgba(0, 200, 83, 0.3); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0;">
-            <h3 style="color: #00C853; margin-bottom: 1rem;"><i class="fas fa-shipping-fast"></i> Shipping Details</h3>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                <div>
+            <h3 style="color: #00C853; margin-bottom: 1rem;"><i class="fas fa-box"></i> Shipping Dimensions</h3>
+            <div class="variant-dims-ship" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div id="variantShipWeight">
                     <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p>
                     <p style="font-weight: 600;">${product.weight || 0.5} kg</p>
                 </div>
-                <div>
+                <div id="variantShipDims">
                     <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p>
                     <p style="font-weight: 600;">${product.length || 30} × ${product.width || 20} × ${product.height || 15} cm</p>
                 </div>
             </div>
             <p style="color: var(--gray); font-size: 0.85rem; margin-top: 1rem;">
-                <i class="fas fa-info-circle"></i> Shipping cost calculated at checkout based on these details
+                <i class="fas fa-info-circle"></i> Packaged dimensions used by Bobgo to calculate shipping at checkout
             </p>
         </div>
         
@@ -4001,6 +4132,8 @@ function selectVariant(productId, btn) {
     const skuEl = variantContainer.querySelector('.variant-sku-display');
     const stockEl = variantContainer.querySelector('.variant-stock-display');
 
+    const product = products.find(p => p.id === productId);
+
     if (match) {
         if (priceEl) priceEl.textContent = 'R' + match.price.toFixed(2);
         if (skuEl) skuEl.textContent = 'SKU: ' + (match.skuSuffix ? productId + '-' + match.skuSuffix : '');
@@ -4009,14 +4142,53 @@ function selectVariant(productId, btn) {
             stockEl.style.color = match.stock > 0 ? '#4CAF50' : '#f44336';
         }
         variantContainer.dataset.selectedVariant = match.label;
+
+        // Update product dimensions from variant
+        const pw = document.getElementById('variantProdWeight');
+        const pd = document.getElementById('variantProdDims');
+        if (pw) {
+            const v = match.prodWeight ?? product?.prodWeight;
+            pw.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p><p style="font-weight: 600;">${v ?? '-'} kg</p>`;
+        }
+        if (pd) {
+            const l = match.prodLength ?? product?.prodLength;
+            const w = match.prodWidth ?? product?.prodWidth;
+            const h = match.prodHeight ?? product?.prodHeight;
+            pd.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p><p style="font-weight: 600;">${l ?? '-'} × ${w ?? '-'} × ${h ?? '-'} cm</p>`;
+        }
+
+        // Update shipping dimensions from variant
+        const sw = document.getElementById('variantShipWeight');
+        const sd = document.getElementById('variantShipDims');
+        if (sw) {
+            const v = match.weight ?? product?.weight;
+            sw.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p><p style="font-weight: 600;">${v ?? 0.5} kg</p>`;
+        }
+        if (sd) {
+            const l = match.length ?? product?.length;
+            const w = match.width ?? product?.width;
+            const h = match.height ?? product?.height;
+            sd.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p><p style="font-weight: 600;">${l ?? 30} × ${w ?? 20} × ${h ?? 15} cm</p>`;
+        }
     } else if (selectedLabels.length > 0 && selectedLabels.length < (modalVariants[0]?.label.split(' / ').length || 1)) {
-        if (priceEl) priceEl.textContent = 'R' + (products.find(p => p.id === productId)?.price || 0).toFixed(2);
+        if (priceEl) priceEl.textContent = 'R' + (product?.price || 0).toFixed(2);
         if (skuEl) skuEl.textContent = '';
         if (stockEl) {
             stockEl.textContent = 'Select all options';
             stockEl.style.color = 'var(--gray)';
         }
         variantContainer.dataset.selectedVariant = '';
+
+        // Restore product-level dimensions
+        const pw = document.getElementById('variantProdWeight');
+        const pd = document.getElementById('variantProdDims');
+        if (pw) pw.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p><p style="font-weight: 600;">${product?.prodWeight || '-'} kg</p>`;
+        if (pd) pd.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p><p style="font-weight: 600;">${product?.prodLength || '-'} × ${product?.prodWidth || '-'} × ${product?.prodHeight || '-'} cm</p>`;
+
+        const sw = document.getElementById('variantShipWeight');
+        const sd = document.getElementById('variantShipDims');
+        if (sw) sw.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Weight</p><p style="font-weight: 600;">${product?.weight || 0.5} kg</p>`;
+        if (sd) sd.innerHTML = `<p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.3rem;">Dimensions</p><p style="font-weight: 600;">${product?.length || 30} × ${product?.width || 20} × ${product?.height || 15} cm</p>`;
     }
 }
 

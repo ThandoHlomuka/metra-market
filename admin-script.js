@@ -14,6 +14,90 @@ let users = [];
 let reviews = [];
 let settings = {};
 
+// ==================== SECURITY MEASURES ====================
+
+(function secureAdmin() {
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+            (e.ctrlKey && (e.key === 'U' || e.key === 'u'))) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    document.addEventListener('contextmenu', function (e) {
+        var t = e.target;
+        if (t.tagName === 'IMG' || t.closest('.image-preview') || t.closest('.gallery-item') || t.closest('.product-card')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    document.addEventListener('dragstart', function (e) {
+        if (e.target.tagName === 'IMG') {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    function protectImages() {
+        document.querySelectorAll('.image-preview img, .gallery-item img, .product-image img').forEach(function (img) {
+            if (img.getAttribute('draggable') !== 'false') {
+                img.setAttribute('draggable', 'false');
+            }
+        });
+    }
+    protectImages();
+    if (window.MutationObserver) {
+        new MutationObserver(protectImages).observe(document.body, { childList: true, subtree: true });
+    }
+
+    console.log('%c⚠️ ADMIN — PROTECTED', 'font-size:24px;font-weight:bold;color:#d32f2f;');
+    console.log('%cUnauthorized access or copying is prohibited.', 'font-size:13px;color:#555;');
+
+    function detectDevtools() {
+        var start = performance.now();
+        debugger;
+        var end = performance.now();
+        if (end - start > 200) {
+            document.body.style.outline = '4px solid red';
+            document.body.style.outlineOffset = '-4px';
+            setTimeout(function () { document.body.style.outline = 'none'; }, 5000);
+        }
+    }
+    setInterval(detectDevtools, 4000);
+})();
+
+// ==================== XSS SANITIZATION ====================
+
+// Strip HTML tags from all string fields of a product
+function sanitizeProduct(p) {
+    if (!p) return p;
+    var out = {};
+    for (var k in p) {
+        if (Object.prototype.hasOwnProperty.call(p, k)) {
+            var v = p[k];
+            if (typeof v === 'string') {
+                out[k] = v.replace(/<[^>]*>/g, '');
+            } else if (Array.isArray(v)) {
+                out[k] = v.map(function (item) {
+                    return typeof item === 'string' ? item.replace(/<[^>]*>/g, '') : item;
+                });
+            } else {
+                out[k] = v;
+            }
+        }
+    }
+    return out;
+}
+
+function sanitizeAllProducts() {
+    if (Array.isArray(products)) {
+        products = products.map(sanitizeProduct);
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Clean up any stale/corrupted stored password
@@ -22,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('metraAdminPassword');
     }
     checkAdminSession();
+    startSessionMonitor();
 });
 
 // Check Admin Session
@@ -51,6 +136,7 @@ function adminLogin(event) {
     if (username === ADMIN_CREDENTIALS.username && passwordOk) {
         localStorage.setItem('metraAdminLoggedIn', 'true');
         localStorage.setItem('metraAdminName', username);
+        localStorage.setItem('metraAdminLoginTime', Date.now().toString());
         // Store auth for API calls (tab-only, cleared on close)
         sessionStorage.setItem('metraAdminAuth', btoa(username + ':' + password));
         showDashboard();
@@ -63,7 +149,38 @@ function adminLogin(event) {
 function adminLogout() {
     localStorage.removeItem('metraAdminLoggedIn');
     localStorage.removeItem('metraAdminName');
+    localStorage.removeItem('metraAdminLoginTime');
     window.location.reload();
+}
+
+// Session idle + absolute expiry monitor
+function startSessionMonitor() {
+    if (localStorage.getItem('metraAdminLoggedIn') !== 'true') return;
+
+    // Absolute expiry: 24 hours
+    var loginTime = parseInt(localStorage.getItem('metraAdminLoginTime'), 10);
+    if (loginTime && Date.now() - loginTime > 86400000) {
+        adminLogout();
+        return;
+    }
+
+    // Idle timeout: 30 minutes
+    var IDLE_TIMEOUT = 30 * 60 * 1000;
+    var idleTimer;
+
+    function resetIdle() {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(function () {
+            alert('Session expired due to inactivity. Please log in again.');
+            adminLogout();
+        }, IDLE_TIMEOUT);
+    }
+
+    var events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(function (ev) {
+        document.addEventListener(ev, resetIdle, { passive: true });
+    });
+    resetIdle();
 }
 
 // Show Dashboard
@@ -256,6 +373,7 @@ async function loadData() {
             products = [];
         }
     }
+    sanitizeAllProducts();
 
     // Load orders
     orders = safeJSON('metraOrders', []);
@@ -628,18 +746,34 @@ function removeImageBackground() {
     const img = new Image();
     img.onload = function() {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const threshold = 240;
 
         for (let i = 0; i < data.length; i += 4) {
-            if (data[i] > threshold && data[i + 1] > threshold && data[i + 2] > threshold) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            const whiteness = 0.299 * r + 0.587 * g + 0.114 * b;
+            const maxChannel = Math.max(r, g, b);
+            const minChannel = Math.min(r, g, b);
+            const saturation = maxChannel - minChannel;
+            const bgScore = whiteness - saturation * 0.4;
+
+            const bgThreshold = 225;
+            const featherRange = 25;
+
+            if (bgScore > bgThreshold + featherRange) {
                 data[i + 3] = 0;
+            } else if (bgScore > bgThreshold) {
+                const t = (bgScore - bgThreshold) / featherRange;
+                const alpha = 1 - t;
+                data[i + 3] = Math.round(alpha * 255);
             }
         }
 
@@ -662,18 +796,34 @@ function removeGalleryImageBackground(index) {
     const img = new Image();
     img.onload = function() {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const threshold = 240;
 
         for (let i = 0; i < data.length; i += 4) {
-            if (data[i] > threshold && data[i + 1] > threshold && data[i + 2] > threshold) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            const whiteness = 0.299 * r + 0.587 * g + 0.114 * b;
+            const maxChannel = Math.max(r, g, b);
+            const minChannel = Math.min(r, g, b);
+            const saturation = maxChannel - minChannel;
+            const bgScore = whiteness - saturation * 0.4;
+
+            const bgThreshold = 225;
+            const featherRange = 25;
+
+            if (bgScore > bgThreshold + featherRange) {
                 data[i + 3] = 0;
+            } else if (bgScore > bgThreshold) {
+                const t = (bgScore - bgThreshold) / featherRange;
+                const alpha = 1 - t;
+                data[i + 3] = Math.round(alpha * 255);
             }
         }
 
@@ -828,13 +978,24 @@ function generateVariants() {
     const combinations = combine(valuesArrays);
     const basePrice = parseFloat(document.getElementById('productPrice').value) || 0;
 
-    currentVariants = combinations.map((combo, i) => {
+    const prodW = parseFloat(document.getElementById('productDimWeight').value) || null;
+    const prodL = parseFloat(document.getElementById('productDimLength').value) || null;
+    const prodWd = parseFloat(document.getElementById('productDimWidth').value) || null;
+    const prodH = parseFloat(document.getElementById('productDimHeight').value) || null;
+    const shipW = parseFloat(document.getElementById('productWeight').value) || null;
+    const shipL = parseFloat(document.getElementById('productLength').value) || null;
+    const shipWd = parseFloat(document.getElementById('productWidth').value) || null;
+    const shipH = parseFloat(document.getElementById('productHeight').value) || null;
+
+    currentVariants = combinations.map((combo) => {
         const labels = combo.map(c => c.value);
         return {
             label: labels.join(' / '),
             price: basePrice,
             stock: parseInt(document.getElementById('productStock').value) || 0,
-            skuSuffix: labels.map(l => l.substring(0, 2).toUpperCase()).join('')
+            skuSuffix: labels.map(l => l.substring(0, 2).toUpperCase()).join(''),
+            prodWeight: prodW, prodLength: prodL, prodWidth: prodWd, prodHeight: prodH,
+            weight: shipW, length: shipL, width: shipWd, height: shipH
         };
     });
 
@@ -853,21 +1014,32 @@ function renderVariantsTable() {
         return;
     }
 
+    const inp = 'padding:0.3rem;border:1px solid rgba(255,255,255,0.2);border-radius:4px;background:rgba(255,255,255,0.05);color:var(--text);';
+    const dim = `type="number" step="0.01" style="width:62px;${inp}"`;
+
     container.style.display = 'block';
     tbody.innerHTML = currentVariants.map((v, i) => `
         <tr>
             <td><strong>${v.label}</strong></td>
             <td><input type="number" step="0.01" class="variant-price" value="${v.price}" data-index="${i}"
-                       style="width: 100px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+                       style="width:80px;${inp}"></td>
             <td><input type="number" class="variant-stock" value="${v.stock}" data-index="${i}"
-                       style="width: 80px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+                       style="width:60px;${inp}"></td>
             <td><input type="text" class="variant-sku" value="${v.skuSuffix}" data-index="${i}"
-                       style="width: 100px; padding: 0.3rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text);"></td>
+                       style="width:70px;${inp}"></td>
+            <td><input ${dim} class="variant-prod-weight" value="${v.prodWeight ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-prod-length" value="${v.prodLength ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-prod-width" value="${v.prodWidth ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-prod-height" value="${v.prodHeight ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-ship-weight" value="${v.weight ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-ship-length" value="${v.length ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-ship-width" value="${v.width ?? ''}" data-index="${i}"></td>
+            <td><input ${dim} class="variant-ship-height" value="${v.height ?? ''}" data-index="${i}"></td>
             <td><button type="button" class="btn-danger btn-sm" onclick="removeVariant(${i})"><i class="fas fa-times"></i></button></td>
         </tr>
     `).join('');
 
-    tbody.querySelectorAll('.variant-price, .variant-stock, .variant-sku').forEach(input => {
+    tbody.querySelectorAll('.variant-price, .variant-stock, .variant-sku, .variant-prod-weight, .variant-prod-length, .variant-prod-width, .variant-prod-height, .variant-ship-weight, .variant-ship-length, .variant-ship-width, .variant-ship-height').forEach(input => {
         input.addEventListener('input', syncVariantInput);
     });
 }
@@ -875,12 +1047,30 @@ function renderVariantsTable() {
 function syncVariantInput(e) {
     const index = parseInt(e.target.dataset.index);
     if (isNaN(index) || !currentVariants[index]) return;
-    if (e.target.classList.contains('variant-price')) {
-        currentVariants[index].price = parseFloat(e.target.value) || 0;
-    } else if (e.target.classList.contains('variant-stock')) {
-        currentVariants[index].stock = parseInt(e.target.value) || 0;
-    } else if (e.target.classList.contains('variant-sku')) {
-        currentVariants[index].skuSuffix = e.target.value.trim();
+    const el = e.target;
+    const val = el.value.trim();
+    if (el.classList.contains('variant-price')) {
+        currentVariants[index].price = parseFloat(val) || 0;
+    } else if (el.classList.contains('variant-stock')) {
+        currentVariants[index].stock = parseInt(val) || 0;
+    } else if (el.classList.contains('variant-sku')) {
+        currentVariants[index].skuSuffix = val;
+    } else if (el.classList.contains('variant-prod-weight')) {
+        currentVariants[index].prodWeight = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-prod-length')) {
+        currentVariants[index].prodLength = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-prod-width')) {
+        currentVariants[index].prodWidth = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-prod-height')) {
+        currentVariants[index].prodHeight = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-ship-weight')) {
+        currentVariants[index].weight = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-ship-length')) {
+        currentVariants[index].length = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-ship-width')) {
+        currentVariants[index].width = val ? parseFloat(val) : null;
+    } else if (el.classList.contains('variant-ship-height')) {
+        currentVariants[index].height = val ? parseFloat(val) : null;
     }
 }
 
@@ -926,9 +1116,9 @@ function saveProduct(event) {
     const imageInput = document.getElementById('productImageInput');
 
     // Sync variant input fields before saving
-    document.querySelectorAll('#variantsTbody .variant-price, #variantsTbody .variant-stock, #variantsTbody .variant-sku').forEach(syncVariantInput);
+    document.querySelectorAll('#variantsTbody .variant-price, #variantsTbody .variant-stock, #variantsTbody .variant-sku, #variantsTbody .variant-prod-weight, #variantsTbody .variant-prod-length, #variantsTbody .variant-prod-width, #variantsTbody .variant-prod-height, #variantsTbody .variant-ship-weight, #variantsTbody .variant-ship-length, #variantsTbody .variant-ship-width, #variantsTbody .variant-ship-height').forEach(syncVariantInput);
 
-    const productData = {
+    const formFields = {
         name: document.getElementById('productName').value,
         sku: document.getElementById('productSku').value,
         price: parseFloat(document.getElementById('productPrice').value),
@@ -940,9 +1130,13 @@ function saveProduct(event) {
         stock: parseInt(document.getElementById('productStock').value) || 0,
         specs: specsInput ? specsInput.split(',').map(s => s.trim()) : [],
         tags: tagsInput ? tagsInput.split(',').map(t => t.trim()) : [],
-        reviews: [],
         variants: collectVariants(),
-        // Shipping details for Bobgo
+        // Product dimensions (for storefront display)
+        prodWeight: parseFloat(document.getElementById('productDimWeight').value) || null,
+        prodLength: parseFloat(document.getElementById('productDimLength').value) || null,
+        prodWidth: parseFloat(document.getElementById('productDimWidth').value) || null,
+        prodHeight: parseFloat(document.getElementById('productDimHeight').value) || null,
+        // Shipping dimensions for Bobgo
         weight: parseFloat(document.getElementById('productWeight').value) || 0.5,
         length: parseFloat(document.getElementById('productLength').value) || 30,
         width: parseFloat(document.getElementById('productWidth').value) || 20,
@@ -955,36 +1149,17 @@ function saveProduct(event) {
     };
 
     if (editId) {
-        // Edit existing
         const index = products.findIndex(p => p.id == editId);
         if (index > -1) {
             const existing = products[index];
-            existing.name = productData.name;
-            existing.sku = productData.sku;
-            existing.price = productData.price;
-            existing.icon = productData.icon;
-            existing.image = productData.image;
-            existing.gallery = productData.gallery;
-            existing.desc = productData.desc;
-            existing.fullDescription = productData.fullDescription;
-            existing.stock = productData.stock;
-            existing.specs = productData.specs;
-            existing.tags = productData.tags;
-            existing.variants = productData.variants;
-            existing.weight = productData.weight;
-            existing.length = productData.length;
-            existing.width = productData.width;
-            existing.height = productData.height;
-            existing.slug = productData.slug;
-            existing.metaTitle = productData.metaTitle;
-            existing.metaDesc = productData.metaDesc;
-            existing.metaKeywords = productData.metaKeywords;
+            // Merge form fields into existing — preserves all other fields (reviews, id, etc.)
+            Object.assign(existing, formFields);
             products[index] = existing;
         }
     } else {
-        // Add new
-        productData.id = Date.now();
-        products.push(productData);
+        formFields.id = Date.now();
+        formFields.reviews = [];
+        products.push(formFields);
     }
 
     saveProducts();
@@ -1011,6 +1186,12 @@ function editProduct(id) {
     document.getElementById('productSpecs').value = product.specs ? product.specs.join(', ') : '';
     document.getElementById('productTags').value = product.tags ? product.tags.join(', ') : '';
     
+    // Load product dimensions
+    document.getElementById('productDimWeight').value = product.prodWeight || '';
+    document.getElementById('productDimLength').value = product.prodLength || '';
+    document.getElementById('productDimWidth').value = product.prodWidth || '';
+    document.getElementById('productDimHeight').value = product.prodHeight || '';
+
     // Load shipping details
     document.getElementById('productWeight').value = product.weight || 0.5;
     document.getElementById('productLength').value = product.length || 30;

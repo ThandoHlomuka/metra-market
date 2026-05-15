@@ -15,6 +15,14 @@
     --gradient: linear-gradient(135deg, #8B0000 0%, #DC143C 50%, #B22222 100%);
 }
 
+/* Security: Prevent image dragging and selection */
+.product-image img, .gallery-item img, .image-preview img {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: auto;
+}
+
 * {
     margin: 0;
     padding: 0;

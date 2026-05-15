@@ -1,5 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 
+// ─── Utilities ───────────────────────────────────────────
+
 function getClientIP(req) {
     return req.headers['x-forwarded-for'] ||
            req.headers['x-real-ip'] ||
@@ -27,19 +29,88 @@ function authorize(req) {
         const envUser = process.env.ADMIN_USERNAME;
         const envPass = process.env.ADMIN_PASSWORD;
 
-        if (envUser && envPass && user === envUser && pass === envPass) {
-            return { authorized: true };
-        }
-        if (user === FALLBACK_ADMIN.username && pass === FALLBACK_ADMIN.password) {
-            return { authorized: true };
-        }
-        return { authorized: false, error: 'Invalid credentials' };
+        const userOk = envUser && envPass ? user === envUser && pass === envPass
+                                           : user === FALLBACK_ADMIN.username && pass === FALLBACK_ADMIN.password;
+        return userOk ? { authorized: true } : { authorized: false, error: 'Invalid credentials' };
     } catch {
         return { authorized: false, error: 'Authorization error' };
     }
 }
 
+// Strip HTML tags from a string
+function stripHTML(s) {
+    return typeof s === 'string' ? s.replace(/<[^>]*>/g, '') : s;
+}
+
+// Recursively sanitize all string fields in an object/array
+function sanitizeObject(obj) {
+    if (Array.isArray(obj)) return obj.map(sanitizeObject);
+    if (obj && typeof obj === 'object') {
+        const out = {};
+        for (const [k, v] of Object.entries(obj)) out[k] = sanitizeObject(v);
+        return out;
+    }
+    return typeof obj === 'string' ? stripHTML(obj) : obj;
+}
+
+// Validate that a value is a safe string (no HTML, no control chars except \n)
+function isValidString(v) {
+    return typeof v === 'string' && v.length < 10000;
+}
+
+// ─── Rate limiter (in-memory) ────────────────────────────
+
+const rateBuckets = new Map();
+const RATE_WINDOW = 60 * 1000; // 1 minute
+const RATE_MAX_POST = 10;       // max POST/DELETE per window
+const RATE_MAX_GET = 60;        // max GET per window
+
+function checkRateLimit(ip, isWrite) {
+    const now = Date.now();
+    const max = isWrite ? RATE_MAX_POST : RATE_MAX_GET;
+    if (!rateBuckets.has(ip)) {
+        rateBuckets.set(ip, { count: 1, windowStart: now });
+        return true;
+    }
+    const bucket = rateBuckets.get(ip);
+    if (now - bucket.windowStart > RATE_WINDOW) {
+        bucket.count = 1;
+        bucket.windowStart = now;
+        return true;
+    }
+    bucket.count++;
+    return bucket.count <= max;
+}
+
+// Periodic cleanup of stale rate buckets
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, bucket] of rateBuckets) {
+        if (now - bucket.windowStart > RATE_WINDOW * 2) rateBuckets.delete(ip);
+    }
+}, 60000);
+
+// ─── Security headers ────────────────────────────────────
+
+function setSecurityHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+}
+
+// ─── Request body size check ─────────────────────────────
+
+const MAX_BODY_BYTES = 1024 * 1024 * 5; // 5 MB
+
+// ─── Handler ─────────────────────────────────────────────
+
 export default async function handler(req, res) {
+    // Security headers on every response
+    setSecurityHeaders(res);
+
+    // CORS
     const origin = req.headers.origin || '';
     const allowedOrigins = [
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
@@ -54,7 +125,22 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        return res.status(204).end();
+    }
+
+    // Rate limiting
+    const clientIP = getClientIP(req);
+    const isWrite = req.method === 'POST' || req.method === 'DELETE';
+    if (!checkRateLimit(clientIP, isWrite)) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+
+    // Body size check for write requests
+    if (isWrite && req.headers['content-length']) {
+        const size = parseInt(req.headers['content-length'], 10);
+        if (size > MAX_BODY_BYTES) {
+            return res.status(413).json({ error: 'Request entity too large' });
+        }
     }
 
     const dbUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
@@ -62,7 +148,7 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             return res.status(200).json({ products: [], source: 'fallback' });
         }
-        return res.status(503).json({ error: 'Database not configured. Set DATABASE_URL or NEON_DATABASE_URL.' });
+        return res.status(503).json({ error: 'Database not configured.' });
     }
 
     try {
@@ -74,57 +160,78 @@ export default async function handler(req, res) {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )`;
 
+        // ── GET ──────────────────────────────────────────
+
         if (req.method === 'GET') {
             const rows = await sql`SELECT value FROM store_data WHERE key = 'products'`;
             const products = rows.length > 0 ? rows[0].value : [];
             return res.status(200).json({ products, source: 'database' });
         }
 
+        // ── DELETE ───────────────────────────────────────
+
         if (req.method === 'DELETE') {
-            const auth = authorize(req);
-            if (!auth.authorized) {
-                return res.status(401).json({ error: auth.error || 'Unauthorized' });
+            const authResult = authorize(req);
+            if (!authResult.authorized) {
+                return res.status(401).json({ error: authResult.error || 'Unauthorized' });
             }
 
             const id = req.query?.id;
-            if (!id) {
-                return res.status(400).json({ error: 'Product id is required' });
+            if (!id || typeof id !== 'string' || id.length > 100) {
+                return res.status(400).json({ error: 'Invalid product id' });
             }
 
             const rows = await sql`SELECT value FROM store_data WHERE key = 'products'`;
-            let products = rows.length > 0 ? rows[0].value : [];
+            const products = rows.length > 0 ? rows[0].value : [];
             const filtered = products.filter(p => String(p.id) !== String(id));
             if (filtered.length === products.length) {
                 return res.status(404).json({ error: 'Product not found' });
             }
-            await sql`INSERT INTO store_data (key, value, updated_at) VALUES ('products', ${JSON.stringify(filtered)}::jsonb, NOW())
+            await sql`INSERT INTO store_data (key, value, updated_at)
+                      VALUES ('products', ${JSON.stringify(filtered)}::jsonb, NOW())
                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
             return res.status(200).json({ success: true, products: filtered });
         }
 
+        // ── POST ─────────────────────────────────────────
+
         if (req.method === 'POST') {
-            const auth = authorize(req);
-            if (!auth.authorized) {
-                return res.status(401).json({ error: auth.error || 'Unauthorized' });
+            const authResult = authorize(req);
+            if (!authResult.authorized) {
+                return res.status(401).json({ error: authResult.error || 'Unauthorized' });
             }
 
-            const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-            if (!body || !body.products) {
-                return res.status(400).json({ error: 'Missing products array in request body' });
+            let body;
+            try {
+                body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            } catch {
+                return res.status(400).json({ error: 'Invalid JSON in request body' });
             }
 
-            await sql`INSERT INTO store_data (key, value, updated_at) VALUES ('products', ${JSON.stringify(body.products)}::jsonb, NOW())
+            if (!body || !Array.isArray(body.products)) {
+                return res.status(400).json({ error: 'Missing or invalid products array' });
+            }
+
+            if (body.products.length > 500) {
+                return res.status(400).json({ error: 'Products array exceeds maximum size (500)' });
+            }
+
+            // Sanitize all string fields to prevent HTML injection / stored XSS
+            const sanitized = sanitizeObject(body.products);
+
+            await sql`INSERT INTO store_data (key, value, updated_at)
+                      VALUES ('products', ${JSON.stringify(sanitized)}::jsonb, NOW())
                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
-            return res.status(200).json({ success: true, count: body.products.length });
+            return res.status(200).json({ success: true, count: sanitized.length });
         }
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (error) {
-        const clientIP = getClientIP(req);
         console.error(`Products API error (IP: ${clientIP}):`, error.message);
+        // Never leak internal details to the client
         if (req.method === 'GET') {
             return res.status(200).json({ products: [], source: 'error_fallback' });
         }
-        return res.status(500).json({ error: 'Internal server error', message: error.message });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }

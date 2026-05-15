@@ -253,16 +253,13 @@
             console.log('Calculating shipping for:', province);
             document.getElementById('shippingOptionsContainer').innerHTML = '<div class="spinner"><i class="fas fa-spinner"></i><p>Calculating shipping...</p></div>';
 
-            // Calculate package dimensions
+            // Calculate package dimensions (use variant-specific dims from cart item when available)
             let weight = 0, length = 0, width = 0, height = 0;
             cart.forEach(item => {
-                const product = products.find(p => p.id === item.id);
-                if (product) {
-                    weight += (product.weight || 0.5) * item.quantity;
-                    length = Math.max(length, product.length || 30);
-                    width = Math.max(width, product.width || 20);
-                    height += (product.height || 15) * item.quantity;
-                }
+                weight += (item.weight ?? 0.5) * item.quantity;
+                length = Math.max(length, item.length ?? 30);
+                width = Math.max(width, item.width ?? 20);
+                height += (item.height ?? 15) * item.quantity;
             });
             if (weight === 0) { weight = 1; length = 30; width = 20; height = 15; }
 

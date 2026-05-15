@@ -1423,11 +1423,23 @@
                                 <table class="data-table" id="variantsDataTable" style="width: 100%; font-size: 0.85rem;">
                                     <thead>
                                         <tr>
-                                            <th>Variant</th>
-                                            <th>Price (R)</th>
-                                            <th>Stock</th>
-                                            <th>SKU Suffix</th>
-                                            <th></th>
+                                            <th rowspan="2">Variant</th>
+                                            <th rowspan="2" style="min-width:70px">Price</th>
+                                            <th rowspan="2" style="min-width:60px">Stock</th>
+                                            <th rowspan="2" style="min-width:70px">SKU</th>
+                                            <th colspan="4" style="text-align:center; color:#007BFF; font-size:0.8rem; border-bottom: none;">Product Dims</th>
+                                            <th colspan="4" style="text-align:center; color:#00C853; font-size:0.8rem; border-bottom: none;">Shipping Dims</th>
+                                            <th rowspan="2" style="min-width:36px"></th>
+                                        </tr>
+                                        <tr>
+                                            <th style="color:#007BFF; font-size:0.75rem; border-top: none;">Wt</th>
+                                            <th style="color:#007BFF; font-size:0.75rem; border-top: none;">L</th>
+                                            <th style="color:#007BFF; font-size:0.75rem; border-top: none;">W</th>
+                                            <th style="color:#007BFF; font-size:0.75rem; border-top: none;">H</th>
+                                            <th style="color:#00C853; font-size:0.75rem; border-top: none;">Wt</th>
+                                            <th style="color:#00C853; font-size:0.75rem; border-top: none;">L</th>
+                                            <th style="color:#00C853; font-size:0.75rem; border-top: none;">W</th>
+                                            <th style="color:#00C853; font-size:0.75rem; border-top: none;">H</th>
                                         </tr>
                                     </thead>
                                     <tbody id="variantsTbody"></tbody>
@@ -1436,10 +1448,42 @@
                         </div>
                     </div>
 
+                    <div class="form-group" style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                        <label style="color: #007BFF; font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                            <i class="fas fa-ruler-combined"></i> Product Dimensions
+                        </label>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Weight (kg)</label>
+                                <input type="number" step="0.01" id="productDimWeight" placeholder="e.g. 0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Length (cm)</label>
+                                <input type="number" step="0.1" id="productDimLength" placeholder="e.g. 30">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Width (cm)</label>
+                                <input type="number" step="0.1" id="productDimWidth" placeholder="e.g. 20">
+                            </div>
+                            <div class="form-group">
+                                <label>Height (cm)</label>
+                                <input type="number" step="0.1" id="productDimHeight" placeholder="e.g. 15">
+                            </div>
+                        </div>
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> These dimensions are shown on the product page for customer reference
+                        </p>
+                    </div>
+
                     <div class="form-group" style="background: rgba(0, 200, 83, 0.1); border: 1px solid rgba(0, 200, 83, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem;">
                         <label style="color: #00C853; font-weight: 600; margin-bottom: 0.5rem; display: block;">
-                            <i class="fas fa-shipping-fast"></i> Shipping Details (Bobgo)
+                            <i class="fas fa-box"></i> Shipping Dimensions (Bobgo)
                         </label>
+                        <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                            <i class="fas fa-info-circle"></i> Packaged dimensions used by Bobgo to calculate shipping costs
+                        </p>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Weight (kg)</label>
@@ -1460,9 +1504,6 @@
                                 <input type="number" step="0.1" id="productHeight" placeholder="15" value="15">
                             </div>
                         </div>
-                        <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
-                            <i class="fas fa-info-circle"></i> These details are used by Bobgo to calculate accurate shipping costs
-                        </p>
                     </div>
 
                     <!-- SEO Optimization Section -->
