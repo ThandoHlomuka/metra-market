@@ -329,7 +329,7 @@ function getAuthToken() {
 async function syncProductsToDB(productArray) {
     try {
         const token = getAuthToken();
-        if (!token) return;
+        if (!token) return false;
         const resp = await fetch(getApiBaseUrl() + '/api/products', {
             method: 'POST',
             headers: {
@@ -338,9 +338,16 @@ async function syncProductsToDB(productArray) {
             },
             body: JSON.stringify({ products: productArray })
         });
-        if (!resp.ok) console.warn('DB sync failed:', resp.status, (await resp.json()).error);
+        if (!resp.ok) {
+            console.warn('DB sync failed:', resp.status);
+            return false;
+        }
+        // Update timestamp to reflect DB save
+        localStorage.setItem('metraProductsTimestamp', Date.now().toString());
+        return true;
     } catch (e) {
-        // DB sync is best-effort; localStorage always works
+        console.warn('DB sync error:', e.message);
+        return false;
     }
 }
 
@@ -349,10 +356,16 @@ async function loadProductsFromDB() {
         const resp = await fetch(getApiBaseUrl() + '/api/products');
         if (resp.ok) {
             const data = await resp.json();
-            if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-                products = data.products;
-                localStorage.setItem('metraProducts', JSON.stringify(products));
-                return true;
+            if (data.products && Array.isArray(data.products)) {
+                const localTs = parseInt(localStorage.getItem('metraProductsTimestamp') || '0', 10);
+                const dbTs = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
+                // Only use DB data if it's newer than local or local has no timestamp
+                if (data.products.length > 0 && dbTs >= localTs) {
+                    products = data.products;
+                    localStorage.setItem('metraProducts', JSON.stringify(products));
+                    localStorage.setItem('metraProductsTimestamp', dbTs.toString());
+                    return true;
+                }
             }
         }
     } catch (e) {
@@ -405,7 +418,12 @@ async function loadData() {
 // Save Products
 function saveProducts() {
     localStorage.setItem('metraProducts', JSON.stringify(products));
-    syncProductsToDB(products);
+    localStorage.setItem('metraProductsTimestamp', Date.now().toString());
+    syncProductsToDB(products).then(function (ok) {
+        if (!ok && document.getElementById('editProductId').value) {
+            showNotification('Saved locally but DB sync failed — data may not persist on reload');
+        }
+    });
 }
 
 // Update Dashboard
@@ -1152,8 +1170,41 @@ function saveProduct(event) {
         const index = products.findIndex(p => p.id == editId);
         if (index > -1) {
             const existing = products[index];
-            // Merge form fields into existing — preserves all other fields (reviews, id, etc.)
-            Object.assign(existing, formFields);
+            // Only update form-sourced fields, preserve everything else
+            existing.name = formFields.name;
+            existing.sku = formFields.sku;
+            existing.price = formFields.price;
+            existing.icon = formFields.icon;
+            existing.image = formFields.image;
+            existing.desc = formFields.desc;
+            existing.fullDescription = formFields.fullDescription;
+            existing.stock = formFields.stock;
+            existing.slug = formFields.slug;
+            existing.metaTitle = formFields.metaTitle;
+            existing.metaDesc = formFields.metaDesc;
+            existing.metaKeywords = formFields.metaKeywords;
+            existing.prodWeight = formFields.prodWeight;
+            existing.prodLength = formFields.prodLength;
+            existing.prodWidth = formFields.prodWidth;
+            existing.prodHeight = formFields.prodHeight;
+            existing.weight = formFields.weight;
+            existing.length = formFields.length;
+            existing.width = formFields.width;
+            existing.height = formFields.height;
+            // Gallery: only overwrite if gallery was actually interacted with
+            if (galleryUploadData.length > 0) {
+                existing.gallery = formFields.gallery;
+            }
+            // Specs / tags / variants: only overwrite when form has values
+            if (specsInput) {
+                existing.specs = formFields.specs;
+            }
+            if (tagsInput) {
+                existing.tags = formFields.tags;
+            }
+            if (currentVariants.length > 0) {
+                existing.variants = formFields.variants;
+            }
             products[index] = existing;
         }
     } else {

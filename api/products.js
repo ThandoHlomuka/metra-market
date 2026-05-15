@@ -163,9 +163,10 @@ export default async function handler(req, res) {
         // ── GET ──────────────────────────────────────────
 
         if (req.method === 'GET') {
-            const rows = await sql`SELECT value FROM store_data WHERE key = 'products'`;
+            const rows = await sql`SELECT value, updated_at FROM store_data WHERE key = 'products'`;
             const products = rows.length > 0 ? rows[0].value : [];
-            return res.status(200).json({ products, source: 'database' });
+            const updatedAt = rows.length > 0 ? rows[0].updated_at : null;
+            return res.status(200).json({ products, updatedAt, source: 'database' });
         }
 
         // ── DELETE ───────────────────────────────────────
